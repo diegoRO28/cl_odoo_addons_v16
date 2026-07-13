@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>    
+<odoo>    
+
+    <!-- Form View Of School Information -->
+    <record id="view_school_tipocambio_form" model="ir.ui.view">
+        <field name="name">school.tipocambio.form</field>
+        <field name="model">school.tipocambio</field>
+        <field name="arch" type="xml">
+            <form string="Information">
+                <sheet>
+                    <separator string="Información del tipocambio" />
+                    <group col="4" colspan="4">
+                        
+                        <field name="code" placeholder="Código" />
+                        <field name="name" string="Nombre" placeholder="Por ejemplo: Cambio de horario..!" /> 
+                        
+                    </group>
+                    
+                    
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View Of School Information -->
+    <record id="view_school_school_tree" model="ir.ui.view">
+        <field name="name">school.tipocambio.tree</field>
+        <field name="model">school.tipocambio</field>
+        <field name="arch" type="xml">
+            <tree string="tipocambio Information">
+                <!-- <field name="company_id" /> -->
+                <field name="code" />
+                <field name="name" string="Nombre" />
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of School Information -->
+    <record id="action_school_tipocambio_form" model="ir.actions.act_window">
+        <field name="name">Tipos de Cambio</field>
+        <field name="res_model">school.tipocambio</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- MENU Of School Information -->
+       <menuitem id="menu_school_tipocambio_sub_form" 
+               name="Tipo Cambio" 
+             parent="menu_school_config_cambio" 
+             action="action_school_tipocambio_form" /> 
+
+</odoo>

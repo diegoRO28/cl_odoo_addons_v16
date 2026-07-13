@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <!-- Tree View Of Registro de Asistencia -->
+    <record id="view_standard_evaluacion_tree" model="ir.ui.view">
+        <field name="name">standard.evaluacion.tree</field>
+        <field name="model">standard.evaluacion</field>
+        <field name="arch" type="xml">
+            <tree string="Información del Registro de Asistencia" create="0" delete="0">
+               
+                <field name="standard_id"/>
+                <field name="subject_id"/>
+                <field name="teacher_id"/>
+                <field name="libroevas_id"/>
+                <field name="date_start"/>
+                <field name="note"/>
+ 
+                <field name="state_aux" decoration-warning="state_aux =='por iniciar'" 
+                                        decoration-success="state_aux =='iniciado'"
+                                        decoration-info="state_aux =='culminado'"
+                                        decoration-primary="state_aux =='recuperado'"
+                                        widget="badge" optional="show"/>
+
+            </tree>
+        </field>
+    </record>
+
+    
+
+    <!-- Form View Of Registro de Asistencias Information -->
+    <record id="view_standard_evaluacion_form" model="ir.ui.view">
+        <field name="name">standard.evaluacion.form</field>
+        <field name="model">standard.evaluacion</field>
+        <field name="arch" type="xml">
+            <form string="Información Registro de Evaluaciones" delete="0" duplicate="0">
+                <header>
+                    <button class="btn-info" name="set_terminate" string="CERRAR EVALUACIÒN" type="object" confirm="Está seguro de CERRAR LA EVALUACIÓN ?"
+                            icon="fa-lock" states="done" groups="school.group_school_administration,school.group_school_teacher"/>
+
+                    <button class="btn-success" icon="fa-check"  name="set_done" type="object" confirm="Está seguro de INICIAR LA EVALUACIÓN ?"
+                            string="INICIAR EVALUACIÒN" states="draft" groups="school.group_school_administration,school.group_school_teacher" />
+
+                    <button class="btn-warning" icon="fa-search"  name="set_done_corregir" type="object" confirm="Está seguro de VOLVER A INICIADA LA EVALUACIÓN ?"
+                                                string="VOLVER A INICIADO" states="terminate" groups="school.group_school_administration,school.group_school_teacher" />
+                                                
+                    <button class="btn-danger" icon="fa-ban" name="set_cancel" type="object" string="CANCELAR EVALUACIÒN" states="draft" groups="school.group_school_administration"/> -->
+                    <field name="state" widget="statusbar" statusbar_visible="draft,cancel"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Por Iniciar"  bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <widget name="web_ribbon" title="Iniciado"     bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <widget name="web_ribbon" title="Culminado"    bg_color="bg-info"    attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
+                    <widget name="web_ribbon" title="Cancelada"    bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+                    <widget name="web_ribbon" title="Recuperación" bg_color="bg-primary" attrs="{'invisible': [('state', '!=', 'recovery')]}"/>
+
+                    <newline />
+                    <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                    </div>
+                    
+                    <group col="2">
+                        <group string="INFORMACIÓN DE LA SECCIÓN">
+                            <!-- <field name="id" readonly="1"/>  -->
+                            <field name="standard_id" widget="selection" readonly="1" placeholder="Sección"/>
+                            <field name="subject_id" widget="selection" readonly="1" placeholder="Curso"/>
+                            <field name="teacher_id" widget="selection" placeholder="Profesor" readonly="1"/>
+                            <field name="school_id" placeholder="Campus" readonly="1" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                        </group>
+
+                        <group string="INFORMACIÓN DE LA EVALUACIÓN">
+                            <field name="libroevas_id" widget="selection" readonly="1" placeholder="Evaluación"/>
+                            <field name="nombre"/>
+                            <field name="date_start" placeholder="Fecha" attrs="{'readonly': [('state', '=', 'terminate')]}" />
+                            <field name="porc_peso"  />
+                            <field name="average"    placeholder="Promedio de califiación" readonly="1" />
+                         </group>
+
+                    </group>
+                    <separator string="Actividades de Evaluación" />
+                    <group colspan="4">
+                       <field name="note_act" colspan="2" readonly="1" placeholder="Observaciones" nolabel="1" widget="text" decoration-bf="1" decoration-it="1" decoration-info="1"/>
+                    </group>
+                    <!-- <separator string="Actividades" />
+                    <group colspan="4">
+                       
+                          <field name="note_act" readonly="1" placeholder="Actividades" nolabel="1" widget="text" decoration-bf="1"/>
+                       
+                    </group> -->
+                    <!-- <separator string="Actividades" />
+                    <group colspan="4">
+                            <field name="actividad_ids" nolabel="1" colspan="2">
+                                                
+                                                        <tree colspan="4" create="0" delete = "0">
+                                                            <field name="evaluacion_id"/>
+                                                            <field name="id"/>
+                                                            <field name="nombre"/>
+                                                            <field name="porc_peso"/>
+                                                            <field name="is_recupera" widget="boolean_toggle"/>
+                                                            <field name="note"/>
+                                                        </tree>
+
+                            </field>
+                    </group> -->
+ 
+                    
+                    <notebook>
+                        
+                        <!-- DESARROLLO PROPIO: SE AGREGO ESTE PAGE -->
+                        <page string="ESTUDIANTES INSCRITOS" >
+                            <field name="evaluacion_ids" nolabel="1" colspan="4" >
+
+                                <tree string="Estudiantes" create="0" delete="0" editable="1" 
+                                    
+                                    decoration-danger="state == 'aplazado'"
+                                    
+                                >
+                                    <field name="state_inc" decoration-warning="state_inc =='draft'" 
+                                                        decoration-success="state_inc =='done'"
+                                                        decoration-info="state_inc =='terminate'"
+                                                        decoration-danger="state_inc =='cancel'"
+                                                        widget="badge" string="Status" optional="show"/>
+
+                                    <field name="photo" widget="image" class="float-left oe_avatar" readonly="1"/>
+                                    <field name="student_code" />
+                                    <field name="student_id" readonly="1" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+
+                                    <field name="is_act1" invisible="1"/>
+                                    <field name="is_act2" invisible="1"/>
+                                    <field name="is_act3" invisible="1"/>
+                                    <field name="is_act4" invisible="1"/>
+                                    <field name="is_act5" invisible="1"/>
+                                    <field name="is_act6" invisible="1"/>
+                                    <field name="state_aux" invisible="1"/>
+
+                                    <field name="nota1" string="A1" attrs="{'invisible': [('is_act1', '=', False)],'readonly': [('state_aux', 'in', ['terminate','recovery'])],'readonly': [('state_inc', 'in', ['terminate','cancel'])]}" widget="Integer" decoration-bf="1"/>
+ 
+                                    <field name="nota2" string="A2" attrs="{'invisible': [('is_act2', '=', False)],'readonly': [('state_aux', 'in', ['terminate','recovery'])],'readonly': [('state_inc', 'in', ['terminate','cancel'])]}" widget="Integer" decoration-bf="1"/>
+                                    <field name="nota3" string="A3" attrs="{'invisible': [('is_act3', '=', False)],'readonly': [('state_aux', 'in', ['terminate','recovery'])],'readonly': [('state_inc', 'in', ['terminate','cancel'])]}" widget="Integer" decoration-bf="1" />
+                                    
+                                    <field name="nota4" string="A4" attrs="{'invisible': [('is_act4', '=', False)],'readonly': [('state_aux', 'in', ['terminate','recovery'])],'readonly': [('state_inc', 'in', ['terminate','cancel'])]}" widget="Integer" decoration-bf="1"/>
+
+                                    <field name="nota5" string="A5" attrs="{'invisible': [('is_act5', '=', False)],'readonly': [('state_aux', 'in', ['terminate','recovery'])],'readonly': [('state_inc', 'in', ['terminate','cancel'])]}" widget="Integer" decoration-bf="1"/>
+                                    
+ 
+                                    <field name="nota6" string="A6" attrs="{'invisible': [('is_act6', '=', False)],'readonly': [('state_aux', 'in', ['terminate','recovery'])],'readonly': [('state_inc', 'in', ['terminate','cancel'])]}" widget="Integer" decoration-bf="1" optional="hide"/>
+
+                                    <field name="nota" readonly="1" widget="float" decoration-bf="1"/>
+
+                                    <field name="state" decoration-warning="state =='borrador'" 
+                                                        decoration-success="state =='aprobado'"
+                                                        decoration-danger="state =='aplazado'"
+                                                        decoration-info="state =='inasistente'"
+                                                        widget="badge" string="Valoración" optional="show"/>
+
+                                                        
+                                </tree>
+
+                               
+
+                            </field>
+                        </page>
+                        
+                    </notebook>
+                    
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+        <!-- Form View Of Registro de Asistencias Information -->
+    <record id="view_standard_evaluacion_form_1" model="ir.ui.view">
+        <field name="name">standard.evaluacion.form.1</field>
+        <field name="model">standard.evaluacion</field>
+        <field name="arch" type="xml">
+            <form string="Información Registro de Evaluaciones">
+                <header>
+                    <button class="btn-danger" name="set_recupera" string="REGISTRAR RECUPERACIÓN" type="object" confirm="Está seguro de REGISTRAR LA RECUPERACIÓN ?"
+                            icon="fa-lock" states="terminate" groups="school.group_school_administration,school.group_school_teacher"/>
+                    <button class="btn-success" icon="fa-check"  name="set_done" type="object" confirm="Está seguro de INICIAR LA EVALUACIÓN ?"
+                            string="INICIAR EVALUACIÒN" states="draft" groups="school.group_school_administration,school.group_school_teacher" />
+                     <button class="btn-warning" icon="fa-search"  name="set_to_terminate" type="object" confirm="Está seguro de VOLVER A INICIADA LA EVALUACIÓN ?"
+                                                string="VOLVER A CULMINADO" states="recovery" groups="school.group_school_administration" />
+                    <!--<button class="btn-danger" icon="fa-ban" name="set_cancel" type="object" string="CANCELAR EVALUACIÒN" states="draft" groups="school.group_school_administration"/> -->
+                    <field name="state" widget="statusbar" statusbar_visible="draft,cancel"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Por Iniciar" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <widget name="web_ribbon" title="Iniciado"   bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <widget name="web_ribbon" title="Culminado"  bg_color="bg-info"  attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
+                    <widget name="web_ribbon" title="Cancelada"  bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+                    <widget name="web_ribbon" title="Recuperación"  bg_color="bg-primary"  attrs="{'invisible': [('state', '!=', 'recovery')]}"/>
+        
+                    <newline />
+                    <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                    </div>
+                    
+                    <group col="2">
+                        <group string="Datos de la Secciòn">
+                            <!-- <field name="id" readonly="1"/>  -->
+                            <field name="libroevas_id" widget="selection" readonly="1" placeholder="Evaluación"/>
+                            <field name="standard_id" widget="selection" readonly="1" placeholder="Sección"/>
+                            <field name="subject_id" widget="selection" readonly="1" placeholder="Curso"/>
+                            <field name="teacher_id" widget="selection" placeholder="Profesor" readonly="1"/>
+                            <field name="company_id" placeholder="Compañía" readonly="1" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+
+                        </group>
+                        <group string="INFORMACIÓN DE LA EVALUACIÓN">
+                            <field name="nombre"/>
+                            <field name="date_start" placeholder="Fecha" attrs="{'readonly': [('state', '=', 'terminate')]}"/>
+
+                            <field name="porc_peso"/>
+                            <!-- <field name="is_recupera" widget="boolean_toggle"/> -->
+                        </group>
+                    </group>
+                   <separator string="Observaciones" />
+                    <group colspan="4">
+                       <field name="note" colspan="2" placeholder="Observaciones" nolabel="1" widget="text"/>
+                    </group>
+                    
+                    <notebook>
+                        
+                        <!-- DESARROLLO PROPIO: SE AGREGO ESTE PAGE -->
+                        <page string="ESTUDIANTES INSCRITOS">
+                            <field name="evaluacion_ids" nolabel="1" colspan="4" attrs="{'readonly': [('state', 'in', ['recovery'])]}">
+
+                                <tree string="Estudiantes" create="0" delete="0" 
+                                    decoration-danger="state == 'aplazado'"
+                                    decoration-info="state == 'borrador'"
+                                >
+                                    <field name="state_inc" decoration-warning="state_inc =='draft'" 
+                                                        decoration-success="state_inc =='done'"
+                                                        decoration-info="state_inc =='terminate'"
+                                                        decoration-danger="state_inc =='cancel'"
+                                                        widget="badge" string="Status" optional="show"/>
+                                                        
+                                    <field name="photo" widget="image" class="float-left oe_avatar" readonly="1"/>
+                                    <field name="student_code" />
+                                    <field name="student_id" readonly="1" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+
+                                    <field name="is_act1" invisible="1"/>
+                                    <field name="is_act2" invisible="1"/>
+                                    <field name="is_act3" invisible="1"/>
+                                    <field name="is_act4" invisible="1"/>
+                                    <field name="is_act5" invisible="1"/>
+                                    <field name="is_act6" invisible="1"/>
+
+                                    <field name="nota1" attrs="{'invisible': [('is_act1', '=', False)],'readonly': [('is_act1', '=', True)]}" />
+                                    <field name="nota2" attrs="{'invisible': [('is_act2', '=', False)]}" widget="Integer"/>
+                                    <field name="nota3" attrs="{'invisible': [('is_act3', '=', False)]}" widget="Integer"/>
+                                    <field name="nota4" attrs="{'invisible': [('is_act4', '=', False)]}" widget="Integer"/>
+                                    <field name="nota5" attrs="{'invisible': [('is_act5', '=', False)]}" widget="Integer"/>
+                                    <field name="nota6" attrs="{'invisible': [('is_act6', '=', False)]}" widget="Integer" optional="hide"/>
+
+                                    <field name="nota" readonly="1" widget="float"/>
+
+                                    <field name="state" decoration-warning="state =='borrador'" 
+                                                        decoration-success="state =='aprobado'"
+                                                        decoration-danger="state =='aplazado'"
+                                                        decoration-info="state =='inasistente'"
+                                                        widget="badge" optional="show"/>
+                                </tree>
+
+                                <form string="Estudiante">
+                                    <group  col="2" colspan="4">
+                                                <group string="INFORMACIÒN DEL ESTUDIANTE">
+                                                    <field name="student_id" readonly="1"/>
+                                                    <field name="student_code"/>
+                                                </group>
+
+                                                <group string="INFORMACIÒN DE LA EVALUACIÓN">
+                                                    <field name="nombre_eva" widget="char"/>
+                                                    <field name="porc_peso" widget="integer"/>
+                                                    
+                                                    <!-- <field name="is_recupera" widget="boolean_toggle"/> -->
+                                                </group>
+                                                <group string="CALIFICACIÓN">
+                                                    <div class="oe_title" >
+                                                            <h1>
+                                                                <field name="nota" readonly="1"/>
+                                                            </h1>
+                                                    </div>
+                                                </group>
+                                    </group>
+                                    
+                                    
+                                    <notebook colspan="4">
+                                        <page string="ACTIVIDADES DE LA EVALUACIÓN" name="actividad" >
+
+                                                <field name="actividad_ids"  editable="1">
+                                            
+                                                    <tree string="Informaciòn de la actividad" create="0" delete = "0" editable="1">
+                                                
+                                                        <field name="nombre"/>
+                                                        <field name="nota" readonly="1" widget="integer"/>
+                                                        <field name="nota_r" attrs="{'readonly': [('is_recupera', '=', False)]}" widget="integer"/>
+                                                        <field name="recupera_date" attrs="{'invisible': [('nota_r', '=', '0')]}"/>
+                                                        <field name="porc_peso"/>
+                                                        <field name="is_recupera" widget="boolean_toggle"/>
+                                                        <field name="note"/>
+                                                    
+                                                    </tree>
+
+                                                </field>
+                                        </page>
+                                    </notebook>
+
+
+                                </form>
+
+                            </field>
+                        </page>
+                        <!--  -->
+
+                         <!-- DESARROLLO PROPIO: SE AGREGO ESTE PAGE -->
+                        <!-- <page string="ACTIVIDADES">
+                            <field name="evaluacion_ids" nolabel="1" colspan="4" >
+
+                                <tree string="Estudiantes" create="0" delete="0" >
+                                    
+                                    <field name="student_id" readonly="1"/>
+                                    
+                                    <field name="nota" readonly="1" widget="integer"/>
+
+                                    <field name="state" decoration-warning="state =='borrador'" 
+                                                        decoration-success="state =='aprobado'"
+                                                        decoration-danger="state =='aplazado'"
+                                                        decoration-info="state =='inasistente'"
+                                                        widget="badge" optional="show"/>
+                                </tree>
+
+                                <form string="Estudiante">
+                                    <group  col="2" colspan="4">
+                                                <group string="INFORMACIÒN DEL ESTUDIANTE">
+                                                    <field name="student_id" readonly="1"/>
+                                                    <field name="student_code"/>
+                                                </group>
+
+                                                <group string="INFORMACIÒN DE LA EVALUACIÓN">
+                                                    <field name="nombre_eva" widget="char"/>
+                                                    <field name="porc_peso" widget="integer"/>
+                                                    
+                                                    <field name="is_recupera" widget="boolean_toggle"/>
+                                                </group>
+                                                <group string="CALIFICACIÓN">
+                                                    <div class="oe_title" >
+                                                            <h1>
+                                                                <field name="nota" readonly="1"/>
+                                                            </h1>
+                                                    </div>
+                                                </group>
+                                    </group>
+                                    
+                                    
+                                    <notebook colspan="4">
+                                        <page string="Estudiantes" name="actividad" >
+
+                                                <field name="actividades_ids"  editable="1">
+                                            
+                                                    <tree string="Informaciòn de la actividad" create="0" delete = "0" editable="1">
+                                                
+                                                        <field name="student_id"/>
+                                                        <field name="nombre"/>
+                                                        <field name="nota" widget="integer"/>
+                                                        <field name="porc_peso"/>
+                                                        <field name="is_recupera" widget="boolean_toggle"/>
+                                                        <field name="note"/>
+                                                    
+                                                    </tree>
+
+                                                </field>
+                                        </page>
+                                    </notebook>
+
+
+                                </form>
+
+                            </field>
+                        </page> -->
+                        
+
+
+
+
+                        
+                    </notebook>
+                    
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    <!-- Tree View Of Registro de Asistencia -->
+    <record id="view_standard_evaluacion_tree_1" model="ir.ui.view">
+        <field name="name">standard.evaluacion.tree.1</field>
+        <field name="model">standard.evaluacion</field>
+        
+        <field name="arch" type="xml">
+            <tree string="Información del Registro de Asistencia" create="0" delete="0">
+               
+                <field name="standard_id"/>
+                <field name="subject_id"/>
+                <field name="teacher_id"/>
+                <field name="libroevas_id"/>
+                <field name="date_start"/>
+                <field name="note"/>
+ 
+                <field name="state_aux" decoration-warning="state_aux =='por iniciar'" 
+                                        decoration-success="state_aux =='iniciado'"
+                                        decoration-info="state_aux =='culminado'"
+                                        decoration-primary="state_aux =='recuperado'"
+                                        widget="badge" optional="show"/>
+
+            </tree>
+        </field>
+    </record>
+
+    <!-- Search View Of School Standard Information -->
+    <record id="view_standard_evaluacion_search" model="ir.ui.view">
+        <field name="name">standard.evaluacion.search</field>
+        <field name="model">standard.evaluacion</field>
+        <field name="arch" type="xml">
+            <search string="Información de Grupo">
+                <group col="10" colspan="4">
+                    <field name="standard_id"/>
+                    <field name="teacher_id"/>
+                    <field name="subject_id"/>
+                    <field name="state"/>
+                </group>
+                <newline />
+                
+                <group expand="0" string="Group By..." colspan="12" col="10">
+                    <filter name="seccion" string="Secciòn"  help="By Seccion" context="{'group_by':'standard_id'}" />
+                    <filter name="subject" string="Curso"    help="By Subject" context="{'group_by':'subject_id'}" />
+                    <filter name="teacher" string="Profesor" help="By Teacher" context="{'group_by':'teacher_id'}" />
+                    <filter name="state"   string="Status"   help="By state"   context="{'group_by':'state'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of Registro de Asistencias -->
+    <record id="action_standard_evaluacion_form" model="ir.actions.act_window">
+        <field name="name">Registro de Evaluaciones</field>
+        <field name="res_model">standard.evaluacion</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of Registro de Asistencias -->
+    <record id="action_standard_evaluacion_form_1" model="ir.actions.act_window">
+        <field name="name">Registro de Recuperaciones</field>
+        <field name="res_model">standard.evaluacion</field>
+        <field name="view_id" ref="view_standard_evaluacion_form_1" />
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Action View 2 Of Tree View Of Student Information -->
+    <record id="action_standard_evaluacion_tree_1" model="ir.actions.act_window.view">
+        <field name="view_mode">tree</field>
+        <field eval="20" name="sequence" />
+        <field name="view_id" ref="view_standard_evaluacion_tree_1" />
+        <field name="act_window_id" ref="action_standard_evaluacion_form_1" />
+    </record>
+
+    <menuitem     id="menu_standard_evaluacion_eva"   
+                name="Evaluaciones"   
+              parent="menu_evaluacion"  
+              groups="school.group_school_administration,school.group_school_teacher"/>
+             
+    <menuitem id="menu_standard_evaluacion_form"   
+            name="Registro Evaluaciones"   
+            parent="menu_standard_evaluacion_eva" 
+            action="action_standard_evaluacion_form"  
+            groups="school.group_school_administration,school.group_school_teacher" />
+
+    <menuitem  id="menu_standard_evaluacion_recupera" 
+              name="Recuperaciones" 
+            parent="menu_evaluacion" 
+            groups="school.group_school_administration,school.group_school_teacher"/>
+    <menuitem id="menu_standard_evaluacion_recu" 
+              name="Registro Recuperaciones" 
+              parent="menu_standard_evaluacion_recupera" 
+              action="action_standard_evaluacion_form_1" />
+
+</odoo>

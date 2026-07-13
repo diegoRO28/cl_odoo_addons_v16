@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <!-- Tree View Of Registro de Sisitencia -->
+    <record id="view_subject_asistencia_tree" model="ir.ui.view">
+        <field name="name">subject.asistencia.tree</field>
+        <field name="model">subject.asistencia</field>
+        <field name="arch" type="xml">
+            <tree string="Información del Registro de Asistencia">
+               
+                <field name="standard_id"/>
+                <field name="subject_id"/>
+                <field name="teacher_id"/>
+                <field name="encuentro_id"/>
+                <field name="date_start"/>
+                <field name="note"/>
+
+                <field name="state_aux" decoration-warning="state_aux =='por iniciar'" 
+                                        decoration-success="state_aux =='iniciado'"
+                                        decoration-info="state_aux =='culminado'"
+                                        widget="badge" optional="show"/>
+
+            </tree>
+        </field>
+    </record>
+
+    <!-- Tree View Of Registro de Sisitencia del Alumno-->
+    <record id="view_subject_asistencia_tree_1" model="ir.ui.view">
+        <field name="name">subject.asistencias.tree</field>
+        <field name="model">subject.asistencias</field>
+        <field name="arch" type="xml">
+            <tree string="Información del Registro de Asistencia">   
+                <field name="student_id" />
+                <field name="standard_id" />
+                <field name="subject_id"/>
+                <field name="encuentro_id"/>
+                <field name="date_start"/>
+                 <field name="is_attended" />
+                <field name="note" />
+                                <field name="state" decoration-warning="state =='draft'" 
+                                    decoration-success="state =='done'"
+                                    decoration-danger="state =='cancel'"
+                                    widget="badge" optional="show"/>
+
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View Of Registro de Asistencias Information -->
+    <record id="view_subject_asistencia_form" model="ir.ui.view">
+        <field name="name">subject.asistencia.form</field>
+        <field name="model">subject.asistencia</field>
+        <field name="arch" type="xml">
+            <form string="Información Registro de Asistencia" delete="0" duplicate="0">
+                <header>
+                    <button class="btn-info" name="set_terminate" string="CERRAR ENCUENTRO" type="object" icon="fa-ban" states="done" confirm="Está seguro de CERRAR EL ENCUENTRO ?"
+                                             groups="school.group_school_administration,school.group_school_teacher"/>
+                    <button class="btn-success" icon="fa-check"  name="set_done" type="object" confirm="Está seguro de INICIAR EL ENCUENTRO ?" string="INICIAR ENCUENTRO" states="draft" 
+                                                groups="school.group_school_administration,school.group_school_teacher" />
+                    <button class="btn-warning" icon="fa-search"  name="set_done_corregir" type="object" confirm="Está seguro de VOLVER A INICIADO LA ASISTENCIA ?"
+                                                string="VOLVER A INICIADO" states="terminate" groups="school.group_school_administration,school.group_school_teacher" />
+
+                     <!-- <button class="btn-danger" icon="fa-ban" name="set_cancel" type="object" string="CANCELAR" states="draft" confirm="Está seguro de CANCELAR EL ENCUENTRO ?"
+                                              groups="school.group_school_administration,school.group_school_teacher"/> -->
+                    <field name="state" widget="statusbar" statusbar_visible="draft,cancel"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Por iniciar" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <widget name="web_ribbon" title="Iniciado"   bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <widget name="web_ribbon" title="Culminado"  bg_color="bg-info"  attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
+                    <widget name="web_ribbon" title="Cancelado"  bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+                    
+                    <newline />
+                    <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                    </div>
+                    
+                    <group col="2">
+                        
+                        <group string="INFORMACIÓN DE LA SECCIÓN">
+                            <field name="standard_id" widget="selection" placeholder="Sección" readonly="1"/>
+                            <field name="subject_id" widget="selection" placeholder="Curso" readonly="1"/>
+                            <field name="teacher_id" widget="selection" placeholder="Profesor" readonly="1"/>
+                            <field name="company_id" placeholder="Compañia" readonly="1"/>
+                        </group>
+
+                        <group string="INFORMACIÓN DEL ENCUENTRO">
+                            <field name="encuentro_id" widget="selection" placeholder="Encuentro" readonly="1"/>
+                            <field name="date_start" placeholder="Fecha" attrs="{'readonly': [('state', '=', 'terminate')]}"/>
+                        </group>
+                        
+                    </group>
+
+                    <separator string="Observaciones" />
+                    <group colspan="4">
+                       <field name="note" colspan="2" placeholder="Observaciones" nolabel="1" widget="text"/>
+                    </group>
+                   
+                    <notebook colspan="4">
+                        
+                        <!-- DESARROLLO PROPIO: SE AGREGO ESTE PAGE -->
+                        <page string="ESTUDIANTES INSCRITOS">
+                            <field name="asistencia_ids" nolabel="1" colspan="4" editable="1" delete="0">
+                                <tree string="Estudiantes" create="0" delete="0" editable="bottom">
+                                    <!-- <field name="inscripcion_id" />
+                                    <field name="asistencia_id" /> -->
+
+                                    <field name="photo" widget="image" class="float-left oe_avatar" readonly="1"/>
+                                    <field name="student_code" />
+                                    <field name="student_id" readonly="1" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+
+                                    <field name="is_attended" widget="boolean_toggle" attrs="{'readonly': [('state', '=', 'terminate')]}"/>
+                                    <field name="note" />
+                                    <field name="state" invisible="1"/>
+                                </tree>
+                                <form string="Estudiantes" delete="0">
+                                    <group col="4" colspan="4">
+                                        <field name="student_id" placeholder="Estudiante" readonly="1"/>
+                                        <field name="is_attended" placeholder="Asistencia" />
+                                        <field name="note" colspan="4" placeholder="Observación"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        
+
+                    </notebook>
+                    
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Form View Of Registro de Asistencias del ALUMNO -->
+    <record id="view_subject_asistencia_form_1" model="ir.ui.view">
+        <field name="name">subject.asistencias.form</field>
+        <field name="model">subject.asistencias</field>
+        <field name="arch" type="xml">
+            <form string="Información Registro de Asistencia">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,cancel"/>
+                </header>
+
+                <sheet>
+                    <widget name="web_ribbon" title="Borrador" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <widget name="web_ribbon" title="Planificado"   bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <widget name="web_ribbon" title="Cerrado"  bg_color="bg-info"  attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
+                    <widget name="web_ribbon" title="Cancelado"  bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+
+                    <separator string="Información de la Sección" />
+                    <group col="4" colspan="4">
+                        <field name="student_id" placeholder="Estudiante" readonly="1"/> 
+                    </group>
+                    <group col="4" colspan="4">
+                        <field name="standard_id" widget="selection" placeholder="Sección" readonly="1"/>
+                        <field name="subject_id" widget="selection" placeholder="Curso" readonly="1"/>  
+                    </group>
+
+                    <separator string="Información del Encuentro" />
+                    <group col="4" colspan="4">
+                        <field name="encuentro_id" widget="selection" placeholder="Encuentro" readonly="1"/>
+                    </group>
+                    <group col="4" colspan="4">
+                        <field name="date_start" placeholder="Fecha" readonly="1"/>   
+                        <field name="is_attended" placeholder="Asistencia" readonly="1" />
+                    </group>
+
+                    <group col="4" colspan="4">
+                        <field name="note" placeholder="Descripción" readonly="1"/>   
+                    </group>
+ 
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+        <!-- Kanban View Of School Standard Information -->
+    <record id="school_asistencia_kanban_view" model="ir.ui.view">
+        <field name="name">school.asistencia.kanban</field>
+        <field name="model">subject.asistencia</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="standard_id">
+                <field name="school_id" />
+                <field name="standard_id" />
+                <field name="subject_id" />
+                <field name="teacher_id" />
+                <field name="color" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <t t-set="color" t-value="kanban_color(record.color.raw_value || record.school_id.value)" />
+                        <div t-att-class="color + (record.color.raw_value == 1 ? ' oe_kanban_color_alert' : '')">
+                            <div class="oe_kanban_box oe_kanban_color_border">
+                                <div class="oe_kanban_box_header oe_kanban_color_bgdark oe_kanban_color_border oe_kanban_draghandle">
+                                    <table class="oe_kanban_table">
+                                      
+                                        <tr>
+                                            <td class="oe_kanban_title1" align="left" valign="middle">
+                                                <div>
+                                                    Campus :-
+                                                    <field name="school_id" /></div>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr>
+                                            <td class="oe_kanban_title1" align="left" valign="middle">
+                                                <div>
+                                                    Secciòn :-
+                                                    <field name="standard_id" /></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td class="oe_kanban_title1" align="left" valign="middle">
+                                                <div>
+                                                    Curso :-
+                                                    <field name="subject_id" /></div>
+                                            </td>
+                                        </tr>
+                                        
+                                    </table>
+                                </div>
+                                <div class="oe_kanban_box_content oe_kanban_color_bglight oe_kanban_box_show_onclick_trigger oe_kanban_color_border">
+                                    <table class="oe_kanban_table">
+                                        <tr>
+                                            <td valign="top" align="left">
+                                                <div class="oe_kanban_title2">
+                                                    <div>
+                                                        Profesor:-
+                                                        <field name="teacher_id" /></div>
+                                                </div>
+                                                
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td valign="top" align="left">
+                                                <div class="oe_kanban_title2">
+                                                    <div>
+                                                        Encuentro:-
+                                                        <field name="encuentro_id" /></div>
+                                                </div>
+                                                
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td valign="top" align="left">
+                                                <div class="oe_kanban_title2">
+                                                    <div>
+                                                        Status:-
+                                                        <field name="state" /></div>
+                                                </div>
+                                                
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="oe_kanban_buttons_set oe_kanban_color_border oe_kanban_color_bglight oe_kanban_box_show_onclick">
+                                    <div class="oe_kanban_left">
+                                        <a role="button" string="Edit" class="btn btn-sm btn-default fa fa-pencil" type="edit" aria-label="edit" />
+                                        <a role="button" string="Delete" class="btn btn-sm btn-default fa fa-trash" type="delete" aria-label="delete"/>
+                                        <a role="button" string="Change Color" icon="color-picker" type="color" name="color" />
+                                    </div>
+                                    <br class="oe_kanban_clear" />
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Search View Of School Standard Information -->
+    <record id="view_asistencia_search" model="ir.ui.view">
+        <field name="name">subject.asistencia.search</field>
+        <field name="model">subject.asistencia</field>
+        <field name="arch" type="xml">
+            <search string="Información de Grupo">
+
+                <group col="10" colspan="4">
+                    <field name="standard_id" />
+                    <field name="teacher_id" />
+                    <field name="subject_id" />
+                    <field name="school_id" />
+                </group>
+
+                <newline />
+                <group expand="0" string="Group By..." colspan="12" col="10">
+                    <filter name="campus"  string="Campus"   help="By Campus"  context="{'group_by':'school_id'}" />
+                    <filter name="seccion" string="Secciòn"  help="By Seccion" context="{'group_by':'standard_id'}" />
+                    <filter name="subject" string="Curso"    help="By Subject" context="{'group_by':'subject_id'}" />
+                    <filter name="teacher" string="Profesor" help="By Teacher" context="{'group_by':'teacher_id'}" />
+                    <filter name="state"   string="Status"   help="By state"   context="{'group_by':'state'}" />
+                </group>
+            </search>
+        </field>
+    </record>  
+
+    <!-- Action Of Form & Tree Views Of Registro de Asistencias -->
+    <record id="action_subject_asistencia_form" model="ir.actions.act_window">
+        <field name="name">Registro de Asistencias</field>
+        <field name="res_model">subject.asistencia</field>
+        <field name="view_mode">tree,kanban,form</field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of Registro de Asistencias del Alumno-->
+    <record id="action_subject_asistencia_form_1" model="ir.actions.act_window">
+        <field name="name">Registro de Asistencias del alumno</field>
+        <field name="res_model">subject.asistencias</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_subject_asistencia_form" 
+            name="Asistencias" 
+          parent="menu_asistencia" 
+          action="action_subject_asistencia_form" 
+          groups="school.group_school_administration,school.group_school_teacher" />
+
+    <menuitem id="menu_subject_asistencia_form_1" 
+            name="Asistencias Estudiante" 
+          parent="menu_asistencia" 
+          action="action_subject_asistencia_form_1" 
+          groups="school.group_school_student"/>
+
+</odoo>
