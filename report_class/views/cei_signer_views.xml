@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    
+    <!-- Acción -->
+    <record id="action_cei_signer" model="ir.actions.act_window">
+        <field name="name">Firmantes</field>
+        <field name="res_model">cei.signer</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help">Configura los firmantes autorizados para las constancias.</field>
+    </record>
+
+	<!-- Definición del menú -->
+    <menuitem
+        id="documents_signers_menu"
+        name="Firmantes"
+        action="report_class.action_cei_signer"
+        parent="report_menu_docu" 
+        sequence="1" 
+    />
+
+    <!-- Vista tipo tree -->
+    <record id="view_cei_signer_tree" model="ir.ui.view">
+        <field name="name">cei.signer.tree</field>
+        <field name="model">cei.signer</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="job_title"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Vista tipo form -->
+    <record id="view_cei_signer_form" model="ir.ui.view">
+        <field name="name">cei.signer.form</field>
+        <field name="model">cei.signer</field>
+        <field name="arch" type="xml">
+            <form string="Firmante">
+                <sheet>
+                    <group>
+                        <field name="name" required="1"/>
+                        <field name="job_title"/>
+                        <field name="sign_signature" widget="signature" options="{'full_name': 'display_name', 'size': ['',200]}" required="1" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>
