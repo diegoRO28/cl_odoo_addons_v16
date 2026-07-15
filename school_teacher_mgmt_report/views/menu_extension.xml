@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Menú Gestión como hijo directo de menu_ems -->
+    <menuitem 
+        id="menu_gestion" 
+        name="Gestión" 
+        parent="school.menu_ems"
+        sequence="50" 
+        groups="school.group_school_administration,school.group_school_teacher"/>
+
+    <!-- Submenú Reportes -->
+    <menuitem 
+        id="menu_reportes" 
+        name="Reportes" 
+        parent="menu_gestion" 
+        sequence="10" 
+        groups="school.group_school_administration,school.group_school_teacher"/>
+
+    <!-- Acción del Reporte: Gestión Docente -->
+    <menuitem 
+        id="menu_report_teacher_mgmt"
+        name="Gestión Docente"
+        parent="menu_reportes"
+        action="action_report_teacher_mgmt"
+        sequence="5" 
+        groups="school.group_school_administration,school.group_school_teacher"/>
+</odoo>
