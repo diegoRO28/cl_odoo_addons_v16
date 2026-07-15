@@ -1,0 +1,499 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="cl_class_mgmt_v16.ClAdminDashboard" owl="1">
+        <div class="o_adb">
+
+            <header class="o_adb_masthead">
+                <div class="o_adb_masthead_top">
+                    <h1 class="o_adb_title">Panel de Gestión Administrativa</h1>
+                    <div class="o_adb_masthead_actions">
+                        <span t-if="this.state.data" class="o_adb_asof_inline">Generado el <t t-esc="this.state.data.generated_at"/></span>
+                        <button class="o_adb_refresh" t-on-click="() => this.loadData()" title="Actualizar datos">
+                            <i class="fa fa-refresh"/> Actualizar
+                        </button>
+                        <button t-if="this.state.data" class="o_adb_toggle_filters" t-on-click="toggleFilters"
+                                t-att-title="this.state.filtersCollapsed ? 'Mostrar filtros' : 'Ocultar filtros'">
+                            <i t-attf-class="fa {{ this.state.filtersCollapsed ? 'fa-chevron-down' : 'fa-chevron-up' }}"/>
+                            <t t-esc="this.state.filtersCollapsed ? 'Mostrar filtros' : 'Ocultar filtros'"/>
+                        </button>
+                    </div>
+                </div>
+
+                <div t-if="this.state.data" t-attf-class="o_adb_filterbar_outer {{ this.state.filtersCollapsed ? 'is-collapsed' : '' }}">
+                <div class="o_adb_filterbar">
+                    <div class="o_adb_filter_group">
+                        <span class="o_adb_filter_label"><i class="fa fa-calendar"/> Período</span>
+                        <t t-foreach="this.periodOptions" t-as="opt" t-key="opt.key">
+                            <button t-attf-class="o_adb_chip {{ this.state.data.filters_applied.period_mode === opt.key ? 'is-active' : '' }}"
+                                    t-on-click="() => this.setPeriod(opt.key)">
+                                <t t-esc="opt.label"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <div class="o_adb_filter_group">
+                        <span class="o_adb_filter_label"><i class="fa fa-university"/> Campus</span>
+                        <t t-foreach="this.state.data.campus_options" t-as="c" t-key="c.id">
+                            <button t-attf-class="o_adb_chip {{ this.state.data.filters_applied.campus_ids.includes(c.id) ? 'is-active' : '' }}"
+                                    t-on-click="() => this.toggleCampus(c.id)">
+                                <t t-esc="c.name"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <div class="o_adb_filter_group">
+                        <span class="o_adb_filter_label"><i class="fa fa-user-circle"/> Inscripción</span>
+                        <t t-foreach="this.inscripcionStateOptions" t-as="opt" t-key="opt.key">
+                            <button t-attf-class="o_adb_chip {{ this.state.data.filters_applied.inscripcion_state === opt.key ? 'is-active' : '' }}"
+                                    t-on-click="() => this.setInscripcionState(opt.key)">
+                                <t t-esc="opt.label"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <button class="o_adb_clear" t-on-click="clearFilters" title="Limpiar filtro de campus">
+                        <i class="fa fa-times"/> Limpiar
+                    </button>
+                </div>
+                </div>
+            </header>
+
+            <div t-if="this.state.loading" class="o_adb_loading">
+                <div class="o_adb_spinner"/>
+                <p>Cargando…</p>
+            </div>
+
+            <div t-elif="this.state.error" class="o_adb_error">
+                <t t-esc="this.state.error"/>
+            </div>
+
+            <t t-else="">
+                <nav class="o_adb_tabs">
+                    <button t-attf-class="o_adb_tab {{ this.state.activeTab === 'panel' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('panel')"><i class="fa fa-tachometer"/> Panel</button>
+                    <button t-attf-class="o_adb_tab {{ this.state.activeTab === 'inscripciones' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('inscripciones')"><i class="fa fa-user-plus"/> Inscripciones</button>
+                    <button t-attf-class="o_adb_tab {{ this.state.activeTab === 'retiros' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('retiros')"><i class="fa fa-sign-out"/> Retiros</button>
+                    <button t-attf-class="o_adb_tab {{ this.state.activeTab === 'cambios' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('cambios')"><i class="fa fa-exchange"/> Cambios</button>
+                    <button t-attf-class="o_adb_tab {{ this.state.activeTab === 'capacidad' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('capacidad')"><i class="fa fa-th-large"/> Capacidad</button>
+                    <button t-if="this.state.data.has_billing_access" t-attf-class="o_adb_tab {{ this.state.activeTab === 'morosidad' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('morosidad')"><i class="fa fa-warning"/> Morosidad</button>
+                    <button t-if="this.state.data.has_billing_access" t-attf-class="o_adb_tab {{ this.state.activeTab === 'facturacion' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('facturacion')"><i class="fa fa-file-text-o"/> Facturación</button>
+                </nav>
+
+                <!-- ===== PANEL ===== -->
+                <section t-if="this.state.activeTab === 'panel'" class="o_adb_section">
+                    <div t-if="this.state.data.alerts.length" class="o_adb_alert_banner">
+                        <i class="fa fa-exclamation-triangle"/>
+                        <span><t t-esc="this.state.data.alerts.length"/> sección(es) con cupo agotado o casi lleno. Ver pestaña Capacidad.</span>
+                    </div>
+
+                    <div class="o_adb_kpi_grid">
+                        <div t-foreach="this.state.data.kpis" t-as="kpi" t-key="kpi.key"
+                             t-attf-class="o_adb_kpi_card {{this.kpiColorClass(kpi.color)}}">
+                            <div class="o_adb_kpi_head">
+                                <span class="o_adb_kpi_label"><i t-attf-class="fa {{this.kpiIcons[kpi.key]}}"/> <t t-esc="kpi.label"/></span>
+                                <div t-if="kpi.allow_viz.length > 1" class="o_adb_viz_switch">
+                                    <t t-foreach="kpi.allow_viz" t-as="viz" t-key="viz">
+                                        <button t-attf-class="o_adb_viz_btn {{ this.kpiViz(kpi) === viz ? 'is-active' : '' }}"
+                                                t-on-click="() => this.setKpiViz(kpi.key, viz)" t-att-title="viz">
+                                            <i t-attf-class="fa {{this.vizIcons[viz]}}"/>
+                                        </button>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- vista número -->
+                            <div t-if="this.kpiViz(kpi) === 'number'" class="o_adb_kpi_number">
+                                <t t-esc="kpi.value_formatted"/>
+                            </div>
+
+                            <!-- vista medidor (KPI porcentual sin desglose) -->
+                            <div t-elif="this.kpiViz(kpi) === 'donut' &amp;&amp; !kpi.series" class="o_adb_meter_wrap">
+                                <svg viewBox="0 0 100 100" class="o_adb_meter">
+                                    <circle cx="50" cy="50" r="40" class="o_adb_meter_track"/>
+                                    <g transform="rotate(-90 50 50)">
+                                        <circle cx="50" cy="50" r="40" class="o_adb_meter_fill"
+                                                t-attf-stroke-dasharray="{{this.meterSlice(kpi.value).dasharray}}"/>
+                                    </g>
+                                    <text x="50" y="57" class="o_adb_meter_text"><t t-esc="kpi.value_formatted"/></text>
+                                </svg>
+                            </div>
+                            <div t-elif="this.kpiViz(kpi) === 'bar' &amp;&amp; !kpi.series" class="o_adb_meterbar_wrap">
+                                <div class="o_adb_bar_track">
+                                    <div class="o_adb_bar_fill" t-attf-style="width: {{kpi.value}}%"/>
+                                </div>
+                                <span class="o_adb_meterbar_value"><t t-esc="kpi.value_formatted"/></span>
+                            </div>
+
+                            <!-- vista barra (con desglose real) -->
+                            <div t-elif="this.kpiViz(kpi) === 'bar' &amp;&amp; kpi.series" class="o_adb_barchart">
+                                <t t-if="kpi.series.length">
+                                    <t t-foreach="this.barWidths(kpi)" t-as="b" t-key="b.label">
+                                        <div t-attf-class="o_adb_barrow {{ b.id ? 'is-clickable' : '' }}"
+                                             t-on-click="() => this.onRankingBarClick(b)">
+                                            <span class="o_adb_barlabel" t-att-title="b.label"><t t-esc="b.label"/></span>
+                                            <div class="o_adb_bar_track">
+                                                <div class="o_adb_bar_fill" t-attf-style="width: {{b.width}}%;{{b.color ? ' background-color: ' + b.color + ';' : ''}}"/>
+                                            </div>
+                                            <span class="o_adb_barvalue"><t t-esc="b.value"/></span>
+                                        </div>
+                                    </t>
+                                </t>
+                                <p t-else="" class="o_adb_empty">Sin datos en el período seleccionado.</p>
+                            </div>
+
+                            <!-- vista donut (con desglose real) -->
+                            <div t-elif="this.kpiViz(kpi) === 'donut' &amp;&amp; kpi.series" class="o_adb_donut_wrap">
+                                <t t-if="kpi.series.length">
+                                    <svg viewBox="0 0 100 100" class="o_adb_donut">
+                                        <circle cx="50" cy="50" r="40" class="o_adb_donut_track"/>
+                                        <g transform="rotate(-90 50 50)">
+                                            <circle t-foreach="this.donutSlices(kpi)" t-as="slice" t-key="slice.label"
+                                                    cx="50" cy="50" r="40" class="o_adb_donut_slice"
+                                                    t-attf-stroke-dasharray="{{slice.dasharray}}"
+                                                    t-attf-stroke-dashoffset="{{slice.dashoffset}}"
+                                                    t-attf-style="stroke-opacity: {{slice.opacity}};{{slice.color ? ' stroke: ' + slice.color + ';' : ''}}">
+                                                <title><t t-esc="slice.label"/>: <t t-esc="slice.value"/> (<t t-esc="slice.pct"/>%)</title>
+                                            </circle>
+                                        </g>
+                                    </svg>
+                                    <ul class="o_adb_legend">
+                                        <li t-foreach="this.donutSlices(kpi)" t-as="slice" t-key="slice.label">
+                                            <span class="o_adb_legend_swatch" t-attf-style="opacity: {{slice.opacity}};{{slice.color ? ' background-color: ' + slice.color + ';' : ''}}"/>
+                                            <span class="o_adb_legend_label"><t t-esc="slice.label"/></span>
+                                            <span class="o_adb_legend_value"><t t-esc="slice.value"/></span>
+                                        </li>
+                                    </ul>
+                                </t>
+                                <p t-else="" class="o_adb_empty">Sin datos en el período seleccionado.</p>
+                            </div>
+
+                            <!-- vista tabla -->
+                            <table t-elif="this.kpiViz(kpi) === 'table' &amp;&amp; kpi.series" class="o_adb_kpi_table">
+                                <thead>
+                                    <tr>
+                                        <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('kpi_' + kpi.key, 'label')">
+                                            Etiqueta <i t-attf-class="fa {{this.sortIcon('kpi_' + kpi.key, 'label')}}"/>
+                                        </th>
+                                        <th class="o_adb_th_sortable text-right" t-on-click="() => this.toggleSort('kpi_' + kpi.key, 'value')">
+                                            Valor <i t-attf-class="fa {{this.sortIcon('kpi_' + kpi.key, 'value')}}"/>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="this.sortedKpiSeries(kpi)" t-as="row" t-key="row.label">
+                                        <td><t t-esc="row.label"/></td>
+                                        <td class="o_adb_mono text-right"><t t-esc="row.value"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== INSCRIPCIONES ===== -->
+                <section t-if="this.state.activeTab === 'inscripciones'" class="o_adb_section">
+                    <input type="text" class="o_adb_search" placeholder="Buscar por estudiante, sección o curso…"
+                           t-model="this.state.search"/>
+                    <div class="o_adb_table_wrap">
+                        <table class="o_adb_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('inscripciones', 'student')">Estudiante <i t-attf-class="fa {{this.sortIcon('inscripciones', 'student')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('inscripciones', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('inscripciones', 'section')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('inscripciones', 'course')">Curso <i t-attf-class="fa {{this.sortIcon('inscripciones', 'course')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('inscripciones', 'campus')">Campus <i t-attf-class="fa {{this.sortIcon('inscripciones', 'campus')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('inscripciones', 'date')">Fecha <i t-attf-class="fa {{this.sortIcon('inscripciones', 'date')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('inscripciones', 'state_label')">Estado <i t-attf-class="fa {{this.sortIcon('inscripciones', 'state_label')}}"/></th>
+                                    <th>Factura</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.sortedInscripciones" t-as="row" t-key="row.id"
+                                    class="o_adb_row_clickable" t-on-click="() => this.openInscripcion(row.id)">
+                                    <td><t t-esc="row.student"/></td>
+                                    <td class="o_adb_mono"><t t-esc="row.section"/></td>
+                                    <td><t t-esc="row.course"/></td>
+                                    <td><t t-esc="row.campus"/></td>
+                                    <td><t t-esc="row.date"/></td>
+                                    <td><span t-attf-class="o_adb_stamp o_adb_stamp_{{row.state_color}}"><t t-esc="row.state_label"/></span></td>
+                                    <td><t t-esc="row.payment_state || row.invoice_state"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-if="!this.sortedInscripciones.length" class="o_adb_empty">Ninguna inscripción coincide con los filtros.</p>
+                    </div>
+                </section>
+
+                <!-- ===== RETIROS ===== -->
+                <section t-if="this.state.activeTab === 'retiros'" class="o_adb_section">
+                    <h2 class="o_adb_section_title"><i class="fa fa-bar-chart"/> Retiros por mes</h2>
+                    <div class="o_adb_barchart o_adb_barchart_wide">
+                        <t t-if="this.retirosByMonthBars.length">
+                            <t t-foreach="this.retirosByMonthBars" t-as="m" t-key="m.label">
+                                <div class="o_adb_barrow">
+                                    <span class="o_adb_barlabel"><t t-esc="m.label"/></span>
+                                    <div class="o_adb_bar_track">
+                                        <div class="o_adb_bar_fill" t-attf-style="width: {{m.width}}%"/>
+                                    </div>
+                                    <span class="o_adb_barvalue"><t t-esc="m.value"/></span>
+                                </div>
+                            </t>
+                        </t>
+                        <p t-else="" class="o_adb_empty">Sin retiros en el período seleccionado.</p>
+                    </div>
+
+                    <h2 class="o_adb_section_title"><i class="fa fa-list-alt"/> Detalle de retiros</h2>
+                    <div class="o_adb_table_wrap">
+                        <table class="o_adb_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('retiros', 'student')">Estudiante <i t-attf-class="fa {{this.sortIcon('retiros', 'student')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('retiros', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('retiros', 'section')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('retiros', 'campus')">Campus <i t-attf-class="fa {{this.sortIcon('retiros', 'campus')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('retiros', 'motivo')">Motivo <i t-attf-class="fa {{this.sortIcon('retiros', 'motivo')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('retiros', 'date')">Fecha <i t-attf-class="fa {{this.sortIcon('retiros', 'date')}}"/></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.sortedRetiros" t-as="row" t-key="row.id"
+                                    class="o_adb_row_clickable" t-on-click="() => this.openRetiro(row.id)">
+                                    <td><t t-esc="row.student"/></td>
+                                    <td class="o_adb_mono"><t t-esc="row.section"/></td>
+                                    <td><t t-esc="row.campus"/></td>
+                                    <td><t t-esc="row.motivo"/></td>
+                                    <td><t t-esc="row.date"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-if="!this.sortedRetiros.length" class="o_adb_empty">Sin retiros en el período seleccionado.</p>
+                    </div>
+                </section>
+
+                <!-- ===== CAMBIOS DE SECCIÓN ===== -->
+                <section t-if="this.state.activeTab === 'cambios'" class="o_adb_section">
+                    <p class="o_adb_asof">Cambios de sección en el período seleccionado (origen → destino). Clic en una fila para ver el registro completo.</p>
+                    <div class="o_adb_table_wrap">
+                        <table class="o_adb_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('cambios', 'student')">Estudiante <i t-attf-class="fa {{this.sortIcon('cambios', 'student')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('cambios', 'section_origen')">Sección origen <i t-attf-class="fa {{this.sortIcon('cambios', 'section_origen')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('cambios', 'section_destino')">Sección destino <i t-attf-class="fa {{this.sortIcon('cambios', 'section_destino')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('cambios', 'campus_destino')">Campus destino <i t-attf-class="fa {{this.sortIcon('cambios', 'campus_destino')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('cambios', 'motivo')">Motivo <i t-attf-class="fa {{this.sortIcon('cambios', 'motivo')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('cambios', 'date')">Fecha <i t-attf-class="fa {{this.sortIcon('cambios', 'date')}}"/></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.sortedCambios" t-as="row" t-key="row.id"
+                                    class="o_adb_row_clickable" t-on-click="() => this.openCambio(row.id)">
+                                    <td><t t-esc="row.student"/></td>
+                                    <td class="o_adb_mono"><t t-esc="row.section_origen"/></td>
+                                    <td class="o_adb_mono"><t t-esc="row.section_destino"/></td>
+                                    <td><t t-esc="row.campus_destino"/></td>
+                                    <td><t t-esc="row.motivo"/></td>
+                                    <td><t t-esc="row.date"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-if="!this.sortedCambios.length" class="o_adb_empty">Sin cambios de sección en el período seleccionado.</p>
+                    </div>
+                </section>
+
+                <!-- ===== CAPACIDAD ===== -->
+                <section t-if="this.state.activeTab === 'capacidad'" class="o_adb_section">
+                    <p class="o_adb_asof">Semáforo por sección activa: verde = ocupación &gt; 70%, ámbar = 40-70%, rojo = &lt; 40% (riesgo de sección poco rentable). Clic en una fila para abrir la sección.</p>
+                    <div class="o_adb_table_wrap">
+                        <table class="o_adb_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('capacidad', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('capacidad', 'section')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('capacidad', 'course')">Curso <i t-attf-class="fa {{this.sortIcon('capacidad', 'course')}}"/></th>
+                                    <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('capacidad', 'campus')">Campus <i t-attf-class="fa {{this.sortIcon('capacidad', 'campus')}}"/></th>
+                                    <th class="o_adb_th_sortable text-center" t-on-click="() => this.toggleSort('capacidad', 'total_students')">Inscritos <i t-attf-class="fa {{this.sortIcon('capacidad', 'total_students')}}"/></th>
+                                    <th class="o_adb_th_sortable text-center" t-on-click="() => this.toggleSort('capacidad', 'capacity')">Capacidad <i t-attf-class="fa {{this.sortIcon('capacidad', 'capacity')}}"/></th>
+                                    <th class="o_adb_th_sortable text-center" t-on-click="() => this.toggleSort('capacidad', 'remaining_seats')">Cupos libres <i t-attf-class="fa {{this.sortIcon('capacidad', 'remaining_seats')}}"/></th>
+                                    <th class="o_adb_th_sortable text-center" t-on-click="() => this.toggleSort('capacidad', 'pct')">Ocupación <i t-attf-class="fa {{this.sortIcon('capacidad', 'pct')}}"/></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.sortedCapacidad" t-as="row" t-key="row.id"
+                                    class="o_adb_row_clickable" t-on-click="() => this.openSeccion(row.id)">
+                                    <td class="o_adb_mono"><t t-esc="row.section"/></td>
+                                    <td><t t-esc="row.course"/></td>
+                                    <td><t t-esc="row.campus"/></td>
+                                    <td class="text-center o_adb_mono"><t t-esc="row.total_students"/></td>
+                                    <td class="text-center o_adb_mono"><t t-esc="row.capacity"/></td>
+                                    <td class="text-center o_adb_mono"><t t-esc="row.remaining_seats"/></td>
+                                    <td class="text-center"><span t-attf-class="o_adb_stamp o_adb_stamp_{{row.color}}"><t t-esc="row.pct"/>%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-if="!this.sortedCapacidad.length" class="o_adb_empty">No hay secciones activas con capacidad definida.</p>
+                    </div>
+                </section>
+
+                <!-- ===== MOROSIDAD ===== -->
+                <section t-if="this.state.activeTab === 'morosidad' &amp;&amp; this.state.data.has_billing_access" class="o_adb_section">
+                    <button class="o_adb_refresh" t-on-click="toggleFinancials">
+                        <i t-attf-class="fa {{ this.state.data.filters_applied.show_financials ? 'fa-eye-slash' : 'fa-eye' }}"/>
+                        <t t-esc="this.state.data.filters_applied.show_financials ? 'Ocultar cifras de morosidad' : 'Cargar cifras de morosidad'"/>
+                    </button>
+
+                    <t t-if="this.state.data.morosidad">
+                        <div class="o_adb_billing_grid">
+                            <div class="o_adb_billing_card">
+                                <span class="o_adb_billing_label">Total pendiente por cobrar</span>
+                                <span class="o_adb_billing_value o_adb_billing_warn"><t t-esc="this.state.data.morosidad.total_morosidad"/></span>
+                                <span class="o_adb_billing_sub"><t t-esc="this.state.data.morosidad.cantidad_facturas"/> factura(s) con saldo</span>
+                            </div>
+                            <div class="o_adb_billing_card">
+                                <span class="o_adb_billing_label">Total vencido</span>
+                                <span class="o_adb_billing_value o_adb_billing_bad"><t t-esc="this.state.data.morosidad.total_vencido"/></span>
+                                <span class="o_adb_billing_sub"><t t-esc="this.state.data.morosidad.cantidad_vencidas"/> factura(s) vencida(s)</span>
+                            </div>
+                        </div>
+
+                        <h2 class="o_adb_section_title"><i class="fa fa-book"/> Morosidad por curso</h2>
+                        <div class="o_adb_barchart">
+                            <t t-if="this.state.data.morosidad.por_curso.length">
+                                <div t-foreach="this.morosidadBars('por_curso')" t-as="b" t-key="b.label" class="o_adb_barrow">
+                                    <span class="o_adb_barlabel" t-att-title="b.label"><t t-esc="b.label"/></span>
+                                    <div class="o_adb_bar_track">
+                                        <div class="o_adb_bar_fill" t-attf-style="width: {{b.width}}%;{{b.color ? ' background-color: ' + b.color + ';' : ''}}"/>
+                                    </div>
+                                    <span class="o_adb_barvalue"><t t-esc="b.value"/></span>
+                                </div>
+                            </t>
+                            <p t-else="" class="o_adb_empty">Sin morosidad registrada.</p>
+                        </div>
+
+                        <h2 class="o_adb_section_title"><i class="fa fa-list-alt"/> Grupos con mayor morosidad</h2>
+                        <div class="o_adb_barchart">
+                            <t t-if="this.state.data.morosidad.por_seccion.length">
+                                <div t-foreach="this.morosidadBars('por_seccion')" t-as="b" t-key="b.label"
+                                     t-attf-class="o_adb_barrow {{ b.id ? 'is-clickable' : '' }}" t-on-click="() => this.onRankingBarClick(b)">
+                                    <span class="o_adb_barlabel" t-att-title="b.label"><t t-esc="b.label"/></span>
+                                    <div class="o_adb_bar_track">
+                                        <div class="o_adb_bar_fill" t-attf-style="width: {{b.width}}%;{{b.color ? ' background-color: ' + b.color + ';' : ''}}"/>
+                                    </div>
+                                    <span class="o_adb_barvalue"><t t-esc="b.value"/></span>
+                                </div>
+                            </t>
+                            <p t-else="" class="o_adb_empty">Sin morosidad registrada.</p>
+                        </div>
+
+                        <h2 class="o_adb_section_title"><i class="fa fa-user"/> Morosidad por profesor</h2>
+                        <div class="o_adb_barchart">
+                            <t t-if="this.state.data.morosidad.por_profesor.length">
+                                <div t-foreach="this.morosidadBars('por_profesor')" t-as="b" t-key="b.label" class="o_adb_barrow">
+                                    <span class="o_adb_barlabel" t-att-title="b.label"><t t-esc="b.label"/></span>
+                                    <div class="o_adb_bar_track">
+                                        <div class="o_adb_bar_fill" t-attf-style="width: {{b.width}}%;{{b.color ? ' background-color: ' + b.color + ';' : ''}}"/>
+                                    </div>
+                                    <span class="o_adb_barvalue"><t t-esc="b.value"/></span>
+                                </div>
+                            </t>
+                            <p t-else="" class="o_adb_empty">Sin morosidad registrada.</p>
+                        </div>
+
+                        <h2 class="o_adb_section_title"><i class="fa fa-table"/> Detalle de facturas con saldo pendiente</h2>
+                        <div class="o_adb_table_wrap">
+                            <table class="o_adb_table">
+                                <thead>
+                                    <tr>
+                                        <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('morosidad', 'student')">Estudiante <i t-attf-class="fa {{this.sortIcon('morosidad', 'student')}}"/></th>
+                                        <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('morosidad', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('morosidad', 'section')}}"/></th>
+                                        <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('morosidad', 'course')">Curso <i t-attf-class="fa {{this.sortIcon('morosidad', 'course')}}"/></th>
+                                        <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('morosidad', 'teacher')">Profesor <i t-attf-class="fa {{this.sortIcon('morosidad', 'teacher')}}"/></th>
+                                        <th class="o_adb_th_sortable text-right" t-on-click="() => this.toggleSort('morosidad', 'amount_residual')">Adeudado <i t-attf-class="fa {{this.sortIcon('morosidad', 'amount_residual')}}"/></th>
+                                        <th class="o_adb_th_sortable" t-on-click="() => this.toggleSort('morosidad', 'due_date')">Vencimiento <i t-attf-class="fa {{this.sortIcon('morosidad', 'due_date')}}"/></th>
+                                        <th class="o_adb_th_sortable text-center" t-on-click="() => this.toggleSort('morosidad', 'dias_atraso')">Días de atraso <i t-attf-class="fa {{this.sortIcon('morosidad', 'dias_atraso')}}"/></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="this.sortedMorosidad" t-as="row" t-key="row.id"
+                                        class="o_adb_row_clickable" t-on-click="() => this.openInscripcion(row.id)">
+                                        <td><t t-esc="row.student"/></td>
+                                        <td class="o_adb_mono"><t t-esc="row.section"/></td>
+                                        <td><t t-esc="row.course"/></td>
+                                        <td><t t-esc="row.teacher"/></td>
+                                        <td class="text-right o_adb_mono"><t t-esc="row.amount_residual"/></td>
+                                        <td><t t-esc="row.due_date"/></td>
+                                        <td class="text-center"><span t-attf-class="o_adb_stamp {{ row.dias_atraso > 0 ? 'o_adb_stamp_red' : 'o_adb_stamp_gray' }}"><t t-esc="row.dias_atraso"/></span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p t-if="!this.sortedMorosidad.length" class="o_adb_empty">Sin facturas con saldo pendiente.</p>
+                        </div>
+                    </t>
+                    <p t-else="" class="o_adb_empty">Presione "Cargar cifras de morosidad" para calcular los montos.</p>
+                </section>
+
+                <!-- ===== FACTURACIÓN ===== -->
+                <section t-if="this.state.activeTab === 'facturacion' &amp;&amp; this.state.data.has_billing_access" class="o_adb_section">
+                    <button class="o_adb_refresh" t-on-click="toggleFinancials">
+                        <i t-attf-class="fa {{ this.state.data.filters_applied.show_financials ? 'fa-eye-slash' : 'fa-eye' }}"/>
+                        <t t-esc="this.state.data.filters_applied.show_financials ? 'Ocultar cifras de facturación' : 'Cargar cifras de facturación'"/>
+                    </button>
+
+                    <t t-if="this.state.data.billing_summary">
+                        <div class="o_adb_billing_grid">
+                            <div class="o_adb_billing_card">
+                                <span class="o_adb_billing_label">Facturado (período)</span>
+                                <span class="o_adb_billing_value"><t t-esc="this.state.data.billing_summary.total_facturado"/></span>
+                                <span class="o_adb_billing_sub"><t t-esc="this.state.data.billing_summary.cantidad_facturas"/> factura(s)</span>
+                            </div>
+                            <div class="o_adb_billing_card">
+                                <span class="o_adb_billing_label">Cobrado (período)</span>
+                                <span class="o_adb_billing_value o_adb_billing_ok"><t t-esc="this.state.data.billing_summary.total_cobrado"/></span>
+                                <span class="o_adb_billing_sub">Dinero recibido (account.payment), no facturado</span>
+                            </div>
+                            <div class="o_adb_billing_card">
+                                <span class="o_adb_billing_label">Pendiente por cobrar (total)</span>
+                                <span class="o_adb_billing_value o_adb_billing_warn"><t t-esc="this.state.data.billing_summary.total_pendiente"/></span>
+                                <span class="o_adb_billing_sub">Saldo actual, no limitado al período -- ver pestaña Morosidad</span>
+                            </div>
+                            <div class="o_adb_billing_card">
+                                <span class="o_adb_billing_label">Vencido (total)</span>
+                                <span class="o_adb_billing_value o_adb_billing_bad"><t t-esc="this.state.data.billing_summary.total_vencido"/></span>
+                            </div>
+                        </div>
+
+                        <h2 class="o_adb_section_title"><i class="fa fa-bar-chart"/> Facturado por</h2>
+                        <div class="o_adb_filter_group">
+                            <t t-foreach="this.billingGroupByOptions" t-as="opt" t-key="opt.key">
+                                <button t-attf-class="o_adb_chip {{ this.state.data.filters_applied.billing_group_by === opt.key ? 'is-active' : '' }}"
+                                        t-on-click="() => this.setBillingGroupBy(opt.key)">
+                                    <t t-esc="opt.label"/>
+                                </button>
+                            </t>
+                        </div>
+                        <div t-if="this.state.data.filters_applied.billing_group_by !== 'none'" class="o_adb_barchart">
+                            <t t-if="this.billingBreakdownBars.length">
+                                <div t-foreach="this.billingBreakdownBars" t-as="b" t-key="b.label"
+                                     t-attf-class="o_adb_barrow {{ b.id ? 'is-clickable' : '' }}" t-on-click="() => this.onRankingBarClick(b)">
+                                    <span class="o_adb_barlabel" t-att-title="b.label"><t t-esc="b.label"/></span>
+                                    <div class="o_adb_bar_track">
+                                        <div class="o_adb_bar_fill" t-attf-style="width: {{b.width}}%;{{b.color ? ' background-color: ' + b.color + ';' : ''}}"/>
+                                    </div>
+                                    <span class="o_adb_barvalue"><t t-esc="b.value"/></span>
+                                </div>
+                            </t>
+                            <p t-else="" class="o_adb_empty">Sin facturas en el período seleccionado.</p>
+                        </div>
+                    </t>
+                    <p t-else="" class="o_adb_empty">Presione "Cargar cifras de facturación" para calcular los montos del período seleccionado.</p>
+                </section>
+            </t>
+        </div>
+    </t>
+
+</templates>

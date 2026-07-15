@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="view_teacher_mgmt_wizard_form" model="ir.ui.view">
+        <field name="name">teacher.mgmt.wizard.form</field>
+        <field name="model">teacher.mgmt.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reporte de Gestión Docente">
+                <group col="4">
+                    <field name="fecha_emision"/>
+                    <field name="report_type" widget="radio"/>
+                </group>
+                <group string="Filtros (opcional, vacío = todos)">
+                    <field name="teacher_ids" widget="many2many_tags"
+                           options="{'no_create': True}"/>
+                    <field name="subject_ids" widget="many2many_tags"
+                           options="{'no_create': True}"/>
+                    <field name="standard_ids" widget="many2many_tags"
+                           options="{'no_create': True}"/>
+                </group>
+                <footer>
+                    <button name="action_generar_reporte" string="Generar Reporte" type="object"
+                            class="btn-primary"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_teacher_mgmt_wizard" model="ir.actions.act_window">
+        <field name="name">Gestión Docente</field>
+        <field name="res_model">teacher.mgmt.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_gestion" name="Gestión" parent="school.menu_ems"
+              groups="school.group_school_administration" sequence="0"/>
+    <menuitem id="menu_gestion_reportes" name="Reportes" parent="menu_gestion"
+              groups="school.group_school_administration" sequence="40"/>
+    <menuitem id="menu_gestion_docente" name="Gestión Docente" action="action_teacher_mgmt_wizard"
+              parent="menu_gestion_reportes" groups="school.group_school_administration" sequence="1"/>
+
+</odoo>

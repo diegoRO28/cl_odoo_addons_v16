@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="cl_class_mgmt_v16.ClAcademicDashboard" owl="1">
+        <div class="o_cad">
+
+            <header class="o_cad_masthead">
+                <div class="o_cad_masthead_top">
+                    <h1 class="o_cad_title">Panel de Gestión Académica</h1>
+                    <div class="o_cad_masthead_actions">
+                        <span t-if="this.state.data" class="o_cad_asof_inline">Generado el <t t-esc="this.state.data.generated_at"/></span>
+                        <button class="o_cad_refresh" t-on-click="() => this.loadData()" title="Actualizar datos">
+                            <i class="fa fa-refresh"/> Actualizar
+                        </button>
+                        <button t-if="this.state.data" class="o_cad_toggle_filters" t-on-click="toggleFilters"
+                                t-att-title="this.state.filtersCollapsed ? 'Mostrar filtros' : 'Ocultar filtros'">
+                            <i t-attf-class="fa {{ this.state.filtersCollapsed ? 'fa-chevron-down' : 'fa-chevron-up' }}"/>
+                            <t t-esc="this.state.filtersCollapsed ? 'Mostrar filtros' : 'Ocultar filtros'"/>
+                        </button>
+                    </div>
+                </div>
+
+                <div t-if="this.state.data" t-attf-class="o_cad_filterbar_outer {{ this.state.filtersCollapsed ? 'is-collapsed' : '' }}">
+                <div class="o_cad_filterbar">
+                    <div class="o_cad_filter_group">
+                        <span class="o_cad_filter_label"><i class="fa fa-filter"/> Estado</span>
+                        <t t-foreach="this.sectionStateOptions" t-as="opt" t-key="opt.key">
+                            <button t-attf-class="o_cad_chip {{ this.state.data.filters_applied.section_state === opt.key ? 'is-active' : '' }}"
+                                    t-on-click="() => this.setSectionState(opt.key)">
+                                <t t-esc="opt.label"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <div class="o_cad_filter_group">
+                        <span class="o_cad_filter_label"><i class="fa fa-university"/> Campus</span>
+                        <t t-foreach="this.state.data.campus_options" t-as="c" t-key="c.id">
+                            <button t-attf-class="o_cad_chip {{ this.state.data.filters_applied.campus_ids.includes(c.id) ? 'is-active' : '' }}"
+                                    t-on-click="() => this.toggleCampus(c.id)">
+                                <t t-esc="c.name"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <div class="o_cad_filter_group">
+                        <span class="o_cad_filter_label"><i class="fa fa-signal"/> Nivel</span>
+                        <t t-foreach="this.state.data.standard_options" t-as="s" t-key="s.id">
+                            <button t-attf-class="o_cad_chip {{ this.state.data.filters_applied.standard_ids.includes(s.id) ? 'is-active' : '' }}"
+                                    t-on-click="() => this.toggleStandard(s.id)">
+                                <t t-esc="s.name"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <div class="o_cad_filter_group">
+                        <span class="o_cad_filter_label"><i class="fa fa-book"/> Curso</span>
+                        <select class="o_cad_select" t-on-change="onSubjectSelect">
+                            <option value="">Todos los cursos</option>
+                            <t t-foreach="this.state.data.subject_options" t-as="c" t-key="c.id">
+                                <option t-att-value="c.id"
+                                        t-att-selected="this.state.data.filters_applied.subject_ids.includes(c.id)">
+                                    <t t-esc="c.name"/>
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+
+                    <div class="o_cad_filter_group">
+                        <span class="o_cad_filter_label"><i class="fa fa-sitemap"/> Agrupar</span>
+                        <t t-foreach="this.groupByOptions" t-as="opt" t-key="opt.key">
+                            <button t-attf-class="o_cad_chip {{ this.state.data.filters_applied.group_by === opt.key ? 'is-active' : '' }}"
+                                    t-on-click="() => this.setGroupBy(opt.key)">
+                                <t t-esc="opt.label"/>
+                            </button>
+                        </t>
+                    </div>
+
+                    <button class="o_cad_clear" t-on-click="clearFilters" title="Limpiar filtros de campus/nivel/curso">
+                        <i class="fa fa-times"/> Limpiar
+                    </button>
+                </div>
+                </div>
+            </header>
+
+            <div t-if="this.state.loading" class="o_cad_loading">
+                <div class="o_cad_spinner"/>
+                <p>Cargando…</p>
+            </div>
+
+            <div t-elif="this.state.error" class="o_cad_error">
+                <t t-esc="this.state.error"/>
+            </div>
+
+            <t t-else="">
+                <nav class="o_cad_tabs">
+                    <button t-attf-class="o_cad_tab {{ this.state.activeTab === 'panel' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('panel')"><i class="fa fa-tachometer"/> Panel</button>
+                    <button t-attf-class="o_cad_tab {{ this.state.activeTab === 'secciones' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('secciones')"><i class="fa fa-list-alt"/> Secciones</button>
+                    <button t-attf-class="o_cad_tab {{ this.state.activeTab === 'progreso' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('progreso')"><i class="fa fa-tasks"/> Progreso</button>
+                    <button t-attf-class="o_cad_tab {{ this.state.activeTab === 'alertas' ? 'is-active' : '' }}"
+                            t-on-click="() => this.setTab('alertas')">
+                        <i class="fa fa-exclamation-triangle"/> Alertas
+                        <span t-if="this.state.data.alerts.length" class="o_cad_tab_badge"><t t-esc="this.state.data.alerts.length"/></span>
+                    </button>
+                </nav>
+
+                <!-- ===== PANEL: KPI cards ===== -->
+                <section t-if="this.state.activeTab === 'panel'" class="o_cad_section">
+                    <div class="o_cad_kpi_grid">
+                        <div t-foreach="this.state.data.kpis" t-as="kpi" t-key="kpi.key"
+                             t-attf-class="o_cad_kpi_card {{this.kpiColorClass(kpi.color)}}">
+                            <div class="o_cad_kpi_head">
+                                <span class="o_cad_kpi_label"><i t-attf-class="fa {{this.kpiIcons[kpi.key]}}"/> <t t-esc="kpi.label"/></span>
+                                <div t-if="kpi.allow_viz.length > 1" class="o_cad_viz_switch">
+                                    <t t-foreach="kpi.allow_viz" t-as="viz" t-key="viz">
+                                        <button t-attf-class="o_cad_viz_btn {{ this.kpiViz(kpi) === viz ? 'is-active' : '' }}"
+                                                t-on-click="() => this.setKpiViz(kpi.key, viz)" t-att-title="viz">
+                                            <i t-attf-class="fa {{this.vizIcons[viz]}}"/>
+                                        </button>
+                                    </t>
+                                </div>
+                            </div>
+
+                            <!-- vista número -->
+                            <div t-if="this.kpiViz(kpi) === 'number'" class="o_cad_kpi_number">
+                                <t t-esc="kpi.value_formatted"/>
+                            </div>
+
+                            <!-- vista medidor (KPI porcentual sin desglose) -->
+                            <div t-elif="this.kpiViz(kpi) === 'donut' &amp;&amp; !kpi.series" class="o_cad_meter_wrap">
+                                <svg viewBox="0 0 100 100" class="o_cad_meter">
+                                    <circle cx="50" cy="50" r="40" class="o_cad_meter_track"/>
+                                    <g transform="rotate(-90 50 50)">
+                                        <circle cx="50" cy="50" r="40" class="o_cad_meter_fill"
+                                                t-attf-stroke-dasharray="{{this.meterSlice(kpi.value).dasharray}}"/>
+                                    </g>
+                                    <text x="50" y="57" class="o_cad_meter_text"><t t-esc="kpi.value_formatted"/></text>
+                                </svg>
+                            </div>
+                            <div t-elif="this.kpiViz(kpi) === 'bar' &amp;&amp; !kpi.series" class="o_cad_meterbar_wrap">
+                                <div class="o_cad_bar_track">
+                                    <div class="o_cad_bar_fill" t-attf-style="width: {{kpi.value}}%"/>
+                                </div>
+                                <span class="o_cad_meterbar_value"><t t-esc="kpi.value_formatted"/></span>
+                            </div>
+
+                            <!-- vista barra (con desglose real) -->
+                            <div t-elif="this.kpiViz(kpi) === 'bar' &amp;&amp; kpi.series" class="o_cad_barchart">
+                                <t t-foreach="this.barWidths(kpi)" t-as="b" t-key="b.label">
+                                    <div t-attf-class="o_cad_barrow {{ this.isClickableBar(kpi.key) ? 'is-clickable' : '' }}"
+                                         t-on-click="() => this.onBarClick(kpi, b)">
+                                        <span class="o_cad_barlabel" t-att-title="b.label"><t t-esc="b.label"/></span>
+                                        <div class="o_cad_bar_track">
+                                            <div class="o_cad_bar_fill" t-attf-style="width: {{b.width}}%;{{b.color ? ' background-color: ' + b.color + ';' : ''}}"/>
+                                        </div>
+                                        <span class="o_cad_barvalue"><t t-esc="b.value"/></span>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <!-- vista donut (con desglose real) -->
+                            <div t-elif="this.kpiViz(kpi) === 'donut' &amp;&amp; kpi.series" class="o_cad_donut_wrap">
+                                <svg viewBox="0 0 100 100" class="o_cad_donut">
+                                    <circle cx="50" cy="50" r="40" class="o_cad_donut_track"/>
+                                    <g transform="rotate(-90 50 50)">
+                                        <circle t-foreach="this.donutSlices(kpi)" t-as="slice" t-key="slice.label"
+                                                cx="50" cy="50" r="40" class="o_cad_donut_slice"
+                                                t-attf-stroke-dasharray="{{slice.dasharray}}"
+                                                t-attf-stroke-dashoffset="{{slice.dashoffset}}"
+                                                t-attf-style="stroke-opacity: {{slice.opacity}};{{slice.color ? ' stroke: ' + slice.color + ';' : ''}}">
+                                            <title><t t-esc="slice.label"/>: <t t-esc="slice.value"/> (<t t-esc="slice.pct"/>%)</title>
+                                        </circle>
+                                    </g>
+                                </svg>
+                                <ul class="o_cad_legend">
+                                    <li t-foreach="this.donutSlices(kpi)" t-as="slice" t-key="slice.label">
+                                        <span class="o_cad_legend_swatch" t-attf-style="opacity: {{slice.opacity}};{{slice.color ? ' background-color: ' + slice.color + ';' : ''}}"/>
+                                        <span class="o_cad_legend_label"><t t-esc="slice.label"/></span>
+                                        <span class="o_cad_legend_value"><t t-esc="slice.value"/></span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- vista tabla -->
+                            <table t-elif="this.kpiViz(kpi) === 'table' &amp;&amp; kpi.series" class="o_cad_kpi_table">
+                                <thead>
+                                    <tr>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('kpi_' + kpi.key, 'label')">
+                                            Sección <i t-attf-class="fa {{this.sortIcon('kpi_' + kpi.key, 'label')}}"/>
+                                        </th>
+                                        <th class="o_cad_th_sortable text-right" t-on-click="() => this.toggleSort('kpi_' + kpi.key, 'value')">
+                                            Valor <i t-attf-class="fa {{this.sortIcon('kpi_' + kpi.key, 'value')}}"/>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="this.sortedKpiSeries(kpi)" t-as="row" t-key="row.label"
+                                        t-attf-class="{{ this.isSectionLevelKpi(kpi.key) &amp;&amp; row.id ? 'o_cad_row_clickable' : '' }}"
+                                        t-on-click="() => this.onBarClick(kpi, row)">
+                                        <td><t t-esc="row.label"/></td>
+                                        <td class="o_cad_mono text-right"><t t-esc="row.value"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <h2 class="o_cad_section_title"><i class="fa fa-history"/> Últimas secciones creadas</h2>
+                    <div class="o_cad_table_wrap">
+                        <table class="o_cad_table">
+                            <thead>
+                                <tr>
+                                    <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('recent', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('recent', 'section')}}"/></th>
+                                    <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('recent', 'course')">Curso <i t-attf-class="fa {{this.sortIcon('recent', 'course')}}"/></th>
+                                    <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('recent', 'teacher')">Profesor <i t-attf-class="fa {{this.sortIcon('recent', 'teacher')}}"/></th>
+                                    <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('recent', 'campus')">Campus <i t-attf-class="fa {{this.sortIcon('recent', 'campus')}}"/></th>
+                                    <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('recent', 'estado')">Estado <i t-attf-class="fa {{this.sortIcon('recent', 'estado')}}"/></th>
+                                    <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('recent', 'created')">Creada <i t-attf-class="fa {{this.sortIcon('recent', 'created')}}"/></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="this.sortedRecentSections" t-as="r" t-key="r_index"
+                                    class="o_cad_row_clickable" t-on-click="() => this.openSectionModal(r.id)">
+                                    <td class="o_cad_mono"><t t-esc="r.section"/></td>
+                                    <td><t t-esc="r.course"/></td>
+                                    <td><t t-esc="r.teacher"/></td>
+                                    <td><t t-esc="r.campus"/></td>
+                                    <td><t t-esc="r.estado"/></td>
+                                    <td><t t-esc="r.created"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-if="!this.state.data.recent_sections.length" class="o_cad_empty">No hay secciones registradas.</p>
+                    </div>
+                </section>
+
+                <!-- ===== SECCIONES ===== -->
+                <section t-if="this.state.activeTab === 'secciones'" class="o_cad_section">
+                    <input type="text" class="o_cad_search" placeholder="Buscar por sección, curso o profesor…"
+                           t-model="this.state.search"/>
+
+                    <t t-if="!this.state.data.groups">
+                        <div class="o_cad_table_wrap">
+                            <table class="o_cad_table">
+                                <thead>
+                                    <tr>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('secciones', 'section')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'course')">Curso <i t-attf-class="fa {{this.sortIcon('secciones', 'course')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'teacher')">Profesor <i t-attf-class="fa {{this.sortIcon('secciones', 'teacher')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'campus')">Campus <i t-attf-class="fa {{this.sortIcon('secciones', 'campus')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'standard')">Nivel <i t-attf-class="fa {{this.sortIcon('secciones', 'standard')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'section_status_label')">Estado <i t-attf-class="fa {{this.sortIcon('secciones', 'section_status_label')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'status_label')">Asistencia <i t-attf-class="fa {{this.sortIcon('secciones', 'status_label')}}"/></th>
+                                        <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'eval_status_label')">Evaluación <i t-attf-class="fa {{this.sortIcon('secciones', 'eval_status_label')}}"/></th>
+                                        <th class="o_cad_th_sortable text-center" t-on-click="() => this.toggleSort('secciones', 'average')">Promedio <i t-attf-class="fa {{this.sortIcon('secciones', 'average')}}"/></th>
+                                        <th class="o_cad_th_sortable text-center" t-on-click="() => this.toggleSort('secciones', 'total_students')">Estudiantes <i t-attf-class="fa {{this.sortIcon('secciones', 'total_students')}}"/></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="this.sortedFilteredRows" t-as="row" t-key="row_index"
+                                        class="o_cad_row_clickable" t-on-click="() => this.openSectionModal(row.id)">
+                                        <td class="o_cad_mono"><t t-esc="row.section"/></td>
+                                        <td><t t-esc="row.course"/></td>
+                                        <td><t t-esc="row.teacher"/></td>
+                                        <td><t t-esc="row.campus"/></td>
+                                        <td><t t-esc="row.standard"/></td>
+                                        <td><span t-attf-class="o_cad_stamp o_cad_stamp_{{row.section_status_color}}"><t t-esc="row.section_status_label"/></span></td>
+                                        <td><span t-attf-class="o_cad_stamp o_cad_stamp_{{row.status_color}}"><t t-esc="row.status_label"/></span></td>
+                                        <td><span t-attf-class="o_cad_stamp o_cad_stamp_{{row.eval_status_color}}"><t t-esc="row.eval_status_label"/></span></td>
+                                        <td class="text-center o_cad_mono"><t t-esc="row.average_label"/></td>
+                                        <td class="text-center o_cad_mono"><t t-esc="row.total_students"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p t-if="!this.filteredRows.length" class="o_cad_empty">Ninguna sección coincide con la búsqueda.</p>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div t-foreach="this.state.data.groups" t-as="group" t-key="group.label" class="o_cad_group_block">
+                            <h3 class="o_cad_group_title"><t t-esc="group.label"/> <span class="o_cad_group_count">(<t t-esc="group.rows.length"/>)</span></h3>
+                            <div class="o_cad_table_wrap">
+                                <table class="o_cad_table">
+                                    <thead>
+                                        <tr>
+                                            <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('secciones', 'section')}}"/></th>
+                                            <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'course')">Curso <i t-attf-class="fa {{this.sortIcon('secciones', 'course')}}"/></th>
+                                            <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'teacher')">Profesor <i t-attf-class="fa {{this.sortIcon('secciones', 'teacher')}}"/></th>
+                                            <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'section_status_label')">Estado <i t-attf-class="fa {{this.sortIcon('secciones', 'section_status_label')}}"/></th>
+                                            <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'status_label')">Asistencia <i t-attf-class="fa {{this.sortIcon('secciones', 'status_label')}}"/></th>
+                                            <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('secciones', 'eval_status_label')">Evaluación <i t-attf-class="fa {{this.sortIcon('secciones', 'eval_status_label')}}"/></th>
+                                            <th class="o_cad_th_sortable text-center" t-on-click="() => this.toggleSort('secciones', 'average')">Promedio <i t-attf-class="fa {{this.sortIcon('secciones', 'average')}}"/></th>
+                                            <th class="o_cad_th_sortable text-center" t-on-click="() => this.toggleSort('secciones', 'total_students')">Estudiantes <i t-attf-class="fa {{this.sortIcon('secciones', 'total_students')}}"/></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="this.sortedGroupRows(group)" t-as="row" t-key="row_index"
+                                            class="o_cad_row_clickable" t-on-click="() => this.openSectionModal(row.id)">
+                                            <td class="o_cad_mono"><t t-esc="row.section"/></td>
+                                            <td><t t-esc="row.course"/></td>
+                                            <td><t t-esc="row.teacher"/></td>
+                                            <td><span t-attf-class="o_cad_stamp o_cad_stamp_{{row.section_status_color}}"><t t-esc="row.section_status_label"/></span></td>
+                                            <td><span t-attf-class="o_cad_stamp o_cad_stamp_{{row.status_color}}"><t t-esc="row.status_label"/></span></td>
+                                            <td><span t-attf-class="o_cad_stamp o_cad_stamp_{{row.eval_status_color}}"><t t-esc="row.eval_status_label"/></span></td>
+                                            <td class="text-center o_cad_mono"><t t-esc="row.average_label"/></td>
+                                            <td class="text-center o_cad_mono"><t t-esc="row.total_students"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </t>
+                </section>
+
+                <!-- ===== PROGRESO ===== -->
+                <section t-if="this.state.activeTab === 'progreso'" class="o_cad_section">
+                    <nav class="o_cad_subtabs">
+                        <button t-attf-class="o_cad_subtab {{ this.state.progressTab === 'encuentros' ? 'is-active' : '' }}"
+                                t-on-click="() => this.setProgressTab('encuentros')">
+                            <i class="fa fa-tasks"/> Encuentros
+                        </button>
+                        <button t-attf-class="o_cad_subtab {{ this.state.progressTab === 'evaluaciones' ? 'is-active' : '' }}"
+                                t-on-click="() => this.setProgressTab('evaluaciones')">
+                            <i class="fa fa-check-square-o"/> Evaluaciones
+                        </button>
+                    </nav>
+
+                    <t t-if="this.state.progressTab === 'encuentros'">
+                        <p class="o_cad_asof">Encuentros dictados vs. planeados, por sección en curso. Clic en una fila para ver el detalle.</p>
+                        <div class="o_cad_progress_head">
+                            <span class="o_cad_th_sortable" t-on-click="() => this.toggleSort('progress_encuentros', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('progress_encuentros', 'section')}}"/></span>
+                            <span class="o_cad_th_sortable" t-on-click="() => this.toggleSort('progress_encuentros', 'pct')">% completado <i t-attf-class="fa {{this.sortIcon('progress_encuentros', 'pct')}}"/></span>
+                        </div>
+                        <div class="o_cad_barchart o_cad_barchart_wide">
+                            <div t-foreach="this.sortedProgress('encuentros')" t-as="p" t-key="p.section"
+                                 class="o_cad_barrow is-clickable" t-on-click="() => this.openSectionModal(p.id, { progressContext: p })">
+                                <span class="o_cad_barlabel" t-att-title="p.course"><t t-esc="p.section"/></span>
+                                <div class="o_cad_bar_track">
+                                    <div class="o_cad_bar_fill" t-attf-style="width: {{p.pct}}%"/>
+                                </div>
+                                <span class="o_cad_barvalue"><t t-esc="p.dictados"/>/<t t-esc="p.total"/></span>
+                            </div>
+                            <p t-if="!this.state.data.progress_meetings.length" class="o_cad_empty">No hay secciones en curso para mostrar progreso.</p>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <p class="o_cad_asof">Evaluaciones culminadas vs. planeadas, por sección en curso. Clic en una fila para ver el detalle.</p>
+                        <div class="o_cad_progress_head">
+                            <span class="o_cad_th_sortable" t-on-click="() => this.toggleSort('progress_evaluaciones', 'section')">Sección <i t-attf-class="fa {{this.sortIcon('progress_evaluaciones', 'section')}}"/></span>
+                            <span class="o_cad_th_sortable" t-on-click="() => this.toggleSort('progress_evaluaciones', 'pct')">% completado <i t-attf-class="fa {{this.sortIcon('progress_evaluaciones', 'pct')}}"/></span>
+                        </div>
+                        <div class="o_cad_barchart o_cad_barchart_wide">
+                            <div t-foreach="this.sortedProgress('evaluaciones')" t-as="p" t-key="p.section"
+                                 class="o_cad_barrow is-clickable" t-on-click="() => this.openSectionModal(p.id, { progressContext: p })">
+                                <span class="o_cad_barlabel" t-att-title="p.course"><t t-esc="p.section"/></span>
+                                <div class="o_cad_bar_track">
+                                    <div class="o_cad_bar_fill" t-attf-style="width: {{p.pct}}%"/>
+                                </div>
+                                <span class="o_cad_barvalue"><t t-esc="p.dictados"/>/<t t-esc="p.total"/></span>
+                            </div>
+                            <p t-if="!this.state.data.progress_evaluations.length" class="o_cad_empty">No hay secciones en curso para mostrar progreso.</p>
+                        </div>
+                    </t>
+                </section>
+
+                <!-- ===== ALERTAS ===== -->
+                <section t-if="this.state.activeTab === 'alertas'" class="o_cad_section">
+                    <t t-if="this.state.data.alerts.length">
+                        <nav class="o_cad_subtabs">
+                            <t t-foreach="this.alertTypes" t-as="atype" t-key="atype.key">
+                                <button t-attf-class="o_cad_subtab {{ this.state.alertTab === atype.key ? 'is-active' : '' }}"
+                                        t-on-click="() => this.setAlertTab(atype.key)">
+                                    <i t-attf-class="fa {{atype.icon}}"/> <t t-esc="atype.key"/>
+                                    <span class="o_cad_tab_badge"><t t-esc="this.alertsByType(atype.key).length"/></span>
+                                </button>
+                            </t>
+                        </nav>
+
+                        <t t-foreach="this.alertTypes" t-as="atype" t-key="atype.key">
+                            <t t-if="this.state.alertTab === atype.key">
+                                <p class="o_cad_asof"><t t-esc="atype.label"/>. Clic en una fila para ver el detalle de la sección.</p>
+                                <div t-if="this.alertsByType(atype.key).length" class="o_cad_table_wrap">
+                                    <table class="o_cad_table">
+                                        <thead>
+                                            <tr>
+                                                <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('alert_' + atype.key, 'section')">Sección <i t-attf-class="fa {{this.sortIcon('alert_' + atype.key, 'section')}}"/></th>
+                                                <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('alert_' + atype.key, 'course')">Curso <i t-attf-class="fa {{this.sortIcon('alert_' + atype.key, 'course')}}"/></th>
+                                                <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('alert_' + atype.key, 'target')">Estudiante / objetivo <i t-attf-class="fa {{this.sortIcon('alert_' + atype.key, 'target')}}"/></th>
+                                                <th class="o_cad_th_sortable" t-on-click="() => this.toggleSort('alert_' + atype.key, 'detalle')">Detalle <i t-attf-class="fa {{this.sortIcon('alert_' + atype.key, 'detalle')}}"/></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="this.sortedAlerts(atype.key)" t-as="a" t-key="a_index"
+                                                class="o_cad_row_clickable" t-on-click="() => this.openSectionModal(a.id, { alertContext: a })">
+                                                <td class="o_cad_mono"><t t-esc="a.section"/></td>
+                                                <td><t t-esc="a.course"/></td>
+                                                <td><t t-esc="a.target"/></td>
+                                                <td><t t-esc="a.detalle"/></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p t-else="" class="o_cad_empty">Ninguna coincidencia en esta categoría.</p>
+                            </t>
+                        </t>
+                    </t>
+                    <div t-else="" class="o_cad_empty_state">
+                        <i class="fa fa-check-circle"/>
+                        <p>Sin alertas académicas. Todo al día.</p>
+                    </div>
+                </section>
+
+                <!-- ===== MODAL: detalle de sección ===== -->
+                <div t-if="this.state.modalSection" class="o_cad_modal_backdrop" t-on-click="closeModal">
+                    <div class="o_cad_modal" t-on-click.stop="() => {}">
+                        <div class="o_cad_modal_head">
+                            <h3><i class="fa fa-list-alt"/> <t t-esc="this.state.modalSection.section"/></h3>
+                            <button class="o_cad_modal_close" t-on-click="closeModal"><i class="fa fa-times"/></button>
+                        </div>
+                        <div class="o_cad_modal_body">
+                            <div class="o_cad_modal_row"><span>Curso</span><strong><t t-esc="this.state.modalSection.course"/></strong></div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.teacher"><span>Profesor</span><strong><t t-esc="this.state.modalSection.teacher"/></strong></div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.campus"><span>Campus</span><strong><t t-esc="this.state.modalSection.campus"/></strong></div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.standard"><span>Nivel</span><strong><t t-esc="this.state.modalSection.standard"/></strong></div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.section_status_label">
+                                <span>Estado de sección</span>
+                                <span t-attf-class="o_cad_stamp o_cad_stamp_{{this.state.modalSection.section_status_color}}"><t t-esc="this.state.modalSection.section_status_label"/></span>
+                            </div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.average_label"><span>Promedio</span><strong><t t-esc="this.state.modalSection.average_label"/></strong></div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.total_students !== undefined"><span>Estudiantes</span><strong><t t-esc="this.state.modalSection.total_students"/></strong></div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.status_label">
+                                <span>Estado asistencia</span>
+                                <span t-attf-class="o_cad_stamp o_cad_stamp_{{this.state.modalSection.status_color}}"><t t-esc="this.state.modalSection.status_label"/></span>
+                            </div>
+                            <div class="o_cad_modal_row" t-if="this.state.modalSection.eval_status_label">
+                                <span>Estado evaluación</span>
+                                <span t-attf-class="o_cad_stamp o_cad_stamp_{{this.state.modalSection.eval_status_color}}"><t t-esc="this.state.modalSection.eval_status_label"/></span>
+                            </div>
+
+                            <t t-if="this.state.modalSection.alertContext">
+                                <div class="o_cad_modal_divider"/>
+                                <div class="o_cad_modal_row"><span>Alerta</span><strong><t t-esc="this.state.modalSection.alertContext.tipo"/></strong></div>
+                                <div class="o_cad_modal_row"><span>Objetivo</span><strong><t t-esc="this.state.modalSection.alertContext.target"/></strong></div>
+                                <div class="o_cad_modal_row"><span>Detalle</span><strong><t t-esc="this.state.modalSection.alertContext.detalle"/></strong></div>
+                            </t>
+
+                            <t t-if="this.state.modalSection.progressContext">
+                                <div class="o_cad_modal_divider"/>
+                                <div class="o_cad_modal_row"><span>Progreso</span><strong><t t-esc="this.state.modalSection.progressContext.pct"/>%</strong></div>
+                                <div class="o_cad_modal_row"><span>Completados</span><strong><t t-esc="this.state.modalSection.progressContext.dictados"/> de <t t-esc="this.state.modalSection.progressContext.total"/></strong></div>
+                            </t>
+                        </div>
+                        <div class="o_cad_modal_footer">
+                            <a href="#" class="o_cad_modal_link" t-on-click.prevent="openSectionForm">
+                                <i class="fa fa-external-link"/> Ver sección completa en Odoo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

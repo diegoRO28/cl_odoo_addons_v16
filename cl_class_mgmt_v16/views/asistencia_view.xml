@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="view_subject_asistencia_form_inherit_cl" model="ir.ui.view">
+        <field name="name">subject.asistencia.form.inherit.cl.class.mgmt</field>
+        <field name="model">subject.asistencia</field>
+        <field name="inherit_id" ref="school.view_subject_asistencia_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="before">
+                <field name="reprogramando" invisible="1"/>
+                <button class="btn-secondary" name="action_reprogramar" string="REPROGRAMAR"
+                        type="object" icon="fa-calendar"
+                        attrs="{'invisible': ['|', ('reprogramando', '=', True), ('state', '=', 'terminate')]}"
+                        groups="school.group_school_administration,school.group_school_teacher"/>
+            </xpath>
+            <xpath expr="//field[@name='date_start']" position="attributes">
+                <attribute name="attrs">{'readonly': ['|', ('state', '=', 'terminate'), ('reprogramando', '=', False)]}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

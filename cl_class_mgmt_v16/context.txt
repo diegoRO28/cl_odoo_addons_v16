@@ -1,0 +1,245 @@
+Módulo de Gestión Académica – 10-03-26
+
+Items:
+
+· Dashboard
+· Metricas
+· Reportes
+
+Cambios necesarios a school (el modulo para contexto se encuentra en /opt/odoo16/odoo16/custom/school):
+
+· Modificación a subject.asistencia y     standard.evaluacion
+  · Añadir opción para programar encuentro o evaluacion.
+  · El campo Date_start debe estar en modo solo lectura (readonly).
+
+· Modificación a school.standard
+  · Al abrir la sección (iniciar), se deben calcular las fechas de los encuentros y las evaluaciones a partir de la fecha de inicio (Start_date de school, standard).
+  · Tomar en cuenta la fecha de finalización (mostrar diferencia en el nuevo encuentro) (end_date en school, standard).
+  · Modal de reprogramar:
+  ¿Que se va a reprogramar? Es encuentro o una evaluacion o ambas
+    · Última asistencia cargada.
+    · Ultima evaluacion cargada.
+    · Fecha de la última asistencia.
+    · Fecha del próximo encuentro.
+
+
+---
+
+Reporte de rendimiento – Dashboard de rendimiento docente: Tomar en cuenta el codigo localizado en: /opt/odoo16/odoo16/cl_addons_v16/cl_class_mgmt_v16/index.html
+
+CONTEXTO: Un teacher creo un reporte utilizando IA que consulta un archivo Google Sheets. Este dashboard se encuentra alojado en: https://cleveland-attendance-teacher-report.netlify.app/ 
+
+Y utiliza el siguiente archivo sheets: https://docs.google.com/spreadsheets/d/1hrg0fj0LD_qG1AONjZvmiyheacoRxauu/edit?usp=sharing&ouid=102165177968638459974&rtpof=true&sd=true
+
+Este es el xlsx en el directorio por si no puedes acceder al google sheets: /opt/odoo16/odoo16/cl_addons_v16/cl_class_mgmt_v16/attendance_report_model.xlsx
+
+Hay que buscar como adaptar ese dashboard a Odoo para que los directivos puedan revisarlo, ademas me gustaria buscar una manera de que se pueda alimentar el dashboard que creo el teacher, pero eso lo implementaremos en una fase futura. 
+
+Reprogramar – Sección
+
+Reporte de cumplimiento de asistencias
+
+Campos:
+
+· Teacher:
+  · Course (Sección).
+  · Status (Uptodate = Verde, Not uptodate = Rojo).
+· Class days:
+  · Start - End de este curso / Mes.
+  · Grupos uptodate (por teacher).
+  · Grupos (Secciones asignadas al teacher).
+· Número de estudiantes de la sección.
+· Edades.
+
+IMPORTANTE: Todos los cambios se deben aplicar desde el modulo que estamos desarrollando
+  por lo que todo debe heredar a school y editar en base a las herencias
+
+---
+
+DECISIÓN DE DISEÑO – Automatización de fechas de encuentros y evaluaciones (2026-07-14):
+
+· Se debe crear (por herencia _inherit) un nuevo campo en school.standard que permita
+  seleccionar los días de la semana en que se dicta el curso.
+  Ej: (LUNES Y MARTES) / (MIÉRCOLES, JUEVES, SÁBADOS) / (SOLO SÁBADOS).
+
+· Vista a heredar: school.standard.form
+  ID externo: school.view_school_standard_form
+  (ubicación real del campo start_date/end_date/code_moodle: school/views/standard_view.xml líneas 69-71)
+
+· Con estos días de la semana marcados + start_date + end_date, se calculan las fechas
+  de los encuentros (subject.asistencia.date_start) y de las evaluaciones
+  (standard.evaluacion.date_start): se recorren los días desde start_date, y cada vez
+  que el día de la semana coincide con uno de los marcados, se asigna esa fecha al
+  siguiente encuentro/evaluación pendiente, hasta completar la cantidad requerida por
+  el curso (subject.encuentro_ids / subject.libroevas_ids) o hasta llegar a end_date
+  (mostrando la diferencia si no alcanza).
+
+· Referencia de campos verificados en school (2026-07-14):
+  - subject.asistencia.date_start (minúscula, no "Date_start")
+  - standard.evaluacion.date_start (minúscula)
+  - school.standard.start_date / end_date (orden invertido respecto al spec original)
+  - school.standard.set_done() ya llama a generate_encuentros() y generate_registroEva()
+    al iniciar la sección; ahí se debe enganchar el cálculo automático de fechas.
+
+· IMPORTANTE - Conflicto detectado con otro módulo (2026-07-14):
+  El módulo school_mod (instalado junto a school) sobrescribe
+  generate_registroEva() en school.standard SIN llamar a super(), lo que rompe
+  cualquier _inherit que intente engancharse ahí (las fechas de evaluaciones no se
+  calculaban). Por eso el cálculo automático de fechas NO se hace sobreescribiendo
+  generate_encuentros()/generate_registroEva(), sino en el create() de
+  subject.asistencia y standard.evaluacion (cl_class_mgmt_v16/models/asistencia.py y
+  registroeva.py) - así funciona sin importar qué módulo termine creando el registro.
+  También existen instalados: school_optimize (crea standard.evaluaciones/actividades
+  por estudiante, no toca date_start) y school_archive (solo agrega campo 'active').
+  school_mod además tiene una @api.constrains en subject.asistencia que bloquea poner
+  un encuentro en estado 'done' si date_start sigue igual a la fecha de creación
+  (obligaba a corregir la fecha manualmente); con la automatización esto deja de
+  ser un problema en el flujo normal.
+
+· UI - Días de Clases (2026-07-14, ajuste pedido por el usuario tras ver la vista):
+  En vez de 7 campos Boolean con checkboxes, se usa un Many2many
+  (school.standard.dias_clase_ids -> nuevo modelo cl.dia.semana con 7 registros
+  fijos LUNES..DOMINGO, campo weekday_index 0-6 y color) con widget
+  "many2many_tags" para mostrarlo como badges compactos, ej:
+  "Días de Clases: LUNES, MARTES, JUEVES". Ubicado justo ARRIBA del campo
+  start_date ("Fecha de inicio") en el grupo "INFORMACIÒN DE LA CLASE"
+  (xpath sobre field[@name='start_date'] position="before").
+
+---
+
+ESTADO ACTUAL DEL MÓDULO (2026-07-15) - resumen de lo implementado hasta ahora,
+para que cualquier agente que retome el trabajo tenga contexto sin releer todo
+el historial de chat.
+
+· DEPLOY / ENTORNO (importante, evita perder tiempo):
+  - Hay DOS bases de datos relevantes en esta máquina: `production_db` (la que
+    el usuario realmente usa y donde está instalado cl_class_mgmt_v16) y
+    `cleveland_development_db` (NO tiene este módulo instalado, no usar para
+    probar salvo que se pida explícitamente instalarlo ahí).
+  - Servicio: systemd `odoo16` (`/etc/odoo16.conf`), usuario `odoo16`,
+    addons_path incluye /opt/odoo16/odoo16/{addons,custom,cl_addons_v16}.
+  - Ciclo de actualización usado en toda la sesión: `sudo systemctl stop odoo16`
+    → `sudo -u odoo16 /opt/odoo16/odoo16-venv/bin/python3 /opt/odoo16/odoo16/odoo-bin
+    -c /etc/odoo16.conf -d production_db -u cl_class_mgmt_v16 --stop-after-init`
+    (revisar log en /var/log/odoo/odoo16.log) → `sudo systemctl start odoo16`.
+    Para probar lógica Python sin pasar por el navegador: `odoo-bin shell
+    -c /etc/odoo16.conf -d production_db --no-http --shell-interface=python`.
+  - Dependencias nuevas agregadas al manifest: `custom_libroeva_copy` (ya
+    define el campo `sequence` con handle en subject.encuentros, lo
+    reutilizamos en vez de duplicarlo) y `report_xlsx` (mixin OCA usado para
+    el reporte Excel).
+  - Referencia de catálogo completo del módulo school: ver
+    `cl_class_mgmt_v16/school_module_overview.txt` (modelos, menús, estados,
+    relaciones - generado el 2026-07-15).
+
+· FECHAS DE EVALUACIONES LIGADAS AL PLAN DE ENCUENTROS (continuación de la
+  automatización de fechas de arriba):
+  - subject.encuentros (heredado en models/subject.py) ahora tiene
+    `es_evaluacion` (Boolean) además del `sequence` de custom_libroeva_copy.
+  - standard.evaluacion._asignar_fecha_automatica() ya NO calcula la fecha de
+    una evaluación contando solo entre evaluaciones: usa
+    `_posicion_encuentro_evaluacion()` para ubicar, dentro de
+    subject_id.encuentro_ids (ordenado por sequence), qué encuentro marcado
+    es_evaluacion le corresponde según su posición entre evaluaciones, y
+    calcula la fecha según la posición REAL de ese encuentro en el plan
+    completo. Si el curso no tiene encuentros marcados (todavía sin migrar),
+    cae al comportamiento anterior (no rompe secciones ya en curso).
+  - El botón provisional "GENERAR FECHAS DE CLASE" (action_recalcular_fechas_clase
+    en school.standard) se actualizó para usar la misma lógica.
+
+· REPROGRAMAR (implementado, cubre el punto "Modal de reprogramar" de arriba):
+  - subject.asistencia y standard.evaluacion: campo `reprogramando` (Boolean,
+    no expuesto) + botón "REPROGRAMAR" en el header que lo pone en True
+    (date_start se vuelve editable); al guardar cualquier cambio con
+    reprogramando=True, se vuelve a poner en False automáticamente
+    (write() override). date_start es readonly salvo en ese momento.
+  - school.standard: wizard `school.standard.reprogramar.wizard` (botón
+    "REPROGRAMAR" en el form de la sección, solo admins). Campos: tipo
+    (encuentro/evaluación/ambos), nueva_fecha (fecha ancla), más info de
+    referencia (última asistencia/evaluación cargada con encuentro+nota
+    concatenados, no un link genérico). Solo toca registros PENDIENTES
+    (state=draft); lo ya dictado/evaluado no se mueve. Al reprogramar
+    evaluaciones, sincroniza cada evaluación pendiente con la fecha REAL del
+    subject.asistencia hermano (mismo encuentro_id) en vez de recalcular por
+    fórmula independiente - así respeta reprogramaciones manuales previas de
+    encuentros puntuales. Valida que la reprogramación no exceda end_date de
+    la sección; si excede, corta con error y sugiere una fecha recomendada
+    (_calcular_fecha_recomendada, retrocede desde end_date) en vez de ajustar
+    solo. UI en 2 columnas (Encuentros/Evaluaciones), cada una se oculta si
+    el tipo elegido no la incluye.
+
+· REPORTE DE GESTIÓN DOCENTE (PDF/XLSX) - cubre el punto "Reporte de
+  cumplimiento de asistencias" de arriba:
+  - Menú nuevo (heredado, parent="school.menu_ems"): Class > Gestión >
+    Reportes > Gestión Docente. Wizard `teacher.mgmt.wizard`
+    (wizard/teacher_mgmt_wizard.py). Filtros opcionales: teacher_ids/
+    subject_ids/standard_ids (Many2many), que se complementan entre sí vía
+    onchange (elegir uno restringe las opciones de los otros dos a lo que
+    comparten las secciones EN CURSO, state='done'). Formato pdf/xlsx.
+  - Columnas: Teacher, Course, Section, Status (fecha + verde/rojo según haya
+    o no un encuentro vencido sin registrar), Class days (dias_clase_ids si
+    existe, si no el texto libre `note`), Start-End/Month, Groups Up to
+    Date/Active Groups (agregado por profesor, solo secciones state=done),
+    Student Cohort Size, Age Band (standard_id.name: ADULTS/KIDS/TEENS/ONLINE,
+    ya poblado en producción).
+  - report/teacher_mgmt_report_xlsx.py (mixin report.report_xlsx.abstract) y
+    report/teacher_mgmt_report_views.xml (template qweb-pdf + 2 ir.actions.report).
+  - `_compute_report_data()` en el wizard es la función que arma todo esto;
+    es la MISMA lógica reutilizada por el dashboard (ver abajo) vía
+    `get_dashboard_data()`.
+
+· DASHBOARD OWL (cubre "Dashboard de rendimiento docente" / adaptación de
+  index.html a Odoo):
+  - Se evaluó OWL vs React; se eligió OWL (framework nativo de Odoo 16, sin
+    dependencias externas ni build pipeline nuevo - React hubiera requerido
+    webpack/npm que no existe en este repo, y convivir con OWL en la misma
+    página). Nada de CDN externos (ni Tailwind ni Chart.js): CSS propio +
+    SVG a mano para el donut.
+  - Menú: Class > Gestión > Dashboard Docente (ir.actions.client, tag
+    `cl_teacher_mgmt_dashboard`). Archivos:
+    static/src/js/teacher_mgmt_dashboard.js (componente OWL),
+    static/src/xml/teacher_mgmt_dashboard.xml (template),
+    static/src/scss/teacher_mgmt_dashboard.scss (estilos), registrados en
+    manifest 'assets': 'web.assets_backend'.
+  - Backend: `teacher.mgmt.wizard.get_dashboard_data()` (@api.model, sin
+    filtros - vive de datos en vivo). A diferencia del reporte PDF/XLSX
+    (solo secciones done), acá se incluyen también las terminate para poder
+    mostrar "grupos completados". Devuelve: logo/nombre de la compañía
+    (company.logo_web / company.name, ya multi-company), % asistencias al
+    día, % evaluaciones al día (mismo concepto que asistencias pero sobre
+    registroeva_ids), total estudiantes, total retirados
+    (total_students_cancel), demografía por categoría, top 5 cursos por nota
+    promedio (standard.evaluacion.average), lista de profesores con foto
+    (school.teacher.image_128), y ranking completo (score = promedio de %
+    asistencia y % evaluación, solo profesores con active_groups>0).
+  - Navegación: breadcrumbs (Panel / Profesores / [nombre]) + 4 pestañas:
+    Panorama, Profesores, Evaluaciones, Ranking. Buscador + chips de filtro
+    (Todos/Atrasados/Al día) en Profesores y Evaluaciones. Clic en cualquier
+    profesor (desde Profesores, Evaluaciones o Ranking) lleva al mismo
+    detalle: tabla con Estado asistencia + Estado evaluación por sección.
+  - Diseño visual (iterado varias veces con feedback directo del usuario):
+    tipografía SANS-SERIF en todo (no serif), paleta de marca de Cleveland
+    English Institute (lima #BFD01F, lima oscuro #A3C62C, gris #585756,
+    blanco - la paleta cambia según la compañía en teoría, pero por ahora
+    está fija a estos valores; res.company ya tiene primary_color/
+    secondary_color con valores ligeramente distintos, no se usó porque no
+    coincidían exactamente con el kit de marca dado). Sellos de estado
+    ("ATRASADO"/"AL DÍA"/fechas) SIN rotación (rectos). Gráfico de
+    demografía: donut chart (pedido explícitamente por el usuario en vez de
+    barras) con UN SOLO COLOR (opacidad decreciente por tamaño de porción,
+    no arcoíris - pedido explícito del usuario). Ranking docente: barras
+    (no torta, porque los % de cada profesor son independientes entre sí,
+    no suman un todo - se mantiene la distinción de forma correcta).
+
+· PENDIENTE / NO IMPLEMENTADO TODAVÍA (mencionado en la sesión pero no
+  construido):
+  - Historial con gráfico (Daily/Weekly/Monthly) del % de asistencia -
+    requeriría un modelo nuevo tipo teacher.mgmt.snapshot + cron/botón
+    "Recalcular y Guardar" para ir guardando un registro diario. Se
+    descartó para esta iteración a pedido del usuario.
+  - Observaciones por profesor (nota persistente editable desde el
+    dashboard) - requeriría un campo/modelo nuevo. Descartado para esta
+    iteración a pedido del usuario.
+  - Posible: hacer la paleta de colores del dashboard dinámica por compañía
+    (leer primary_color/secondary_color de res.company en vez de valores
+    fijos) - quedó pendiente de confirmación con el usuario.

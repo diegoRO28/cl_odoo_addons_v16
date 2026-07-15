@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cl_dia_semana_user,cl.dia.semana.user,model_cl_dia_semana,base.group_user,1,0,0,0
+access_cl_dia_semana_admin,cl.dia.semana.admin,model_cl_dia_semana,school.group_school_administration,1,1,1,1
+access_school_standard_reprogramar_wizard,school.standard.reprogramar.wizard,model_school_standard_reprogramar_wizard,school.group_school_administration,1,1,1,1
+access_teacher_mgmt_wizard,teacher.mgmt.wizard,model_teacher_mgmt_wizard,school.group_school_administration,1,1,1,1
+access_cl_kpi_definition_admin,cl.kpi.definition.admin,model_cl_kpi_definition,school.group_school_administration,1,1,1,1
+access_cl_kpi_definition_user,cl.kpi.definition.user,model_cl_kpi_definition,base.group_user,1,0,0,0
+access_cl_academic_dashboard_admin,cl.academic.dashboard.admin,model_cl_academic_dashboard,school.group_school_administration,1,1,1,1
+access_cl_teacher_kpi_snapshot_admin,cl.teacher.kpi.snapshot.admin,model_cl_teacher_kpi_snapshot,school.group_school_administration,1,1,1,1
+access_cl_admin_dashboard_admin,cl.admin.dashboard.admin,model_cl_admin_dashboard,school.group_school_administration,1,1,1,1

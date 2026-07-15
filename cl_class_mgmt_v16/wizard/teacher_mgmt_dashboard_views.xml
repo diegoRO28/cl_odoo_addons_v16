@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="action_teacher_mgmt_dashboard" model="ir.actions.client">
+        <field name="name">Docente</field>
+        <field name="tag">cl_teacher_mgmt_dashboard</field>
+    </record>
+
+    <menuitem id="menu_gestion_dashboard" name="Docente" action="action_teacher_mgmt_dashboard"
+              parent="menu_gestion" groups="school.group_school_administration" sequence="20"/>
+
+</odoo>

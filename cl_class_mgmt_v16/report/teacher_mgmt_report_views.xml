@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <template id="teacher_mgmt_report_pdf">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">REPORTE DE GESTIÓN DOCENTE</h2>
+                    <p>
+                        <strong>Fecha de emisión: </strong>
+                        <span t-esc="fecha_emision" t-options='{"widget": "date"}'/>
+                    </p>
+
+                    <t t-foreach="profesores" t-as="profesor">
+                        <h4>
+                            <t t-esc="profesor['teacher_name']"/>
+                            <small>
+                                (Groups Up to Date: <t t-esc="profesor['groups_up_to_date']"/> /
+                                Active Groups: <t t-esc="profesor['active_groups']"/>)
+                            </small>
+                        </h4>
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr style="background-color: #f2f2f2;">
+                                    <th>Course</th>
+                                    <th>Section</th>
+                                    <th>Status</th>
+                                    <th>Class days</th>
+                                    <th>Start - End / Month</th>
+                                    <th>Student Cohort Size</th>
+                                    <th>Age Band</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="profesor['secciones']" t-as="seccion">
+                                    <td><t t-esc="seccion['course']"/></td>
+                                    <td><t t-esc="seccion['section']"/></td>
+                                    <td>
+                                        <span t-attf-style="background-color: #{'C6EFCE' if seccion['status_color'] == 'green' else 'FFC7CE'}; padding: 2px 6px;">
+                                            <t t-esc="seccion['status_label']"/>
+                                        </span>
+                                    </td>
+                                    <td><t t-esc="seccion['class_days']"/></td>
+                                    <td><t t-esc="seccion['start_end']"/></td>
+                                    <td><t t-esc="seccion['student_cohort_size']"/></td>
+                                    <td><t t-esc="seccion['age_band']"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+                    <p t-if="not profesores">
+                        <em>No hay secciones en curso para los filtros seleccionados.</em>
+                    </p>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_teacher_mgmt_report_pdf" model="ir.actions.report">
+        <field name="name">Reporte de Gestión Docente (PDF)</field>
+        <field name="model">teacher.mgmt.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cl_class_mgmt_v16.teacher_mgmt_report_pdf</field>
+        <field name="report_file">cl_class_mgmt_v16.teacher_mgmt_report_pdf</field>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_teacher_mgmt_report_xlsx" model="ir.actions.report">
+        <field name="name">Reporte de Gestión Docente (XLSX)</field>
+        <field name="model">teacher.mgmt.wizard</field>
+        <field name="report_type">xlsx</field>
+        <field name="report_name">cl_class_mgmt_v16.teacher_mgmt_report_xlsx</field>
+        <field name="report_file">cl_class_mgmt_v16.teacher_mgmt_report_xlsx</field>
+        <field name="binding_type">report</field>
+    </record>
+
+</odoo>

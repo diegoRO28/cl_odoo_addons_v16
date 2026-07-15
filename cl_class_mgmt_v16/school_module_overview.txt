@@ -1,0 +1,335 @@
+MODULO "school" (/opt/odoo16/odoo16/custom/school) - REFERENCIA DE MODELOS
+============================================================================
+Documento de contexto para agentes que trabajen en módulos que heredan de
+"school" (ej. cl_class_mgmt_v16). Formato por modelo:
+
+  MODELO (_name) | Menú: Ruta > en > la > interfaz (o "sin menú propio")
+  Qué hace. Campos/estados clave.
+
+App raíz: menuitem "menu_ems" (nombre visible "Class"). Todo cuelga de ahí.
+Módulos con vistas comentadas en el manifest = modelo existe en BD pero NO
+tiene menú ni formulario accesible en la UI real; se marca como [INACTIVO].
+
+
+1. ESTRUCTURA ACADÉMICA (campus / niveles / secciones / cursos)
+----------------------------------------------------------------------------
+
+school.campus | Menú: Configuración > Campus
+  Sede/campus real usado en todo el módulo (asistencia, secciones, profesores,
+  inscripciones apuntan aquí). Campos: name, code (único), standards (O2M
+  school.standard), teacher_ids (M2M school.teacher), required_age.
+
+school.school [INACTIVO, sin menú]
+  Modelo legacy de "sede" (delegate de res.company). No usar; usar school.campus.
+
+standard.standard | Menú: Configuración > Niveles de Estudio
+  Catálogo de niveles/grados (ej. "1er año"). Campos: sequence, name, code.
+
+standard.division | Menú: Configuración > Turnos
+  Catálogo de turnos. Campos: name, code.
+
+standard.medium | Menú: Configuración > Modalidad de Estudio
+  Catálogo de modalidad (presencial/online/etc). Campos: sequence, name, code.
+
+school.standard (SECCIÓN) ★ CENTRAL | Menú: Planificación > Secciones
+  Instancia concreta de un curso dictado en un campus: profesor, cupos,
+  horario, lapso. Conecta estudiantes + curso + asistencia + evaluación.
+  Campos clave: code, school_id (→school.campus), standard_id (→Nivel),
+  division_id (→Turno), medium_id (→Modalidad), subject_id (→subject.subject,
+  requerido), user_id (→school.teacher), student_ids (O2M student.inscripcion),
+  asistencia_ids (O2M subject.asistencia), registroeva_ids (O2M
+  standard.evaluacion, sistema de evaluación ACTIVO), libro_id (related
+  subject_id.libro_id), capacity/total_students/remaining_seats (computados).
+  state: draft(por iniciar)/done(iniciado)/terminate(culminado)/cancel.
+  Métodos clave:
+    - set_done(): valida estudiantes>0; genera encuentros
+      (generate_encuentros → crea subject.asistencia por cada
+      subject.encuentros del curso) y evaluaciones (generate_registroEva →
+      crea standard.evaluacion por cada school.libroevas del libro del curso).
+    - set_terminate(): valida que todo esté terminate y calcula promedios.
+    - set_genera_reg_eva()/set_genera_reg_asi(): generan registro manualmente
+      si no se generó al abrir.
+  (cl_class_mgmt_v16 ya extiende este modelo: dias_clase_ids,
+  _calcular_fechas_clase, wizard de reprogramar, etc.)
+
+class.room | Menú: Configuración > Campus > Salones de Clases
+  Salón físico. Campos: name, number, school_id (→school.campus).
+
+school.curso [INACTIVO, sin vista/menú]
+  Duplicado legacy de school.standard, con referencia rota (school.subject
+  no existe). No usar.
+
+
+2. OFERTA ACADÉMICA / CURSOS
+----------------------------------------------------------------------------
+
+subject.subject (CURSO) ★ CENTRAL | Menú: Planificación > Oferta Académica > Cursos
+  Catálogo de cursos/asignaturas dictables en 1+ secciones. Campos clave:
+  nombre, code (único), maximum_marks/minimum_marks, teacher_ids (M2M
+  school.teacher), programa_id (→school.programa, requerido), libro_id
+  (→school.libroeva, requerido, libro de evaluación activo), encuentro_ids
+  (O2M subject.encuentros, plan de encuentros/clases), evaluacion_ids (O2M
+  subject.planevaluacion, plan LEGACY reemplazado por libro_id/libroevas_ids).
+  state: draft/done/terminate/cancel. set_terminate()/set_iniciado().
+
+subject.encuentros (línea, plan de encuentros del curso) [sin menú propio]
+  Pestaña encuentro_ids dentro del form de subject.subject. Plantilla que
+  school.standard.generate_encuentros() usa para crear subject.asistencia
+  reales al abrir la sección. Campos: name, code, description, subject_id.
+  (cl_class_mgmt_v16 ya extiende este modelo: sequence, es_evaluacion.)
+
+subject.planevaluacion (línea, plan de evaluación LEGACY) [sin menú propio]
+  Plantilla legacy usada por subject.evaluacion (sistema de evaluación
+  viejo, inactivo). El sistema activo usa school.libroeva/libroevas.
+
+subject.syllabus [huérfano, sin menú/acción]
+subject.elective [INACTIVO, sin menú activo]
+
+school.programa | Menú: Configuración > Programas
+  Programa académico. Campos: name, code (único), is_active.
+
+
+3. ESTUDIANTES E INSCRIPCIONES
+----------------------------------------------------------------------------
+
+student.student (ESTUDIANTE) ★ CENTRAL | Menú: Registros > Estudiantes
+  Ficha del estudiante (delega en res.users). Modelo ACTIVO (no confundir con
+  school.student/school.estudiante, legacy/inactivos). Campos clave: user_id
+  (delegate res.users), student_ci (único), student_code (único), school_id
+  (→school.campus, requerido), standard_id (→school.standard, sección
+  actual), parent_id (M2M school.parent), inscripcion_ids (O2M
+  student.inscripcion).
+  state: draft/done/terminate/cancel/alumni. admission_done() confirma
+  admisión y asigna student_code; set_alumni() desactiva usuario.
+
+school.student [INACTIVO, vista comentada] — duplicado de student.student.
+school.estudiante [INACTIVO, modelo stub vacío] — residuo de refactor.
+
+student.inscripcion (MATRÍCULA) ★ CENTRAL | Menú: Administración > Inscripciones > Registro de Inscripción
+  Registro de matrícula: vincula estudiante + sección + factura. Un
+  estudiante puede tener varias inscripciones históricas. Campos clave:
+  student_id (→student.student, requerido), standard_id (→school.standard,
+  requerido), school_id (→school.campus, requerido), move_id (→account.move,
+  factura, requerido), nota/eva_o/eva_e/eva_t.
+  state: draft/done/terminate/cancel. state_aux: preinscrito/inscrito/
+  culminado/retirado.
+  admission_done(): confirma matrícula; si la sección ya está done, genera
+  retroactivamente asistencia y evaluación para este estudiante.
+  Constraint: no 2 inscripciones activas del mismo estudiante en la misma
+  sección; sección debe tener cupos.
+
+student.cambio | Menú: Administración > Cambios > Registro de Cambio de Sección
+  Mueve a un estudiante inscrito de una sección a otra: genera nueva
+  student.inscripcion en destino y cierra la de origen. Campos: student_id,
+  ri_id (→student.inscripcion origen), standard_des_id (destino).
+  state: draft/done/terminate/cancel.
+
+student.retiro | Menú: Administración > Retiros > Registro de Retiro de Sección
+  Retira a un estudiante de una sección (sin generar nueva inscripción).
+  Campos: student_id, ri_id (→student.inscripcion), tiporetiro_id.
+  admission_done(): cierra la inscripción asociada, recalcula cupos.
+
+school.tipocambio | Menú: Configuración > Tipo Cambio
+school.tiporetiro | Menú: Configuración > Tipo Retiro
+  Catálogos simples (name, code único).
+
+
+4. ASISTENCIA
+----------------------------------------------------------------------------
+
+subject.asistencia (ENCUENTRO/CLASE) ★ CENTRAL | Menú: Asistencias > Asistencias
+  Un encuentro/clase concreto de una sección (instancia de un
+  subject.encuentros), donde se pasa lista. Campos clave: standard_id
+  (→school.standard, requerido), subject_id (requerido), encuentro_id
+  (→subject.encuentros, requerido), teacher_id (requerido), date_start,
+  asistencia_ids (O2M subject.asistencias, detalle por estudiante).
+  state: draft(por iniciar)/done(iniciado)/terminate(culminado)/cancel.
+  set_done(): requiere estudiantes en la sección; genera una línea
+  subject.asistencias por cada estudiante inscrito (state=done).
+  (cl_class_mgmt_v16 ya extiende este modelo: dias_diferencia_fin,
+  _asignar_fecha_automatica, reprogramando/action_reprogramar.)
+
+subject.asistencias (DETALLE, asistencia por estudiante) | Menú: Asistencias > Asistencias Estudiante
+  Campos: inscripcion_id, asistencia_id (→subject.asistencia), student_id,
+  is_attended (Boolean). standard_id/subject_id/encuentro_id/date_start/state
+  son related desde asistencia_id. Vista filtrada para rol estudiante.
+
+
+5. EVALUACIONES
+----------------------------------------------------------------------------
+Hay DOS sistemas de evaluación en el código. El legacy (subject.evaluacion/
+subject.evaluaciones, ligado a subject.planevaluacion) está INACTIVO (vista
+comentada, y generate_evaluaciones() ni siquiera se llama desde set_done()).
+El sistema ACTIVO usa standard.evaluacion/standard.evaluaciones/
+standard.actividades, ligado a school.libroeva/libroevas/libroact.
+
+school.libroeva (LIBRO DE EVALUACIÓN, maestro) | Menú: Configuración > Libro Evaluación
+  Define la estructura de evaluación de un curso (cuántas evaluaciones,
+  ponderación, escala). Campos: nombre, code (único), grade_id (→grade.master),
+  porc_peso (debe sumar 100 vía evaluacion_ids), evaluacion_ids (O2M
+  school.libroevas). state: draft/done/terminate/cancel. set_terminate()
+  valida que las ponderaciones sumen 100%.
+
+school.libroevas (línea, evaluación dentro del libro) [sin menú propio]
+  Campos: nombre, code, porc_peso, libro_id (→school.libroeva), actividad_ids
+  (O2M school.libroact). Embebida en el form de school.libroeva.
+  (custom_libroeva_copy ya extiende este modelo: sequence, generación
+  automática de code.)
+
+school.libroact (línea, actividad dentro de una evaluación) [sin menú propio]
+  Campos: nombre, code, tipo_id (→school.tipoeva), porc_peso,
+  evaluacion_id (→school.libroevas). Embebida en school.libroevas.
+
+school.tipoeva | Menú: Configuración > Tipo evaluación
+  Catálogo de tipos de evaluación. Campos: name, code, is_recupera.
+
+grade.master (ESCALA DE CALIFICACIÓN) | Menú: Configuración > Escala de Calificaciones
+  Campos: name, grade_ids (O2M grade.line). state: draft/done/terminate/cancel.
+
+grade.line (línea de escala) [sin menú propio]
+  Campos: base_mark, from_mark, to_mark, pass_mark, grade, grade_id
+  (→grade.master). Embebida en grade.master.
+
+standard.evaluacion (REGISTRO DE EVALUACIÓN por sección) ★ CENTRAL
+  | Menú: Evaluaciones > Registro Evaluaciones (y también, misma tabla,
+    Evaluaciones > Recuperaciones > Registro Recuperaciones)
+  Instancia real de una evaluación (school.libroevas) para una sección
+  concreta; se genera automáticamente al abrir la sección
+  (generate_registroEva). Campos clave: standard_id (requerido), subject_id
+  (requerido), libroevas_id (→school.libroevas, requerido, plantilla de
+  origen), teacher_id (requerido), evaluacion_ids (O2M standard.evaluaciones,
+  nota por estudiante).
+  state: draft(por iniciar)/done(iniciado)/terminate(culminado)/
+  recovery(recuperado)/cancel.
+  set_done(): genera standard.evaluaciones + standard.actividades por cada
+  estudiante done de la sección. set_terminate(): califica aprobado/aplazado
+  según escala. set_recupera(): registra recuperación.
+  (cl_class_mgmt_v16 ya extiende este modelo: dias_diferencia_fin,
+  _asignar_fecha_automatica, _posicion_encuentro_evaluacion,
+  reprogramando/action_reprogramar.)
+
+standard.evaluaciones (DETALLE, nota del estudiante en una evaluación) [sin menú propio]
+  Campos: inscripcion_id, evaluacion_id (→standard.evaluacion), student_id,
+  nota (computada desde nota1..nota6 ponderadas), actividad_ids (O2M
+  standard.actividades). state: borrador/aprobado/aplazado/inasistente.
+  Embebida en el form de standard.evaluacion.
+
+standard.actividades (DETALLE, nota por actividad/estudiante)
+  [sin menú activo standalone — solo embebida en standard.evaluaciones;
+  su vista independiente (registroact_view.xml) no está en el manifest]
+  Campos: actividad_id (→school.libroact, requerido), student_id (requerido),
+  nota, nota_r (recuperación), evaluacion_id (→standard.evaluaciones,
+  requerido).
+
+subject.evaluacion / subject.evaluaciones [INACTIVOS, sistema legacy]
+  No usar. Ver nota al inicio de esta sección.
+
+
+6. PERSONAL / PROFESORES / REPRESENTANTES
+----------------------------------------------------------------------------
+
+school.teacher (PROFESOR) ★ CENTRAL | Menú: Registros > Profesores
+  (también accesible en Planificación > Profesores, misma acción)
+  Campos: employee_id (delegate hr.employee, requerido), standard_id
+  (→school.standard, responsabilidad académica), subject_id (M2M
+  subject.subject, cursos), school_id (M2M school.campus, campus),
+  is_parent, student_id (M2M student.student, hijos si is_parent). Sin state.
+  Al crear, genera automáticamente un res.users para el profesor.
+
+school.parent (REPRESENTANTE) | Menú: Registros > Padres/Representantes
+  Campos: partner_id (delegate res.partner, requerido), relation_id
+  (→parent.relation), student_id (M2M student.student), parent_ci
+  (requerido). Al crear genera un res.users (grupo group_school_parent).
+
+parent.relation [sin menú propio] — catálogo usado en school.parent.relation_id.
+
+
+7. CONFIGURACIÓN / CATÁLOGOS AUXILIARES (sin menú propio salvo lo indicado)
+----------------------------------------------------------------------------
+
+academic.year (LAPSO ACADÉMICO) | Menú: Planificación > Lapso Académico > Lapsos
+  Campos: name, code, date_start, date_stop, month_ids (O2M academic.month),
+  current (Boolean, único activo). generate_academicmonth() genera meses.
+
+academic.month [INACTIVO, menú comentado] — mes académico, related a
+  academic.year.
+
+Modelos auxiliares del estudiante — SIN menú propio, solo pestañas/O2M
+dentro del form de student.student:
+  student.family.contact, student.relation.master, student.history,
+  student.certificate, student.reference, student.previous.school,
+  academic.subject, student.description, student.descipline,
+  student.document, student.award, mother.toungue [INACTIVO, menú
+  comentado], document.type [INACTIVO, menú comentado], attendance.type
+  [sin acción], student.cast [INACTIVO, menú comentado].
+
+Otros INACTIVOS (acción existe, menuitem comentado): student.news,
+student.reminder.
+
+
+8. EXTENSIONES DE MODELOS ESTÁNDAR DE ODOO (sin menú propio)
+----------------------------------------------------------------------------
+
+res.users (_inherit): create() asigna grupos/compañía al crear desde el
+  flujo de alta de profesor.
+res.partner (_inherit): agrega campo nombre (Char, "ID Number"). Nota: la
+  vista que lo expondría (res_partner_view_inherit.xml) está comentada en
+  el manifest — el campo existe pero no se ve en ningún formulario activo.
+account.move (_inherit): agrega is_inscripcion (Boolean) e inscripcion_id
+  (→student.inscripcion) — vínculo factura ↔ matrícula.
+ir.actions.report (_inherit): bloquea impresión de reportes de estudiantes
+  en estado draft.
+
+
+9. MAPA DE RELACIONES CLAVE
+----------------------------------------------------------------------------
+
+school.campus
+  └─< school.standard (Sección)                       [school_id]
+        ├── subject_id ──────────────► subject.subject (Curso)
+        ├── standard_id ─────────────► standard.standard (Nivel)
+        ├── user_id ──────────────────► school.teacher (Profesor)
+        ├── libro_id (related) ──────► school.libroeva
+        ├─< student_ids ─────────────  student.inscripcion   [standard_id]
+        │        ├── student_id ─────► student.student
+        │        └── move_id ────────► account.move
+        ├─< asistencia_ids ──────────  subject.asistencia    [standard_id]
+        │        ├── encuentro_id ───► subject.encuentros (plantilla, de subject.subject)
+        │        └─< asistencia_ids ─  subject.asistencias   [asistencia_id]
+        │                 ├── inscripcion_id ► student.inscripcion
+        │                 └── student_id ────► student.student
+        └─< registroeva_ids ─────────  standard.evaluacion   [standard_id]
+                 ├── libroevas_id ────► school.libroevas (línea de school.libroeva)
+                 ├── teacher_id ──────► school.teacher
+                 └─< evaluacion_ids ─  standard.evaluaciones [evaluacion_id]
+                          ├── inscripcion_id ► student.inscripcion
+                          ├── student_id ────► student.student
+                          └─< actividad_ids ─ standard.actividades [evaluacion_id]
+                                   └── actividad_id ► school.libroact
+
+subject.subject (Curso)
+  ├─< encuentro_ids ───► subject.encuentros   (plan de encuentros del curso)
+  ├── libro_id ─────────► school.libroeva     (libro de evaluación activo)
+  └── programa_id ──────► school.programa
+
+school.libroeva
+  ├── grade_id ─────────► grade.master (Escala)
+  └─< evaluacion_ids ──► school.libroevas
+           └─< actividad_ids ► school.libroact ──tipo_id──► school.tipoeva
+
+student.student
+  ├── school_id ────────► school.campus
+  ├── standard_id ──────► school.standard (sección actual)
+  ├── parent_id (M2M) ──► school.parent
+  └─< inscripcion_ids ─► student.inscripcion
+
+student.cambio / student.retiro
+  └── ri_id ────────────► student.inscripcion (origen)
+  (cambio genera una NUEVA student.inscripcion en standard_des_id)
+
+
+NOTA — PUNTOS DE EXTENSIÓN YA USADOS POR cl_class_mgmt_v16:
+school.standard, subject.asistencia, subject.encuentros, standard.evaluacion.
+Los cuatro son parte del núcleo ACTIVO descrito arriba: cualquier trabajo
+nuevo sobre "school" debe hacerse por _inherit desde cl_class_mgmt_v16 (o el
+módulo correspondiente), nunca editando school/ directamente.

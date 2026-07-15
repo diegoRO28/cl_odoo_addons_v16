@@ -1,0 +1,635 @@
+// Cleveland English Institute — Registro de Gestión Administrativa
+// Mismo sistema de diseño que los dashboards Docente/Académica (sans-serif,
+// paleta de marca, sin emojis -- solo Font Awesome), bajo el prefijo o_adb
+// para no chocar con las clases o_tmd/o_cad de los otros dos dashboards.
+.o_adb {
+    --adb-paper: #F7F7F5;
+    --adb-card: #FFFFFF;
+    --adb-ink: #333332;
+    --adb-ink-soft: #7A7977;
+    --adb-lime: #BFD01F;
+    --adb-lime-deep: #A3C62C;
+    --adb-slate: #585756;
+    --adb-line: #E3E2DF;
+    --adb-green: #2E6B49;
+    --adb-green-bg: #E4F0E6;
+    --adb-red: #A33B2E;
+    --adb-red-bg: #F6E4E1;
+    --adb-muted: #8A8A88;
+    --adb-muted-bg: #EDEDEA;
+
+    // Temas de color por tipo de KPI (categorización de tarjetas, no
+    // codificación de datos -- cada gráfico individual sigue usando un
+    // solo tono con opacidad, ver o_adb_donut_slice/o_adb_bar_fill).
+    --adb-kpi-blue: #3B6FA6;
+    --adb-kpi-teal: #1E7F72;
+    --adb-kpi-amber: #9C7A1E;
+    --adb-kpi-coral: #B24A38;
+    --adb-kpi-purple: #6B4E8E;
+
+    --adb-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --adb-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--adb-paper);
+    color: var(--adb-ink);
+    font-family: var(--adb-sans);
+
+    * { box-sizing: border-box; }
+
+    // ===== MASTHEAD =====
+    .o_adb_masthead {
+        padding: 22px 32px 0;
+        border-bottom: 2px solid var(--adb-slate);
+        background-color: var(--adb-paper);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+
+    .o_adb_masthead_top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .o_adb_title {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--adb-ink);
+    }
+
+    .o_adb_masthead_actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+
+    .o_adb_asof_inline {
+        font-size: 12px;
+        font-style: italic;
+        color: var(--adb-ink-soft);
+        white-space: nowrap;
+    }
+
+    .o_adb_refresh {
+        background: none;
+        border: 1px solid var(--adb-slate);
+        color: var(--adb-slate);
+        border-radius: 20px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s;
+
+        &:hover { background-color: var(--adb-slate); color: #fff; }
+        i { margin-right: 4px; }
+    }
+
+    .o_adb_toggle_filters {
+        background: none;
+        border: 1px solid var(--adb-line);
+        color: var(--adb-ink-soft);
+        border-radius: 20px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s;
+
+        &:hover { border-color: var(--adb-slate); color: var(--adb-slate); }
+        i { margin-right: 4px; transition: transform 0.25s ease; }
+    }
+
+    // ===== FILTER BAR =====
+    // Contenedor que anima el colapso/expansión (max-height + opacity, ya
+    // que height:auto no es animable con CSS transitions).
+    .o_adb_filterbar_outer {
+        max-height: 260px;
+        opacity: 1;
+        overflow: hidden;
+        transition: max-height 0.35s ease, opacity 0.25s ease;
+
+        &.is-collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+    }
+
+    .o_adb_filterbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 0;
+    }
+
+    .o_adb_filter_group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .o_adb_filter_label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--adb-ink-soft);
+        margin-right: 2px;
+
+        i { margin-right: 3px; }
+    }
+
+    .o_adb_chip {
+        background: none;
+        border: 1px solid var(--adb-line);
+        color: var(--adb-ink-soft);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover { border-color: var(--adb-slate); color: var(--adb-slate); }
+        &.is-active { background-color: var(--adb-slate); border-color: var(--adb-slate); color: #fff; }
+    }
+
+    .o_adb_select {
+        border: 1px solid var(--adb-line);
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--adb-ink-soft);
+        background-color: var(--adb-card);
+        max-width: 220px;
+
+        &:focus { outline: none; border-color: var(--adb-lime); }
+    }
+
+    .o_adb_clear {
+        background: none;
+        border: none;
+        color: var(--adb-ink-soft);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-left: auto;
+
+        &:hover { color: var(--adb-red); }
+        i { margin-right: 3px; }
+    }
+
+    // ===== TABS =====
+    .o_adb_tabs {
+        display: flex;
+        gap: 4px;
+        padding: 18px 32px 0;
+    }
+
+    .o_adb_tab {
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 8px 4px;
+        margin-right: 22px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--adb-ink-soft);
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+
+        &:hover { color: var(--adb-ink); }
+        &.is-active { color: var(--adb-slate); border-bottom-color: var(--adb-lime); }
+        i { margin-right: 5px; }
+    }
+
+    .o_adb_tab_badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background-color: var(--adb-red);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 4px;
+    }
+
+    .o_adb_section { padding: 24px 32px 40px; }
+
+    .o_adb_section_title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 30px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--adb-line);
+
+        i { margin-right: 6px; color: var(--adb-ink-soft); }
+    }
+
+    .o_adb_subtabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--adb-line);
+    }
+
+    .o_adb_subtab {
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 6px 4px;
+        margin-right: 18px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--adb-ink-soft);
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+
+        &:hover { color: var(--adb-ink); }
+        &.is-active { color: var(--adb-slate); border-bottom-color: var(--adb-lime-deep); }
+        i { margin-right: 4px; }
+    }
+
+    // ===== LOADING / ERROR =====
+    .o_adb_loading, .o_adb_error {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 100px 0;
+        color: var(--adb-ink-soft);
+    }
+
+    .o_adb_spinner {
+        border: 3px solid var(--adb-line);
+        border-top: 3px solid var(--adb-lime);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        animation: o_adb_spin 0.9s linear infinite;
+        margin-bottom: 12px;
+    }
+
+    @keyframes o_adb_spin { to { transform: rotate(360deg); } }
+
+    .o_adb_asof {
+        font-size: 12px;
+        font-style: italic;
+        color: var(--adb-ink-soft);
+        margin: 0 0 20px;
+    }
+
+    .o_adb_asof_top { margin-top: -8px; }
+
+    // ===== KPI GRID =====
+    .o_adb_kpi_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+    }
+
+    .o_adb_kpi_card {
+        background-color: var(--adb-card);
+        border: 1px solid var(--adb-line);
+        border-top: 3px solid var(--adb-slate);
+        border-radius: 4px;
+        padding: 16px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+
+        &.o_adb_kpi_blue { border-top-color: var(--adb-kpi-blue); }
+        &.o_adb_kpi_teal { border-top-color: var(--adb-kpi-teal); }
+        &.o_adb_kpi_amber { border-top-color: var(--adb-kpi-amber); }
+        &.o_adb_kpi_coral { border-top-color: var(--adb-kpi-coral); }
+        &.o_adb_kpi_purple { border-top-color: var(--adb-kpi-purple); }
+    }
+
+    .o_adb_kpi_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .o_adb_kpi_label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--adb-ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+
+        i { margin-right: 5px; color: var(--adb-ink-soft); }
+    }
+
+    .o_adb_viz_switch { display: flex; gap: 2px; flex-shrink: 0; }
+
+    .o_adb_viz_btn {
+        background: none;
+        border: 1px solid var(--adb-line);
+        color: var(--adb-ink-soft);
+        border-radius: 3px;
+        width: 24px;
+        height: 22px;
+        font-size: 11px;
+        cursor: pointer;
+
+        &:hover { border-color: var(--adb-slate); color: var(--adb-slate); }
+        &.is-active { background-color: var(--adb-slate); border-color: var(--adb-slate); color: #fff; }
+    }
+
+    .o_adb_kpi_number {
+        font-family: var(--adb-mono);
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--adb-ink);
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    // Medidor (KPI porcentual sin desglose)
+    .o_adb_meter_wrap { display: flex; align-items: center; justify-content: center; flex: 1; }
+    .o_adb_meter { width: 96px; height: 96px; }
+    .o_adb_meter_track { fill: none; stroke: var(--adb-line); stroke-width: 16; }
+    .o_adb_meter_fill { fill: none; stroke: var(--adb-lime-deep); stroke-width: 16; stroke-linecap: round; }
+    .o_adb_meter_text { font-family: var(--adb-mono); font-size: 18px; font-weight: 700; fill: var(--adb-ink); text-anchor: middle; }
+
+    .o_adb_meterbar_wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .o_adb_meterbar_value { font-family: var(--adb-mono); font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+    // Barras (con desglose)
+    .o_adb_barchart {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .o_adb_barchart_wide { gap: 10px; }
+
+    .o_adb_barrow {
+        display: grid;
+        grid-template-columns: 120px 1fr 40px;
+        align-items: center;
+        gap: 8px;
+
+        &.is-clickable {
+            cursor: pointer;
+            border-radius: 4px;
+            &:hover { background-color: var(--adb-muted-bg); }
+        }
+    }
+
+    .o_adb_barlabel {
+        font-size: 12px;
+        color: var(--adb-ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o_adb_bar_track { height: 10px; border-radius: 3px; background-color: var(--adb-line); overflow: hidden; }
+    .o_adb_bar_fill { height: 100%; border-radius: 3px; background-color: var(--adb-lime-deep); transition: width 0.5s ease; }
+
+    .o_adb_barvalue {
+        font-family: var(--adb-mono);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: right;
+        color: var(--adb-ink-soft);
+    }
+
+    // Donut (con desglose)
+    .o_adb_donut_wrap { display: flex; align-items: center; gap: 14px; flex: 1; }
+    .o_adb_donut { width: 76px; height: 76px; flex-shrink: 0; }
+    .o_adb_donut_track { fill: none; stroke: var(--adb-line); stroke-width: 16; }
+    .o_adb_donut_slice { fill: none; stroke: var(--adb-lime-deep); stroke-width: 16; stroke-linecap: butt; }
+
+    .o_adb_legend {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+
+        li { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+    }
+
+    .o_adb_legend_swatch { width: 9px; height: 9px; border-radius: 2px; background-color: var(--adb-lime-deep); flex-shrink: 0; }
+    .o_adb_legend_label { color: var(--adb-ink); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_adb_legend_value { font-family: var(--adb-mono); color: var(--adb-ink-soft); }
+
+    .o_adb_kpi_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+
+        td { padding: 3px 0; border-bottom: 1px solid var(--adb-line); }
+        tr:last-child td { border-bottom: none; }
+    }
+
+    // ===== TOOLBAR / SEARCH =====
+    .o_adb_search {
+        width: 100%;
+        max-width: 380px;
+        padding: 8px 14px;
+        border: 1px solid var(--adb-line);
+        border-radius: 20px;
+        font-size: 13px;
+        background-color: var(--adb-card);
+        color: var(--adb-ink);
+        margin-bottom: 18px;
+
+        &:focus {
+            outline: none;
+            border-color: var(--adb-lime);
+            box-shadow: 0 0 0 3px rgba(191, 208, 31, 0.3);
+        }
+    }
+
+    // ===== TABLES =====
+    .o_adb_table_wrap {
+        overflow-x: auto;
+        border: 1px solid var(--adb-line);
+        border-radius: 4px;
+        background-color: var(--adb-card);
+        margin-bottom: 20px;
+    }
+
+    .o_adb_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+
+        th {
+            background-color: var(--adb-slate);
+            color: #fff;
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        td { padding: 10px 14px; border-bottom: 1px solid var(--adb-line); white-space: nowrap; }
+        tr:hover td { background-color: var(--adb-paper); }
+        tr:last-child td { border-bottom: none; }
+    }
+
+    .o_adb_th_sortable {
+        cursor: pointer;
+        user-select: none;
+
+        &:hover { color: var(--adb-lime); }
+        i { margin-left: 4px; opacity: 0.7; }
+    }
+
+    // Encabezado de orden para las listas de Progreso (no son <table>, pero
+    // se ordenan igual que una al hacer clic en "campo").
+    .o_adb_progress_head {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--adb-ink-soft);
+        margin-bottom: 8px;
+
+        span.o_adb_th_sortable { display: inline-flex; align-items: center; width: fit-content; }
+    }
+
+    .o_adb_mono { font-family: var(--adb-mono); font-size: 12px; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    .o_adb_group_title {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+
+    .o_adb_group_count { font-weight: 400; color: var(--adb-ink-soft); }
+    .o_adb_group_block { margin-bottom: 24px; }
+
+    .o_adb_empty { color: var(--adb-ink-soft); font-style: italic; padding: 16px; }
+
+    .o_adb_empty_state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+        color: var(--adb-green);
+
+        i { font-size: 40px; margin-bottom: 10px; }
+        p { color: var(--adb-ink-soft); font-size: 14px; }
+    }
+
+    // ===== STAMP (mismo lenguaje visual que el dashboard docente) =====
+    .o_adb_stamp {
+        display: inline-block;
+        font-family: var(--adb-mono);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border: 1.5px solid currentColor;
+        border-radius: 3px;
+        white-space: nowrap;
+
+        &.o_adb_stamp_green { color: var(--adb-green); background-color: var(--adb-green-bg); }
+        &.o_adb_stamp_red { color: var(--adb-red); background-color: var(--adb-red-bg); }
+        &.o_adb_stamp_gray { color: var(--adb-muted); background-color: var(--adb-muted-bg); }
+        // Semáforo de capacidad (ver claude.md sección 9): ámbar = 40-70% de
+        // ocupación, ni al día (verde) ni en riesgo (rojo).
+        &.o_adb_stamp_amber { color: var(--adb-kpi-amber); background-color: rgba(156, 122, 30, 0.12); }
+    }
+
+    .o_adb_row_clickable {
+        cursor: pointer;
+        &:hover td { background-color: var(--adb-muted-bg); }
+    }
+
+    // ===== Banner de alerta de cupo (Panel) =====
+    .o_adb_alert_banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        background-color: rgba(156, 122, 30, 0.12);
+        border: 1px solid var(--adb-kpi-amber);
+        border-radius: 4px;
+        font-size: 13px;
+        color: var(--adb-ink);
+
+        i { color: var(--adb-kpi-amber); font-size: 15px; }
+    }
+
+    // ===== Facturación =====
+    .o_adb_billing_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+    }
+
+    .o_adb_billing_card {
+        background-color: var(--adb-card);
+        border: 1px solid var(--adb-line);
+        border-radius: 4px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .o_adb_billing_label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--adb-ink-soft);
+    }
+
+    .o_adb_billing_value {
+        font-family: var(--adb-mono);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--adb-ink);
+
+        &.o_adb_billing_ok { color: var(--adb-green); }
+        &.o_adb_billing_warn { color: var(--adb-kpi-amber); }
+        &.o_adb_billing_bad { color: var(--adb-red); }
+    }
+
+    .o_adb_billing_sub {
+        font-size: 12px;
+        color: var(--adb-ink-soft);
+    }
+}

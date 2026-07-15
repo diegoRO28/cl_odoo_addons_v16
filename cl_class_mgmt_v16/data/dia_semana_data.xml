@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="dia_semana_lunes" model="cl.dia.semana">
+        <field name="name">LUNES</field>
+        <field name="sequence">1</field>
+        <field name="weekday_index">0</field>
+        <field name="color">1</field>
+    </record>
+    <record id="dia_semana_martes" model="cl.dia.semana">
+        <field name="name">MARTES</field>
+        <field name="sequence">2</field>
+        <field name="weekday_index">1</field>
+        <field name="color">2</field>
+    </record>
+    <record id="dia_semana_miercoles" model="cl.dia.semana">
+        <field name="name">MIÉRCOLES</field>
+        <field name="sequence">3</field>
+        <field name="weekday_index">2</field>
+        <field name="color">3</field>
+    </record>
+    <record id="dia_semana_jueves" model="cl.dia.semana">
+        <field name="name">JUEVES</field>
+        <field name="sequence">4</field>
+        <field name="weekday_index">3</field>
+        <field name="color">4</field>
+    </record>
+    <record id="dia_semana_viernes" model="cl.dia.semana">
+        <field name="name">VIERNES</field>
+        <field name="sequence">5</field>
+        <field name="weekday_index">4</field>
+        <field name="color">5</field>
+    </record>
+    <record id="dia_semana_sabado" model="cl.dia.semana">
+        <field name="name">SÁBADO</field>
+        <field name="sequence">6</field>
+        <field name="weekday_index">5</field>
+        <field name="color">6</field>
+    </record>
+    <record id="dia_semana_domingo" model="cl.dia.semana">
+        <field name="name">DOMINGO</field>
+        <field name="sequence">7</field>
+        <field name="weekday_index">6</field>
+        <field name="color">7</field>
+    </record>
+
+</odoo>

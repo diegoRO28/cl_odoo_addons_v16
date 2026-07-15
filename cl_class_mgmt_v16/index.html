@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleveland Attendance</title>
+    <!-- Configuración Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', 
+            theme: {
+                extend: {
+                    fontFamily: { serif: ['"Times New Roman"', 'Times', 'serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FAVICON INCRUSTADO -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23b2ce26'/><text x='50' y='72' font-size='65' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>C</text></svg>">
+
+    <!-- PapaParse y Chart.js (Con el plugin para los datalabels) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plugin para mostrar los números encima de los puntos -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <style>
+        .slide {
+            position: absolute !important; inset: 0 !important; overflow: hidden;
+            display: none; opacity: 0; transform: translateY(15px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .slide.active { display: flex; opacity: 1; transform: translateY(0); }
+        .hover-scale { transition: transform 0.2s; }
+        .hover-scale:hover { transform: scale(1.03); }
+        .excel-table th, .excel-table td { border: 1px solid #e5e7eb; white-space: nowrap; }
+        .dark .excel-table th, .dark .excel-table td { border-color: #374151; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        #loader {
+            position: absolute; inset: 0; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #b2ce26; border-radius: 50%;
+            width: 50px; height: 50px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .bg-stripes {
+            background-color: #f8fafc;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, #f1f5f9 10px, #f1f5f9 20px);
+        }
+        .dark .bg-stripes {
+            background-color: #1e293b;
+            background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, #0f172a 10px, #0f172a 20px);
+        }
+    </style>
+</head>
+<body class="font-serif transition-colors duration-300 text-gray-800 bg-gray-100 dark:bg-gray-900 dark:text-gray-200 h-screen w-screen overflow-hidden flex flex-col relative">
+
+    <!-- Loading Screen -->
+    <div id="loader" class="bg-white dark:bg-gray-900">
+        <div class="spinner mb-4"></div>
+        <p class="text-gray-500 dark:text-gray-400 font-medium tracking-wide animate-pulse">Syncing with Google Sheets...</p>
+        <p id="error-msg" class="text-red-500 text-sm mt-4 hidden text-center max-w-md px-4"></p>
+    </div>
+
+    <!-- BANNER DE HORARIO -->
+    <div id="time-warning-banner" class="hidden w-full bg-yellow-400 text-yellow-900 font-bold text-center py-2 px-4 shadow-md z-[60] flex-shrink-0 text-sm md:text-base">
+        ⚠️ Offline Mode: Data reflects yesterday's records. Live syncing resumes at 10:00 AM.
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div id="app-container" class="flex-1 min-h-0 overflow-hidden w-full relative transition-all duration-300">
+
+        <!-- SLIDE 1: HOME -->
+        <div id="slide-home" class="slide active flex-col transition-colors" style="overflow-y: auto !important; overflow-x: hidden !important; background-image: url('Gemini_Generated_Image_tyn8vntyn8vntyn8.png'); background-color: #f8fafc; background-blend-mode: luminosity; background-size: contain; background-repeat: no-repeat; background-attachment: fixed; background-position: center;">
+            <div class="fixed inset-0 bg-white/70 dark:bg-gray-900/80 backdrop-blur-sm z-0 pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col items-center w-full max-w-4xl m-auto py-12 px-4">
+                
+                <div class="text-center w-full mb-8 mt-4">
+                    <div class="flex flex-col items-center justify-center p-8 bg-white/50 dark:bg-gray-800/60 rounded-3xl shadow-2xl backdrop-blur-md border border-white/60 dark:border-gray-700/50 hover-scale transition w-full">
+                        <h1 class="text-6xl md:text-8xl font-black uppercase tracking-tighter drop-shadow-sm" style="color: #b2ce26; font-family: 'Arial Narrow', Impact, sans-serif; transform: scaleY(1.1); transform-origin: bottom;">Cleveland</h1>
+                        <h2 class="text-xl md:text-3xl font-medium tracking-[0.25em] text-gray-700 dark:text-gray-300 mt-3 uppercase text-center">English Institute</h2>
+                        <p class="text-sm md:text-base text-gray-500 dark:text-gray-400 mt-2 tracking-wide italic">Reg. M.P.P.E. Nro. 023-1808</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-6 mb-10 w-full justify-center">
+                    <!-- Attendance Metric -->
+                    <div onclick="loadHistoryAndShowChart()" class="cursor-pointer bg-white/95 dark:bg-gray-800/95 rounded-xl p-6 shadow-xl text-center flex-1 border-t-4 hover-scale backdrop-blur-md transition-colors" style="border-color: #b2ce26;">
+                        <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">Attendance Upload Percentage</h3>
+                        <div id="global-attendance" class="text-6xl font-bold mb-2 drop-shadow-sm" style="color: #b2ce26;">--%</div>
+                        <p id="data-status-label" class="text-gray-500 dark:text-gray-400 text-sm italic font-medium">Live Data (Click for History 📈)</p> 
+                    </div>
+
+                    <!-- Student Count Metric -->
+                    <div onclick="goToSlide('slide-demographics')" class="cursor-pointer bg-white/95 dark:bg-gray-800/95 rounded-xl p-6 shadow-xl text-center flex-1 border-t-4 hover-scale backdrop-blur-md transition-colors" style="border-color: #b2ce26;">
+                        <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">Total Student Count</h3>
+                        <div id="global-students" class="text-6xl font-bold mb-2 drop-shadow-sm" style="color: #b2ce26;">--</div>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm italic font-medium">Currently Enrolled (Click for details 👇)</p>
+                    </div>
+                </div>
+
+                <button onclick="goToSlide('slide-teachers')" class="px-10 py-4 text-white font-bold rounded-full shadow-2xl transition hover-scale flex items-center justify-center gap-3 text-xl w-64 flex-shrink-0" style="background-color: #8e9e1f;">
+                    View Teachers List <span class="text-2xl">🗂️</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: DEMOGRAPHICS -->
+        <div id="slide-demographics" class="slide flex-col h-full bg-stripes transition-colors pointer-events-auto">
+            <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md p-6 flex items-center z-20 sticky top-0 border-b border-gray-200 dark:border-gray-700 gap-4">
+                <button onclick="goToSlide('slide-home')" class="text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-white flex items-center gap-2 transition font-bold px-4 py-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600">
+                    <span class="text-xl">🏠</span> Back to Home
+                </button>
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+                    <span class="text-3xl">📊</span> Student Demographics
+                </h2>
+            </header>
+            <div class="flex-1 overflow-y-auto p-6 md:p-10 max-w-5xl mx-auto w-full hide-scrollbar z-10 relative">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                    <!-- Cards de Demografía -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-8 border-yellow-400 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-1">Kids <span class="text-2xl">🧸</span></h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Cleveland Kids</p>
+                        </div>
+                        <div class="text-4xl font-black text-gray-800 dark:text-white" id="demo-kids">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-8 border-orange-400 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-1">Teens <span class="text-2xl">🛹</span></h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Cleveland Teens</p>
+                        </div>
+                        <div class="text-4xl font-black text-gray-800 dark:text-white" id="demo-teens">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-8 border-blue-400 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-1">Adults (Levels 1 to 4) <span class="text-2xl">🧑‍🎓</span></h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Beginner, Elementary, Intermediate</p>
+                        </div>
+                        <div class="text-4xl font-black text-gray-800 dark:text-white" id="demo-adults14">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-8 border-purple-400 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-1">Adults (Levels 5 to 6) <span class="text-2xl">🎓</span></h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Advanced, Advanced Plus</p>
+                        </div>
+                        <div class="text-4xl font-black text-gray-800 dark:text-white" id="demo-adults56">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-8 border-red-400 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-1">Adults (Levels 7 to 8) <span class="text-2xl">👑</span></h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Upper & Master Advanced</p>
+                        </div>
+                        <div class="text-4xl font-black text-gray-800 dark:text-white" id="demo-adults78">0</div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-l-8 border-green-500 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-1">Scholarship <span class="text-2xl">🌟</span></h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">All Scholarship Courses</p>
+                        </div>
+                        <div class="text-4xl font-black text-gray-800 dark:text-white" id="demo-scholarship">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: TEACHERS LIST -->
+        <div id="slide-teachers" class="slide flex-col h-full bg-stripes transition-colors pointer-events-auto">
+            <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md p-6 flex flex-col md:flex-row justify-between items-center z-20 sticky top-0 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3 mb-4 md:mb-0">
+                    <span class="text-3xl">🧑‍🏫</span> Cleveland Teachers List
+                </h2>
+                <div class="flex items-center gap-4 bg-gray-100 dark:bg-gray-700 p-2 rounded-full shadow-inner border border-gray-200 dark:border-gray-600">
+                    <button onclick="goToSlide('slide-home')" class="text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-white flex items-center gap-2 transition font-bold px-4 py-2 rounded-full hover:bg-white dark:hover:bg-gray-600">
+                        <span class="text-xl">🏠</span> Back to Home
+                    </button>
+                    <div class="w-px h-6 bg-gray-300 dark:bg-gray-500"></div> 
+                    <button onclick="toggleDarkMode()" id="theme-toggle-btn" class="p-2 rounded-full hover:bg-white dark:hover:bg-gray-600 transition shadow-sm text-2xl flex items-center justify-center">🌞</button>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-6 md:p-10 max-w-7xl mx-auto w-full hide-scrollbar z-10 relative">
+                <div id="teachers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-20"></div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: GRÁFICO HISTÓRICO -->
+        <div id="slide-charts" class="slide flex-col h-full bg-stripes transition-colors pointer-events-auto">
+            <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-md p-6 flex flex-col md:flex-row justify-between items-center z-20 sticky top-0 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <button onclick="goToSlide('slide-home')" class="text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-white flex items-center gap-2 transition font-bold px-4 py-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600">
+                        <span class="text-xl">🏠</span> Back to Home
+                    </button>
+                    <h2 class="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+                        <span class="text-3xl">📈</span> Performance History
+                    </h2>
+                </div>
+                
+                <!-- Botón de Recálculo Manual - AHORA ABRE EL MODAL -->
+                <button onclick="openDateModal()" id="btn-recalculate" class="mt-4 md:mt-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition flex items-center gap-2">
+                    <span>🔄</span> Recalculate & Save
+                </button>
+            </header>
+            <div class="flex-1 overflow-y-auto p-6 md:p-10 max-w-5xl mx-auto w-full hide-scrollbar z-10 relative flex flex-col">
+                
+                <!-- BOTONES DE FILTRO -->
+                <div class="flex justify-center gap-0 mb-6 shadow-sm rounded-lg overflow-hidden w-max mx-auto">
+                    <button onclick="renderChart('daily')" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-bold dark:text-white border-y border-l border-gray-300 dark:border-gray-600 transition">Daily</button>
+                    <button onclick="renderChart('weekly')" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-bold dark:text-white border border-gray-300 dark:border-gray-600 transition">Weekly</button>
+                    <button onclick="renderChart('monthly')" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-bold dark:text-white border-y border-r border-gray-300 dark:border-gray-600 transition">Monthly Avg</button>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl w-full h-[400px] md:h-[500px] flex items-center justify-center relative border border-gray-200 dark:border-gray-700">
+                    <div id="chart-loader" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex flex-col items-center justify-center hidden backdrop-blur-sm">
+                        <div class="spinner mb-4"></div><p class="font-bold dark:text-white">Fetching History...</p>
+                    </div>
+                    <div id="chart-empty" class="text-center hidden">
+                        <span class="text-6xl">⏳</span>
+                        <h3 class="text-xl font-bold text-gray-500 dark:text-gray-400 mt-4">Awaiting First Record</h3>
+                        <p class="text-sm text-gray-400 mt-2">Data will be available after the first daily sync.</p>
+                    </div>
+                    <div class="w-full h-full pt-4">
+                        <canvas id="attendanceChart" class="w-full h-full"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENEDOR DE PERFILES -->
+        <div id="detail-slides-container" class="absolute inset-0 w-full h-full pointer-events-none z-0"></div>
+
+    </div>
+
+    <!-- MODAL SELECTOR DE FECHA -->
+    <div id="date-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-sm transform scale-95 transition-transform duration-300" id="date-modal-content">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="text-3xl">📅</span>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Select Date</h3>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Choose the exact date for this <span class="font-bold text-lime-600 dark:text-lime-400 text-lg" id="modal-percentage-display"></span> record.
+            </p>
+            <input type="date" id="recalc-date-input" class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-lime-500 mb-6 cursor-pointer shadow-inner">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeDateModal()" class="px-5 py-2.5 rounded-lg font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition">Cancel</button>
+                <button onclick="confirmRecalculate()" id="btn-confirm-recalc" class="px-5 py-2.5 rounded-lg font-bold text-white bg-lime-600 hover:bg-lime-700 shadow-md transition flex items-center gap-2">Save Record</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Registrar plugin de etiquetas de datos para el Chart.js
+        Chart.register(ChartDataLabels);
+
+        // === MODO OSCURO ===
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+        }
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) { document.documentElement.classList.remove('dark'); localStorage.theme = 'light'; updateThemeIcon(false); } 
+            else { document.documentElement.classList.add('dark'); localStorage.theme = 'dark'; updateThemeIcon(true); }
+        }
+        function updateThemeIcon(isDark) {
+            const btn = document.getElementById('theme-toggle-btn');
+            if(btn) btn.innerHTML = isDark ? '🌙' : '🌞';
+        }
+        initTheme();
+
+        // === CONFIGURACIÓN DE URLS ===
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHLmlWqlj2brwldUloF6SlC0aVcPt1j1LqoFlZVwT4gNYaO5VDgfE0uqkIcyQaSkZ-ZPqhrElYiyy0/pub?output=csv';
+        
+        // APPS SCRIPT URL DEFINITIVA INYECTADA
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyAiFIKmYUj8v5g7lxL9Q9zOHuU4lpj_tjdRZ6TlxKGoXzkcypW19pOkUa1lA1XOSqV/exec"; 
+
+        let db = [];
+        let historyData = [];
+        let chartInstance = null;
+        let currentGlobalPercentage = 100; 
+
+        function checkMaintenanceWindow() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const isActive = currentHour >= 10 && currentHour < 22;
+            if (!isActive) {
+                document.getElementById('time-warning-banner').classList.remove('hidden');
+                const lbl = document.getElementById('data-status-label');
+                if(lbl) lbl.innerHTML = "Yesterday's Records (Click for History 📈)"; 
+            }
+            return isActive;
+        }
+
+        function getAvatarEmoji(name) {
+            if(!name) return '🧑‍🏫';
+            const lowerName = name.toLowerCase().trim();
+            const first = lowerName.split(' ')[0];
+            const femaleNames = ['maria','ana','carmen','laura','isabel','rosa','diana','andrea','patricia','sofia','claudia','gabriela','daniela','paola','lucia','marta','juana','elena','victoria','silvia','alejandra','valeria','genesis','isabella','camila','yesenia','yolanda'];
+            const maleNames = ['jose','jesus','luis','carlos','juan','manuel','pedro','francisco','diego','miguel','oswald','oswaldo','miguelangel','alejandro','jorge','victor','andres','david','rafael','gabriel','fernando','hector'];
+            if (femaleNames.includes(first)) return '👩‍🏫';
+            if (maleNames.includes(first)) return '👨‍🏫';
+            if (first.endsWith('a')) return '👩‍🏫';
+            if (first.endsWith('o') || first.endsWith('s') || first.endsWith('r') || first.endsWith('n') || first.endsWith('l') || first.endsWith('d')) return '👨‍🏫';
+            return '🧑‍🏫';
+        }
+
+        function parseCustomDate(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.trim().split(/[\\\/]/);
+            if (parts.length >= 3) {
+                const d = new Date(parseInt(parts[2].substring(0,4)), parseInt(parts[1])-1, parseInt(parts[0]));
+                return isNaN(d.getTime()) ? null : d;
+            }
+            return null;
+        }
+
+        function getExpectedDate(classDaysStr) {
+            const now = new Date();
+            let baseline = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (now.getHours() < 10) baseline.setDate(baseline.getDate() - 1);
+            if (baseline.getDay() === 0) baseline.setDate(baseline.getDate() - 1);
+
+            let targetDays = [];
+            let str = (classDaysStr || "").toLowerCase();
+            if ((str.includes("monday") || str.includes("lunes")) && (str.includes("wednesday") || str.includes("miercoles"))) targetDays = [1, 3];
+            else if ((str.includes("tuesday") || str.includes("martes")) && (str.includes("thursday") || str.includes("jueves"))) targetDays = [2, 4];
+            else if (str.includes("monday") || str.includes("lunes")) targetDays = [1];
+            else if (str.includes("tuesday") || str.includes("martes")) targetDays = [2];
+            else if (str.includes("wednesday") || str.includes("miercoles")) targetDays = [3];
+            else if (str.includes("thursday") || str.includes("jueves")) targetDays = [4];
+            else if (str.includes("friday") || str.includes("viernes")) targetDays = [5];
+            else if (str.includes("saturday") || str.includes("sabado")) targetDays = [6];
+            else return null; 
+
+            let expected = new Date(baseline);
+            expected.setDate(expected.getDate() - 1); 
+            let safety = 10;
+            while (!targetDays.includes(expected.getDay()) && safety > 0) { expected.setDate(expected.getDate() - 1); safety--; }
+            return expected;
+        }
+
+        async function loadGoogleSheetData() {
+            checkMaintenanceWindow();
+            try {
+                const response = await fetch(CSV_URL);
+                if (!response.ok) throw new Error("HTTP error");
+                const text = await response.text();
+                Papa.parse(text, { header: true, skipEmptyLines: true, complete: res => processData(res.data) });
+            } catch (error) {
+                document.getElementById('error-msg').innerHTML = "<b>Connection Failed.</b><br>Check if URL is valid.";
+                document.getElementById('error-msg').classList.remove('hidden');
+                document.querySelector('.spinner').style.display = 'none';
+            }
+        }
+
+        function processData(data) {
+            let teachersMap = {};
+            let globalActive = 0, globalUpToDate = 0, demo = { kids:0, teens:0, adults14:0, adults56:0, adults78:0, scholarship:0 }, totalSt = 0;
+
+            data.forEach(row => {
+                let tName = row['Teacher'] || row[Object.keys(row)[0]];
+                if (!tName || tName.toLowerCase().includes('total')) return;
+
+                if (!teachersMap[tName]) {
+                    teachersMap[tName] = { id: tName.replace(/\s+/g, '-').toLowerCase(), name: tName, ageBand: row['Age Band'] || 'N/A', observation: '', classes: [] };
+                }
+
+                let obsText = row['Observations'] || row['observations'] || '';
+                let backupText = localStorage.getItem('obs_backup_' + teachersMap[tName].id);
+                if (obsText && !teachersMap[tName].observation) {
+                    teachersMap[tName].observation = obsText;
+                    localStorage.removeItem('obs_backup_' + teachersMap[tName].id);
+                } else if (!obsText && backupText && !teachersMap[tName].observation) {
+                    teachersMap[tName].observation = backupText;
+                }
+
+                let cName = row['Course'] || '', sRaw = row['Status'] || '', sizeRaw = row['Student Cohort Size'] || '';
+                let isClosed = sRaw.toUpperCase().includes('READY TO BE FILED'), size = parseInt(sizeRaw);
+                
+                if (!isNaN(size) && !isClosed) {
+                    totalSt += size;
+                    let low = cName.toLowerCase();
+                    if(low.includes('scholarship')) demo.scholarship += size;
+                    else if(low.includes('kids')) demo.kids += size;
+                    else if(low.includes('teens')) demo.teens += size;
+                    else if(low.includes('upper') || low.includes('master')) demo.adults78 += size;
+                    else if(low.includes('advanced')) demo.adults56 += size;
+                    else if(low.includes('beginner') || low.includes('elementary') || low.includes('intermediate')) demo.adults14 += size;
+                }
+
+                let isUp = true;
+                if (!isClosed) {
+                    const stDate = parseCustomDate(sRaw), exDate = getExpectedDate(row['Class days']);
+                    if (stDate && exDate) isUp = stDate >= exDate;
+                    globalActive++;
+                    if(isUp) globalUpToDate++;
+                }
+
+                teachersMap[tName].classes.push({ c: cName, s: row['Section']||'', d: sRaw, t: row['Class days']||'', r: row['Start - End / Month']||'', z: sizeRaw, isClosed: isClosed, isUpToDate: isUp });
+            });
+
+            db = Object.values(teachersMap);
+            
+            // GUARDAMOS EL PORCENTAJE EXACTO
+            currentGlobalPercentage = globalActive === 0 ? 100 : Math.round((globalUpToDate/globalActive)*100);
+            
+            document.getElementById('global-students').innerText = totalSt;
+            document.getElementById('global-attendance').innerText = currentGlobalPercentage + '%';
+            
+            ['kids','teens','adults14','adults56','adults78','scholarship'].forEach(k => document.getElementById('demo-'+k).innerText = demo[k]);
+            
+            buildInterface();
+            setTimeout(() => { document.getElementById('loader').style.opacity = '0'; setTimeout(()=>document.getElementById('loader').style.display='none',500); }, 300);
+        }
+
+        function saveObservation(teacherId, teacherName) {
+            const input = document.getElementById(`obs-input-${teacherId}`);
+            const btn = document.getElementById(`obs-btn-${teacherId}`);
+            const text = input.value.trim();
+            if (!text) return alert("Please write an observation.");
+
+            if(!APPS_SCRIPT_URL) return alert("Falta configurar APPS_SCRIPT_URL.");
+
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span>⏳</span>'; btn.disabled = true;
+
+            fetch(APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ teacherName: teacherName, observation: text }) })
+            .then(r => r.json())
+            .then(d => {
+                if(d.status === 'success') {
+                    db.find(t=>t.id===teacherId).observation = text;
+                    localStorage.setItem('obs_backup_'+teacherId, text);
+                    btn.innerHTML = '<span>✅</span>'; btn.classList.replace('bg-lime-500','bg-green-600');
+                    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; btn.classList.replace('bg-green-600','bg-lime-500'); }, 3000);
+                } else throw new Error();
+            })
+            .catch(() => {
+                alert("Saved. (Check Google Sheets)");
+                btn.innerHTML = orig; btn.disabled = false;
+            });
+        }
+
+        // === FUNCIONES DEL MODAL DE FECHA ===
+        function openDateModal() {
+            const modal = document.getElementById('date-modal');
+            const content = document.getElementById('date-modal-content');
+            const input = document.getElementById('recalc-date-input');
+            
+            document.getElementById('modal-percentage-display').innerText = currentGlobalPercentage + '%';
+            
+            // Configurar fecha de hoy por defecto en el input date (Formato YYYY-MM-DD)
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            input.value = `${yyyy}-${mm}-${dd}`;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // Animación suave
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeDateModal() {
+            const modal = document.getElementById('date-modal');
+            const content = document.getElementById('date-modal-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        // === CONFIRMAR ENVÍO A LA BASE DE DATOS ===
+        async function confirmRecalculate() {
+            if(!APPS_SCRIPT_URL) return alert("Falta el enlace del script.");
+            
+            const inputDate = document.getElementById('recalc-date-input').value;
+            if (!inputDate) return alert("Please select a valid date.");
+            
+            // Convertir de YYYY-MM-DD a DD/MM/YYYY para enviarlo a Google Sheets
+            const parts = inputDate.split('-');
+            const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+            const btnModal = document.getElementById('btn-confirm-recalc');
+            const btnHeader = document.getElementById('btn-recalculate');
+            
+            btnModal.innerHTML = '<span>⏳</span> Saving...'; btnModal.disabled = true;
+            btnHeader.innerHTML = '<span>⏳</span> Saving...'; btnHeader.disabled = true;
+
+            try {
+                // AQUÍ LE MANDAMOS LA FECHA ELEGIDA Y EL PORCENTAJE
+                const payload = { action: 'recalculate', percentage: currentGlobalPercentage, date: formattedDate };
+                
+                const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    btnModal.innerHTML = '<span>✅</span> Done!';
+                    btnHeader.innerHTML = '<span>✅</span> Done!';
+                    setTimeout(() => { 
+                        closeDateModal();
+                        btnModal.innerHTML = 'Save Record'; btnModal.disabled = false;
+                        btnHeader.innerHTML = '<span>🔄</span> Recalculate & Save'; btnHeader.disabled = false; 
+                        loadHistoryAndShowChart(); 
+                    }, 1500);
+                } else throw new Error();
+            } catch(e) {
+                alert("Error saving. Check your connection.");
+                btnModal.innerHTML = 'Save Record'; btnModal.disabled = false;
+                btnHeader.innerHTML = '<span>🔄</span> Recalculate & Save'; btnHeader.disabled = false;
+            }
+        }
+
+        async function loadHistoryAndShowChart() {
+            goToSlide('slide-charts');
+            if(!APPS_SCRIPT_URL) return alert("Falta configurar APPS_SCRIPT_URL en el código HTML.");
+            
+            document.getElementById('chart-loader').style.display = 'flex';
+            document.getElementById('chart-empty').classList.add('hidden');
+            document.getElementById('attendanceChart').style.display = 'block';
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                const data = await response.json();
+                if(data.status === 'success') {
+                    historyData = data.data;
+                    renderChart('daily');
+                } else throw new Error(data.message);
+            } catch(e) {
+                console.error(e);
+            } finally {
+                document.getElementById('chart-loader').style.display = 'none';
+            }
+        }
+
+        function renderChart(view) {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+
+            if (historyData.length === 0) {
+                document.getElementById('attendanceChart').style.display = 'none';
+                document.getElementById('chart-empty').classList.remove('hidden');
+                return;
+            }
+
+            let labels = [], values = [];
+            if (view === 'daily') {
+                labels = historyData.map(d => d.date);
+                values = historyData.map(d => d.percentage);
+            } else if (view === 'weekly') {
+                let weeks = {};
+                historyData.forEach(d => {
+                    let parts = d.date.split('/');
+                    if(parts.length===3) {
+                        let dateObj = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
+                        let day = dateObj.getDay();
+                        let diff = dateObj.getDate() - day + (day === 0 ? -6 : 1);
+                        let monday = new Date(dateObj.setDate(diff));
+                        let weekStr = ('0'+monday.getDate()).slice(-2) + '/' + ('0'+(monday.getMonth()+1)).slice(-2);
+                        
+                        if(!weeks[weekStr]) weeks[weekStr] = {s:0, c:0};
+                        weeks[weekStr].s += d.percentage; weeks[weekStr].c++;
+                    }
+                });
+                labels = Object.keys(weeks).map(w => 'Week ' + w);
+                values = Object.keys(weeks).map(w => Math.round(weeks[w].s / weeks[w].c));
+            } else if (view === 'monthly') {
+                let months = {};
+                historyData.forEach(d => {
+                    let parts = d.date.split('/');
+                    if(parts.length===3) {
+                        let m = parts[1]+'/'+parts[2];
+                        if(!months[m]) months[m] = {s:0, c:0};
+                        months[m].s += d.percentage; months[m].c++;
+                    }
+                });
+                labels = Object.keys(months);
+                values = labels.map(l => Math.round(months[l].s / months[l].c));
+            }
+
+            const colorLine = '#3b82f6'; // Azul agradable
+            const colorFill = 'rgba(59, 130, 246, 0.1)';
+            const textColor = document.documentElement.classList.contains('dark') ? '#d1d5db' : '#4b5563';
+
+            Chart.defaults.color = textColor;
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Attendance %',
+                        data: values,
+                        borderColor: colorLine,
+                        backgroundColor: colorFill,
+                        borderWidth: 2,
+                        pointBackgroundColor: colorLine,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0, 
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 20 } }, 
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { enabled: false }, 
+                        datalabels: {
+                            color: textColor,
+                            align: 'top',
+                            anchor: 'end',
+                            offset: 4,
+                            font: { weight: 'bold', size: 12 },
+                            formatter: function(value) { return value + '%'; } // AÑADE EL SIGNO % A LAS ETIQUETAS
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            min: 0, max: 100, 
+                            grid: { color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb', drawBorder: false },
+                            ticks: { 
+                                display: true, 
+                                padding: 10, 
+                                stepSize: 25,
+                                callback: function(value) { return value + '%'; } // AÑADE EL SIGNO % AL EJE Y
+                            } 
+                        },
+                        x: { 
+                            grid: { display: false, drawBorder: true },
+                            ticks: { 
+                                display: true, 
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10 
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // === CONSTRUCCIÓN DE INTERFAZ ===
+        function buildInterface() {
+            const grid = document.getElementById('teachers-grid');
+            const slidesContainer = document.getElementById('detail-slides-container');
+            grid.innerHTML = ''; slidesContainer.innerHTML = '';
+
+            db.forEach((teacher, index) => {
+                const active = teacher.classes.filter(c => !c.isClosed);
+                const completedCount = teacher.classes.length - active.length, totalActive = active.length;
+                const okCount = active.filter(c => c.isUpToDate).length; 
+                const percent = totalActive > 0 ? Math.round((okCount / totalActive) * 100) : 100;
+                
+                const colors = ['bg-blue-100 text-blue-800', 'bg-purple-100 text-purple-800', 'bg-teal-100 text-teal-800', 'bg-rose-100 text-rose-800', 'bg-amber-100 text-amber-800'];
+                const avatarColor = colors[index % colors.length];
+                const teacherEmoji = getAvatarEmoji(teacher.name);
+
+                let statusText = "Up to date", barColor = "bg-green-500";
+                if (percent < 100 && percent >= 60) { statusText = "Needs attention"; barColor = "bg-yellow-500"; } 
+                else if (percent < 60) { statusText = "Critical - Delayed"; barColor = "bg-red-500"; }
+                if (totalActive === 0) { statusText = "All classes completed"; barColor = "bg-gray-400"; }
+
+                let gText = `${totalActive} Active Groups`;
+                if(completedCount>0) gText += ` <span class="text-gray-400 font-normal">(${completedCount} Completed)</span>`;
+
+                grid.innerHTML += `
+                    <div onclick="goToSlide('slide-detail-${teacher.id}')" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 cursor-pointer transition transform hover:-translate-y-1 hover:shadow-2xl border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center">
+                        <div class="w-20 h-20 ${avatarColor} rounded-full flex items-center justify-center mb-4 shadow-inner ring-4 ring-white dark:ring-gray-800">
+                            <span class="text-4xl">${teacherEmoji}</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2 leading-tight">${teacher.name}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5 font-semibold italic">${gText}</p>
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2 shadow-inner">
+                            <div class="${barColor} h-3 rounded-full transition-all duration-1000" style="width: ${totalActive === 0 ? 100 : Math.max(5, percent)}%"></div>
+                        </div>
+                        <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest">${statusText} ${totalActive > 0 ? `(${okCount}/${totalActive})` : ''}</p>
+                    </div>
+                `;
+
+                let tableRows = '', teacherTotalStudents = 0; 
+                teacher.classes.forEach((cls, idx) => {
+                    if (!isNaN(parseInt(cls.z)) && !cls.isClosed) teacherTotalStudents += parseInt(cls.z);
+                    let sClass = cls.isClosed ? 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300' : (!cls.isUpToDate ? 'bg-red-500 text-white' : 'bg-green-500 text-black dark:bg-green-600 dark:text-white');
+                    tableRows += `
+                        <tr class="${cls.isClosed ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'}">
+                            <td class="px-4 py-3 font-semibold dark:text-gray-200">${cls.c}</td>
+                            <td class="px-4 py-3 dark:text-gray-300">${cls.s}</td>
+                            <td class="px-4 py-3 text-center font-bold ${sClass}">${cls.isClosed ? '(FILED)' : cls.d}</td>
+                            <td class="px-4 py-3 dark:text-gray-300">${cls.t}</td>
+                            <td class="px-4 py-3 dark:text-gray-400">${cls.r}</td>
+                            <td class="px-4 py-3 text-center text-lg font-bold dark:text-white">${cls.z}</td>
+                            ${idx === 0 ? `<td class="px-4 py-3 text-center border-l dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-400 italic" rowspan="${teacher.classes.length + 1}" style="border-bottom:none; vertical-align: middle;">${teacher.ageBand}</td>` : ''}
+                        </tr>
+                    `;
+                });
+
+                tableRows += `
+                    <tr class="bg-lime-50 dark:bg-gray-800/80 border-t-2 transition-colors" style="border-top-color: #b2ce26;">
+                        <td colspan="4" class="px-4 py-4 border-r border-gray-200 dark:border-gray-700/50">
+                            <div class="flex flex-col gap-2 w-full">
+                                <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Observations</label>
+                                <div class="flex items-start gap-3 w-full">
+                                    <textarea id="obs-input-${teacher.id}" rows="3" placeholder="Type observation for ${teacher.name}..." class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-lime-500 shadow-sm placeholder-gray-400 resize-y">${teacher.observation || ''}</textarea>
+                                    <button onclick="saveObservation('${teacher.id}', '${teacher.name}')" id="obs-btn-${teacher.id}" class="px-5 py-3 bg-lime-500 hover:bg-lime-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2 flex-shrink-0 mt-1">
+                                        <span>💾</span> Save
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right text-gray-800 dark:text-gray-200 uppercase tracking-wider text-xs border-l font-bold">Total Active Students:</td>
+                        <td class="px-4 py-3 text-center text-2xl font-black text-gray-900 dark:text-white">${teacherTotalStudents}</td>
+                    </tr>
+                `;
+
+                slidesContainer.innerHTML += `
+                    <div id="slide-detail-${teacher.id}" class="slide flex-col h-full bg-gray-50 dark:bg-gray-900 transition-colors pointer-events-auto">
+                        <header class="bg-lime-100 dark:bg-gray-800 text-gray-800 dark:text-white p-6 flex items-center shadow-md z-20 gap-6 border-b-4 flex-shrink-0" style="border-color: #b2ce26;">
+                            <button onclick="goToSlide('slide-teachers')" class="p-3 bg-white dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition font-bold flex gap-2 border border-gray-300 dark:border-gray-600">
+                                <span>⬅️</span> <span class="hidden sm:inline">Back to Teachers</span>
+                            </button>
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 ${avatarColor} rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-gray-600">
+                                    <span class="text-2xl">${teacherEmoji}</span>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-black uppercase tracking-wide">${teacher.name}</h2>
+                                    <p class="text-sm font-medium italic text-gray-600 dark:text-gray-400">Detailed View</p>
+                                </div>
+                            </div>
+                        </header>
+                        <div class="flex-1 overflow-auto p-4 md:p-8 relative z-10 w-full">
+                            <div class="inline-block min-w-full align-middle pb-12">
+                                <div class="shadow-2xl rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                                    <table class="min-w-full text-sm text-left text-gray-700 dark:text-gray-300 excel-table">
+                                        <thead class="text-white uppercase tracking-wider sticky top-0 z-30 shadow-sm" style="background-color: #8e9e1f;">
+                                            <tr>
+                                                <th class="px-4 py-4 font-bold">Course</th>
+                                                <th class="px-4 py-4 font-bold">Section</th>
+                                                <th class="px-4 py-4 font-bold text-center">Status</th>
+                                                <th class="px-4 py-4 font-bold">Class Days</th>
+                                                <th class="px-4 py-4 font-bold">Term</th>
+                                                <th class="px-4 py-4 font-bold text-center">Size</th>
+                                                <th class="px-4 py-4 font-bold text-center">Age Band</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>${tableRows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function goToSlide(id) { document.querySelectorAll('.slide').forEach(s => s.classList.remove('active')); setTimeout(() => { document.getElementById(id).classList.add('active'); }, 10); }
+
+        window.onload = loadGoogleSheetData;
+    </script>
+</body>
+</html>

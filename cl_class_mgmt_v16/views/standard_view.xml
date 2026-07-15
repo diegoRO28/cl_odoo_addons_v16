@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="view_school_standard_form_inherit_cl" model="ir.ui.view">
+        <field name="name">school.standard.form.inherit.cl.class.mgmt</field>
+        <field name="model">school.standard</field>
+        <field name="inherit_id" ref="school.view_school_standard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='start_date']" position="before">
+                <field name="dias_clase_ids"
+                       widget="many2many_tags"
+                       options="{'no_create': True, 'no_create_edit': True}"
+                       placeholder="Seleccione los días de clase"
+                       attrs="{'readonly': [('state', 'in', ['terminate'])]}"/>
+            </xpath>
+            <!-- PROVISIONAL: botón para recalcular fechas en secciones ya
+                 iniciadas antes de la automatización por días de clase.
+                 Eliminar junto con action_recalcular_fechas_clase(). -->
+            <xpath expr="//button[@name='set_genera_reg_asi']" position="after">
+                <button class="btn-warning" name="action_recalcular_fechas_clase"
+                        string="(PROVISIONAL) GENERAR FECHAS DE CLASE" type="object"
+                        icon="fa-calendar" states="done"
+                        confirm="Esto recalculará las fechas de todos los encuentros y evaluaciones de la sección según los Días de Clases configurados. ¿Continuar?"
+                        groups="school.group_school_administration"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

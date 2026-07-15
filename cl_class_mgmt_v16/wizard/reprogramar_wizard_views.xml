@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="view_school_standard_reprogramar_wizard_form" model="ir.ui.view">
+        <field name="name">school.standard.reprogramar.wizard.form</field>
+        <field name="model">school.standard.reprogramar.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reprogramar Sección">
+                <field name="standard_id" invisible="1"/>
+                <group col="4">
+                    <field name="tipo"/>
+                    <field name="nueva_fecha"
+                           attrs="{'required': [('tipo', '!=', 'evaluacion')]}"/>
+                </group>
+                <group col="2">
+                    <group string="Encuentros"
+                           attrs="{'invisible': [('tipo', '=', 'evaluacion')]}">
+                        <field name="ultima_asistencia_info"/>
+                        <field name="fecha_ultima_asistencia"/>
+                    </group>
+                    <group string="Evaluaciones"
+                           attrs="{'invisible': [('tipo', '=', 'encuentro')]}">
+                        <field name="ultima_evaluacion_info"/>
+                        <field name="fecha_ultima_evaluacion"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_confirmar" string="Reprogramar" type="object"
+                            class="btn-primary"
+                            confirm="Esto recalculará las fechas de los encuentros/evaluaciones PENDIENTES de la sección. ¿Continuar?"/>
+                    <button string="Cancelar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_school_standard_reprogramar_wizard" model="ir.actions.act_window">
+        <field name="name">Reprogramar Sección</field>
+        <field name="res_model">school.standard.reprogramar.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_school_standard_form_reprogramar_inherit_cl" model="ir.ui.view">
+        <field name="name">school.standard.form.reprogramar.inherit.cl.class.mgmt</field>
+        <field name="model">school.standard</field>
+        <field name="inherit_id" ref="school.view_school_standard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='set_genera_reg_asi']" position="after">
+                <button class="btn-secondary" name="%(action_school_standard_reprogramar_wizard)d"
+                        string="REPROGRAMAR" type="action" icon="fa-calendar" states="done"
+                        groups="school.group_school_administration"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

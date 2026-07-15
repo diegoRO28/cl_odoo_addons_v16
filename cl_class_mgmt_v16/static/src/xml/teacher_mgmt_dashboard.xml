@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="cl_class_mgmt_v16.TeacherMgmtDashboard" owl="1">
+        <div class="o_tmd">
+
+            <header class="o_tmd_masthead">
+                <div class="o_tmd_masthead_top">
+                    <h1 class="o_tmd_title">Panel de Gestión Docente</h1>
+                    <div class="o_tmd_masthead_actions">
+                        <span t-if="this.state.data" class="o_tmd_asof_inline">Emitido el <t t-esc="this.state.data.fecha_emision"/></span>
+                        <button class="o_tmd_refresh" t-on-click="loadData" title="Actualizar datos">
+                            <i class="fa fa-refresh"/> Actualizar
+                        </button>
+                    </div>
+                </div>
+
+                <nav t-if="this.state.selectedTeacherId" class="o_tmd_crumbs">
+                    <a href="#" class="o_tmd_crumb" t-on-click.prevent="backToGrid">Panel</a>
+                    <span class="o_tmd_crumb_sep">/</span>
+                    <a href="#" class="o_tmd_crumb" t-on-click.prevent="backToGrid">Profesores</a>
+                    <span class="o_tmd_crumb_sep">/</span>
+                    <span class="o_tmd_crumb is-current"><t t-esc="this.selectedTeacher.name"/></span>
+                </nav>
+            </header>
+
+            <div t-if="this.state.loading" class="o_tmd_loading">
+                <div class="o_tmd_spinner"/>
+                <p>Cargando…</p>
+            </div>
+
+            <div t-elif="this.state.error" class="o_tmd_error">
+                <t t-esc="this.state.error"/>
+            </div>
+
+            <t t-else="">
+                <t t-if="!this.state.selectedTeacherId">
+                    <nav class="o_tmd_tabs">
+                        <button t-attf-class="o_tmd_tab {{ this.state.activeTab === 'overview' ? 'is-active' : '' }}"
+                                t-on-click="() => this.setTab('overview')"><i class="fa fa-tachometer"/> Panorama</button>
+                        <button t-attf-class="o_tmd_tab {{ this.state.activeTab === 'teachers' ? 'is-active' : '' }}"
+                                t-on-click="() => this.setTab('teachers')"><i class="fa fa-users"/> Profesores</button>
+                        <button t-attf-class="o_tmd_tab {{ this.state.activeTab === 'ranking' ? 'is-active' : '' }}"
+                                t-on-click="() => this.setTab('ranking')"><i class="fa fa-trophy"/> Ranking</button>
+                    </nav>
+
+                    <!-- ===== PANORAMA ===== -->
+                    <section t-if="this.state.activeTab === 'overview'" class="o_tmd_section">
+                        <div class="o_tmd_kpi_grid">
+                            <div class="o_tmd_kpi_card o_tmd_kpi_clickable" t-on-click="() => this.openKpiHistory('asistencias')">
+                                <div class="o_tmd_kpi_head">
+                                    <span class="o_tmd_kpi_label"><i class="fa fa-check-circle"/> % carga de asistencias</span>
+                                    <i class="fa fa-line-chart o_tmd_kpi_hint" title="Ver histórico"/>
+                                </div>
+                                <div class="o_tmd_kpi_number"><t t-esc="this.state.data.global_percentage"/>%</div>
+                                <p class="o_tmd_kpi_hintlabel">Clic para ver histórico</p>
+                            </div>
+                            <div class="o_tmd_kpi_card o_tmd_kpi_clickable" t-on-click="() => this.openKpiHistory('evaluaciones')">
+                                <div class="o_tmd_kpi_head">
+                                    <span class="o_tmd_kpi_label"><i class="fa fa-pencil-square-o"/> % carga de notas</span>
+                                    <i class="fa fa-line-chart o_tmd_kpi_hint" title="Ver histórico"/>
+                                </div>
+                                <div class="o_tmd_kpi_number"><t t-esc="this.state.data.global_eval_percentage"/>%</div>
+                                <p class="o_tmd_kpi_hintlabel">Clic para ver histórico</p>
+                            </div>
+                            <div class="o_tmd_kpi_card">
+                                <div class="o_tmd_kpi_head">
+                                    <span class="o_tmd_kpi_label"><i class="fa fa-users"/> Estudiantes inscritos</span>
+                                </div>
+                                <div class="o_tmd_kpi_number"><t t-esc="this.state.data.total_students"/></div>
+                            </div>
+                            <div class="o_tmd_kpi_card">
+                                <div class="o_tmd_kpi_head">
+                                    <span class="o_tmd_kpi_label"><i class="fa fa-id-badge"/> Profesores activos</span>
+                                </div>
+                                <div class="o_tmd_kpi_number"><t t-esc="this.state.data.profesores.length"/></div>
+                            </div>
+                        </div>
+
+                        <h2 class="o_tmd_section_title">Distribución de estudiantes por categoría</h2>
+                        <div class="o_tmd_donut_wrap">
+                            <svg viewBox="0 0 100 100" class="o_tmd_donut">
+                                <circle cx="50" cy="50" r="40" class="o_tmd_donut_track"/>
+                                <g transform="rotate(-90 50 50)">
+                                    <circle t-foreach="this.demographicDonut.slices" t-as="slice" t-key="slice.key"
+                                            cx="50" cy="50" r="40" class="o_tmd_donut_slice"
+                                            t-attf-stroke-dasharray="{{slice.dasharray}}"
+                                            t-attf-stroke-dashoffset="{{slice.dashoffset}}"
+                                            t-attf-style="stroke: {{slice.color}};">
+                                        <title><t t-esc="slice.label"/>: <t t-esc="slice.value"/> (<t t-esc="slice.pct"/>%)</title>
+                                    </circle>
+                                </g>
+                                <text x="50" y="47" class="o_tmd_donut_total"><t t-esc="this.demographicDonut.total"/></text>
+                                <text x="50" y="60" class="o_tmd_donut_caption">estudiantes</text>
+                            </svg>
+                            <ul class="o_tmd_legend">
+                                <li t-foreach="this.demographicDonut.slices" t-as="slice" t-key="slice.key">
+                                    <span class="o_tmd_legend_swatch" t-attf-style="background-color: {{slice.color}};"/>
+                                    <span class="o_tmd_legend_label"><i t-attf-class="fa {{slice.icon}}"/> <t t-esc="slice.label"/></span>
+                                    <span class="o_tmd_legend_value"><t t-esc="slice.value"/> · <t t-esc="slice.pct"/>%</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <!-- ===== RANKING ===== -->
+                    <section t-if="this.state.activeTab === 'ranking'" class="o_tmd_section">
+                        <p class="o_tmd_asof o_tmd_asof_top">Promedio de puntualidad en asistencias y evaluaciones. Clic en un profesor para ver su detalle.</p>
+                        <div class="o_tmd_barchart">
+                            <t t-foreach="this.state.data.ranking" t-as="p" t-key="p.id">
+                                <div class="o_tmd_barrow o_tmd_barrow_ranking o_tmd_barrow_clickable" t-on-click="() => this.selectTeacher(p.id, this.state.data.ranking)">
+                                    <span class="o_tmd_rank_label">
+                                        <i t-if="p_index &lt; 3" t-attf-class="fa fa-star o_tmd_star {{this.podiumStarClass(p_index)}}"/>
+                                        <img t-if="p.photo" t-att-src="p.photo" class="o_tmd_avatar o_tmd_avatar_sm"/>
+                                        <div t-else="" class="o_tmd_avatar o_tmd_avatar_letters o_tmd_avatar_sm">
+                                            <t t-esc="this.initials(p.name)"/>
+                                        </div>
+                                        <span class="o_tmd_barlabel"><t t-esc="p_index + 1"/>. <t t-esc="p.name"/></span>
+                                    </span>
+                                    <div class="o_tmd_bartrack">
+                                        <div class="o_tmd_barfill o_tmd_barfill_ranking"
+                                             t-attf-style="width: {{this.progressWidth(p.score)}}%"/>
+                                    </div>
+                                    <span class="o_tmd_barvalue"><t t-esc="p.score"/>%</span>
+                                </div>
+                            </t>
+                            <p t-if="!this.state.data.ranking.length" class="o_tmd_empty">
+                                Todavía no hay suficientes datos para el ranking.
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- ===== PROFESORES ===== -->
+                    <section t-if="this.state.activeTab === 'teachers'" class="o_tmd_section">
+                        <div class="o_tmd_toolbar">
+                            <input type="text" class="o_tmd_search" placeholder="Buscar profesor…"
+                                   t-model="this.state.search"/>
+                            <div class="o_tmd_chips">
+                                <t t-foreach="this.statusFilters" t-as="f" t-key="f.key">
+                                    <button t-attf-class="o_tmd_chip {{ this.state.statusFilter === f.key ? 'is-active' : '' }}"
+                                            t-on-click="() => this.setStatusFilter(f.key)">
+                                        <t t-esc="f.label"/>
+                                    </button>
+                                </t>
+                            </div>
+                        </div>
+
+                        <div class="o_tmd_filterbar">
+                            <div class="o_tmd_filter_group">
+                                <span class="o_tmd_filter_label"><i class="fa fa-book"/> Curso</span>
+                                <select class="o_tmd_select" t-on-change="onCursoSelect">
+                                    <option value="">Todos los cursos</option>
+                                    <t t-foreach="this.state.data.course_options" t-as="c" t-key="c">
+                                        <option t-att-value="c" t-att-selected="this.state.profFilters.curso === c"><t t-esc="c"/></option>
+                                    </t>
+                                </select>
+                            </div>
+                            <div class="o_tmd_filter_group">
+                                <span class="o_tmd_filter_label"><i class="fa fa-signal"/> Nivel</span>
+                                <t t-foreach="this.state.data.nivel_options" t-as="n" t-key="n">
+                                    <button t-attf-class="o_tmd_chip {{ this.state.profFilters.nivel === n ? 'is-active' : '' }}"
+                                            t-on-click="() => this.setProfFilter('nivel', n)"><t t-esc="n"/></button>
+                                </t>
+                            </div>
+                            <div class="o_tmd_filter_group">
+                                <span class="o_tmd_filter_label"><i class="fa fa-university"/> Campus</span>
+                                <t t-foreach="this.state.data.campus_options" t-as="c" t-key="c">
+                                    <button t-attf-class="o_tmd_chip {{ this.state.profFilters.campus === c ? 'is-active' : '' }}"
+                                            t-on-click="() => this.setProfFilter('campus', c)"><t t-esc="c"/></button>
+                                </t>
+                            </div>
+                            <button class="o_tmd_clear" t-on-click="clearProfFilters" title="Limpiar filtros de curso/nivel/campus">
+                                <i class="fa fa-times"/> Limpiar
+                            </button>
+                        </div>
+
+                        <div class="o_tmd_teachers_grid">
+                            <div t-foreach="this.filteredTeachers" t-as="profesor" t-key="profesor.id"
+                                 class="o_tmd_teacher_card" t-on-click="() => this.selectTeacher(profesor.id, this.filteredTeachers)">
+                                <div class="o_tmd_card_top">
+                                    <img t-if="profesor.photo" t-att-src="profesor.photo" class="o_tmd_avatar"/>
+                                    <div t-else="" class="o_tmd_avatar o_tmd_avatar_letters">
+                                        <t t-esc="this.initials(profesor.name)"/>
+                                    </div>
+                                    <div class="o_tmd_card_id">
+                                        <h3><t t-esc="profesor.name"/></h3>
+                                        <p>
+                                            <t t-esc="profesor.active_groups"/> grupos activos
+                                            <t t-if="profesor.completed_groups">
+                                                · <t t-esc="profesor.completed_groups"/> culminados
+                                            </t>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="o_tmd_card_metric">
+                                    <span class="o_tmd_card_metric_label"><i class="fa fa-check-circle"/> Asistencias</span>
+                                    <span t-attf-class="o_tmd_stamp o_tmd_stamp_{{ profesor.percent === 100 ? 'green' : 'red' }}">
+                                        <t t-esc="profesor.percent === 100 ? 'AL DÍA' : 'ATRASADO'"/>
+                                    </span>
+                                </div>
+                                <div class="o_tmd_rule_track">
+                                    <div t-attf-class="o_tmd_rule_fill {{this.percentClass(profesor.percent)}}"
+                                         t-attf-style="width: {{this.progressWidth(profesor.percent)}}%"/>
+                                </div>
+
+                                <div class="o_tmd_card_metric">
+                                    <span class="o_tmd_card_metric_label"><i class="fa fa-pencil-square-o"/> Evaluaciones</span>
+                                    <span t-attf-class="o_tmd_stamp o_tmd_stamp_{{ profesor.eval_percent === 100 ? 'green' : 'red' }}">
+                                        <t t-esc="profesor.eval_percent === 100 ? 'AL DÍA' : 'ATRASADO'"/>
+                                    </span>
+                                </div>
+                                <div class="o_tmd_rule_track">
+                                    <div t-attf-class="o_tmd_rule_fill {{this.percentClass(profesor.eval_percent)}}"
+                                         t-attf-style="width: {{this.progressWidth(profesor.eval_percent)}}%"/>
+                                </div>
+
+                                <div class="o_tmd_card_bottom">
+                                    <span class="o_tmd_ratio"><t t-esc="profesor.ok_groups"/>/<t t-esc="profesor.active_groups"/> asist. · <t t-esc="profesor.eval_ok_groups"/>/<t t-esc="profesor.active_groups"/> evals.</span>
+                                </div>
+                            </div>
+                            <p t-if="!this.filteredTeachers.length" class="o_tmd_empty">
+                                Ningún profesor coincide con la búsqueda.
+                            </p>
+                        </div>
+                    </section>
+                </t>
+
+                <!-- ===== DETALLE DE PROFESOR ===== -->
+                <t t-else="">
+                    <section class="o_tmd_section">
+                        <div class="o_tmd_detail_header">
+                            <img t-if="this.selectedTeacher.photo" t-att-src="this.selectedTeacher.photo"
+                                 class="o_tmd_avatar o_tmd_avatar_lg"/>
+                            <div t-else="" class="o_tmd_avatar o_tmd_avatar_letters o_tmd_avatar_lg">
+                                <t t-esc="this.initials(this.selectedTeacher.name)"/>
+                            </div>
+                            <div class="o_tmd_detail_identity">
+                                <h2><t t-esc="this.selectedTeacher.name"/></h2>
+                                <p class="o_tmd_eyebrow">
+                                    <t t-esc="this.selectedTeacher.active_groups"/> activos ·
+                                    <t t-esc="this.selectedTeacher.completed_groups"/> culminados ·
+                                    <t t-esc="this.selectedTeacher.percent"/>% asistencia ·
+                                    <t t-esc="this.selectedTeacher.eval_percent"/>% evaluaciones
+                                </p>
+                            </div>
+                            <div class="o_tmd_detail_nav">
+                                <button class="o_tmd_navbtn" t-att-disabled="!this.hasPrevTeacher"
+                                        t-on-click="prevTeacher" title="Profesor anterior">
+                                    <i class="fa fa-chevron-left"/> Anterior
+                                </button>
+                                <button class="o_tmd_navbtn" t-att-disabled="!this.hasNextTeacher"
+                                        t-on-click="nextTeacher" title="Siguiente profesor">
+                                    Siguiente <i class="fa fa-chevron-right"/>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="o_tmd_table_wrap">
+                            <table class="o_tmd_table">
+                                <thead>
+                                    <tr>
+                                        <th>Curso</th>
+                                        <th>Sección</th>
+                                        <th>Estado asistencia</th>
+                                        <th>Estado evaluación</th>
+                                        <th>Último encuentro</th>
+                                        <th>Última evaluación</th>
+                                        <th class="text-center">Estudiantes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="this.selectedTeacher.secciones" t-as="seccion" t-key="seccion_index">
+                                        <td><t t-esc="seccion.course"/></td>
+                                        <td class="o_tmd_mono o_tmd_link" t-on-click="() => this.openSectionForm(seccion.id)"
+                                            title="Ver sección completa en Odoo"><t t-esc="seccion.section"/></td>
+                                        <td>
+                                            <span t-attf-class="o_tmd_stamp o_tmd_stamp_{{seccion.status_color}}">
+                                                <t t-esc="seccion.status_label"/>
+                                            </span>
+                                        </td>
+                                        <td class="o_tmd_link" t-on-click="() => this.openActivitiesModal(seccion)"
+                                            title="Ver actividades cargadas">
+                                            <span t-attf-class="o_tmd_stamp o_tmd_stamp_{{seccion.eval_status_color}}">
+                                                <t t-esc="seccion.eval_status_label"/>
+                                            </span>
+                                            <i class="fa fa-tasks o_tmd_link_hint"/>
+                                        </td>
+                                        <td>
+                                            <t t-if="seccion.ultimo_encuentro">
+                                                <span class="o_tmd_lastload_date"><t t-esc="seccion.ultimo_encuentro.fecha"/></span>
+                                                <span class="o_tmd_lastload_meta">cargado el <t t-esc="seccion.ultimo_encuentro.cargado_el"/></span>
+                                            </t>
+                                            <span t-else="" class="o_tmd_lastload_none">Sin encuentros cargados</span>
+                                        </td>
+                                        <td>
+                                            <t t-if="seccion.ultima_evaluacion">
+                                                <span class="o_tmd_lastload_date"><t t-esc="seccion.ultima_evaluacion.nombre"/> · <t t-esc="seccion.ultima_evaluacion.fecha"/></span>
+                                                <span class="o_tmd_lastload_meta">cargado el <t t-esc="seccion.ultima_evaluacion.cargado_el"/></span>
+                                            </t>
+                                            <span t-else="" class="o_tmd_lastload_none">Sin evaluaciones cargadas</span>
+                                        </td>
+                                        <td class="text-center o_tmd_mono"><t t-esc="seccion.student_cohort_size"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Chatter real de school.teacher: notas/comentarios/
+                             actividades sobre ESTE profesor, visibles para
+                             cualquier supervisor que use el panel, para
+                             resolver problemas de gestión sin salir de acá. -->
+                        <div class="o_tmd_chatter_wrap">
+                            <h3 class="o_tmd_section_title"><i class="fa fa-comments-o"/> Notas y actividades</h3>
+                            <ChatterContainer threadId="this.state.selectedTeacherId" threadModel="'school.teacher'"
+                                               hasActivities="true" hasFollowers="true" hasMessageList="true"
+                                               hasExternalBorder="true"/>
+                        </div>
+                    </section>
+                </t>
+            </t>
+
+            <!-- ===== MODAL: histórico de KPI ===== -->
+            <div t-if="this.state.kpiModal" class="o_tmd_modal_backdrop" t-on-click="closeKpiModal">
+                <div class="o_tmd_modal" t-on-click.stop="() => {}">
+                    <div class="o_tmd_modal_head">
+                        <h3><i class="fa fa-line-chart"/> <t t-esc="this.state.kpiModal.title"/> — histórico</h3>
+                        <button class="o_tmd_modal_close" t-on-click="closeKpiModal"><i class="fa fa-times"/></button>
+                    </div>
+                    <div class="o_tmd_modal_body">
+                        <div t-if="this.state.kpiModal.loading" class="o_tmd_loading">
+                            <div class="o_tmd_spinner"/>
+                        </div>
+                        <t t-elif="!this.state.kpiModal.points.length">
+                            <p class="o_tmd_empty">Todavía no hay suficiente histórico acumulado (se guarda un valor por día).</p>
+                        </t>
+                        <t t-else="">
+                            <svg viewBox="0 0 100 40" class="o_tmd_linechart" preserveAspectRatio="none">
+                                <path t-attf-d="{{this.kpiModalChart.area}}" class="o_tmd_linechart_area"/>
+                                <path t-attf-d="{{this.kpiModalChart.path}}" class="o_tmd_linechart_line"/>
+                                <circle t-foreach="this.kpiModalChart.points" t-as="pt" t-key="pt_index"
+                                        t-att-cx="pt.x" t-att-cy="pt.y" r="1.4" class="o_tmd_linechart_dot">
+                                    <title><t t-esc="pt.date"/>: <t t-esc="pt.value"/>%</title>
+                                </circle>
+                            </svg>
+                            <div class="o_tmd_linechart_axis">
+                                <span><t t-esc="this.state.kpiModal.points[0].date"/></span>
+                                <span><t t-esc="this.state.kpiModal.points[this.state.kpiModal.points.length - 1].date"/></span>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+            <!-- ===== MODAL: actividades cargadas por sección ===== -->
+            <div t-if="this.state.activitiesModal" class="o_tmd_modal_backdrop" t-on-click="closeActivitiesModal">
+                <div class="o_tmd_modal" t-on-click.stop="() => {}">
+                    <div class="o_tmd_modal_head">
+                        <h3><i class="fa fa-tasks"/> <t t-esc="this.state.activitiesModal.section"/></h3>
+                        <button class="o_tmd_modal_close" t-on-click="closeActivitiesModal"><i class="fa fa-times"/></button>
+                    </div>
+                    <div class="o_tmd_modal_body">
+                        <t t-if="!this.state.activitiesModal.ultima_evaluacion">
+                            <p class="o_tmd_empty">Sin evaluaciones cargadas para esta sección.</p>
+                        </t>
+                        <t t-elif="!this.state.activitiesModal.ultima_evaluacion.abierta">
+                            <p class="o_tmd_modal_evalname">
+                                <t t-esc="this.state.activitiesModal.ultima_evaluacion.nombre"/> ·
+                                cargada el <t t-esc="this.state.activitiesModal.ultima_evaluacion.cargado_el"/>
+                            </p>
+                            <div class="o_tmd_empty_state">
+                                <i class="fa fa-check-circle"/>
+                                <p>Evaluación culminada — todas las actividades quedaron cargadas.</p>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <p class="o_tmd_modal_evalname">
+                                <t t-esc="this.state.activitiesModal.ultima_evaluacion.nombre"/> ·
+                                cargada el <t t-esc="this.state.activitiesModal.ultima_evaluacion.cargado_el"/>
+                            </p>
+                            <div class="o_tmd_barchart">
+                                <div t-foreach="this.state.activitiesModal.ultima_evaluacion.actividades" t-as="act" t-key="act_index" class="o_tmd_barrow">
+                                    <span class="o_tmd_barlabel" t-att-title="act.nombre"><t t-esc="act.nombre"/></span>
+                                    <div class="o_tmd_bartrack">
+                                        <div t-attf-class="o_tmd_barfill {{ act.completa ? 'is-good' : '' }}"
+                                             t-attf-style="width: {{ act.total ? Math.round(act.cargadas * 100 / act.total) : 0 }}%"/>
+                                    </div>
+                                    <span class="o_tmd_barvalue"><t t-esc="act.cargadas"/>/<t t-esc="act.total"/></span>
+                                    <i t-if="act.completa" class="fa fa-check-circle o_tmd_activity_done" title="Actividad completamente cargada"/>
+                                </div>
+                                <p t-if="!this.state.activitiesModal.ultima_evaluacion.actividades.length" class="o_tmd_empty">
+                                    Todavía no hay actividades registradas para esta evaluación.
+                                </p>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

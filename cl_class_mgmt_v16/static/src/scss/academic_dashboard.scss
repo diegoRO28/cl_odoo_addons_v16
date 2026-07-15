@@ -1,0 +1,665 @@
+// Cleveland English Institute — Registro de Gestión Académica
+// Mismo sistema de diseño que el dashboard docente (sans-serif, paleta de
+// marca, sin emojis -- solo Font Awesome), bajo el prefijo o_cad para no
+// chocar con las clases o_tmd del dashboard docente.
+.o_cad {
+    --cad-paper: #F7F7F5;
+    --cad-card: #FFFFFF;
+    --cad-ink: #333332;
+    --cad-ink-soft: #7A7977;
+    --cad-lime: #BFD01F;
+    --cad-lime-deep: #A3C62C;
+    --cad-slate: #585756;
+    --cad-line: #E3E2DF;
+    --cad-green: #2E6B49;
+    --cad-green-bg: #E4F0E6;
+    --cad-red: #A33B2E;
+    --cad-red-bg: #F6E4E1;
+    --cad-muted: #8A8A88;
+    --cad-muted-bg: #EDEDEA;
+
+    // Temas de color por tipo de KPI (categorización de tarjetas, no
+    // codificación de datos -- cada gráfico individual sigue usando un
+    // solo tono con opacidad, ver o_cad_donut_slice/o_cad_bar_fill).
+    --cad-kpi-blue: #3B6FA6;
+    --cad-kpi-teal: #1E7F72;
+    --cad-kpi-amber: #9C7A1E;
+    --cad-kpi-coral: #B24A38;
+    --cad-kpi-purple: #6B4E8E;
+
+    --cad-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --cad-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--cad-paper);
+    color: var(--cad-ink);
+    font-family: var(--cad-sans);
+
+    * { box-sizing: border-box; }
+
+    // ===== MASTHEAD =====
+    .o_cad_masthead {
+        padding: 22px 32px 0;
+        border-bottom: 2px solid var(--cad-slate);
+        background-color: var(--cad-paper);
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+
+    .o_cad_masthead_top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .o_cad_title {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--cad-ink);
+    }
+
+    .o_cad_masthead_actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+
+    .o_cad_asof_inline {
+        font-size: 12px;
+        font-style: italic;
+        color: var(--cad-ink-soft);
+        white-space: nowrap;
+    }
+
+    .o_cad_refresh {
+        background: none;
+        border: 1px solid var(--cad-slate);
+        color: var(--cad-slate);
+        border-radius: 20px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s;
+
+        &:hover { background-color: var(--cad-slate); color: #fff; }
+        i { margin-right: 4px; }
+    }
+
+    .o_cad_toggle_filters {
+        background: none;
+        border: 1px solid var(--cad-line);
+        color: var(--cad-ink-soft);
+        border-radius: 20px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s;
+
+        &:hover { border-color: var(--cad-slate); color: var(--cad-slate); }
+        i { margin-right: 4px; transition: transform 0.25s ease; }
+    }
+
+    // ===== FILTER BAR =====
+    // Contenedor que anima el colapso/expansión (max-height + opacity, ya
+    // que height:auto no es animable con CSS transitions).
+    .o_cad_filterbar_outer {
+        max-height: 260px;
+        opacity: 1;
+        overflow: hidden;
+        transition: max-height 0.35s ease, opacity 0.25s ease;
+
+        &.is-collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+    }
+
+    .o_cad_filterbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 0;
+    }
+
+    .o_cad_filter_group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .o_cad_filter_label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--cad-ink-soft);
+        margin-right: 2px;
+
+        i { margin-right: 3px; }
+    }
+
+    .o_cad_chip {
+        background: none;
+        border: 1px solid var(--cad-line);
+        color: var(--cad-ink-soft);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:hover { border-color: var(--cad-slate); color: var(--cad-slate); }
+        &.is-active { background-color: var(--cad-slate); border-color: var(--cad-slate); color: #fff; }
+    }
+
+    .o_cad_select {
+        border: 1px solid var(--cad-line);
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--cad-ink-soft);
+        background-color: var(--cad-card);
+        max-width: 220px;
+
+        &:focus { outline: none; border-color: var(--cad-lime); }
+    }
+
+    .o_cad_clear {
+        background: none;
+        border: none;
+        color: var(--cad-ink-soft);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-left: auto;
+
+        &:hover { color: var(--cad-red); }
+        i { margin-right: 3px; }
+    }
+
+    // ===== TABS =====
+    .o_cad_tabs {
+        display: flex;
+        gap: 4px;
+        padding: 18px 32px 0;
+    }
+
+    .o_cad_tab {
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        padding: 8px 4px;
+        margin-right: 22px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--cad-ink-soft);
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+
+        &:hover { color: var(--cad-ink); }
+        &.is-active { color: var(--cad-slate); border-bottom-color: var(--cad-lime); }
+        i { margin-right: 5px; }
+    }
+
+    .o_cad_tab_badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background-color: var(--cad-red);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 4px;
+    }
+
+    .o_cad_section { padding: 24px 32px 40px; }
+
+    .o_cad_section_title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 30px 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--cad-line);
+
+        i { margin-right: 6px; color: var(--cad-ink-soft); }
+    }
+
+    .o_cad_subtabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--cad-line);
+    }
+
+    .o_cad_subtab {
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 6px 4px;
+        margin-right: 18px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--cad-ink-soft);
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+
+        &:hover { color: var(--cad-ink); }
+        &.is-active { color: var(--cad-slate); border-bottom-color: var(--cad-lime-deep); }
+        i { margin-right: 4px; }
+    }
+
+    // ===== LOADING / ERROR =====
+    .o_cad_loading, .o_cad_error {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 100px 0;
+        color: var(--cad-ink-soft);
+    }
+
+    .o_cad_spinner {
+        border: 3px solid var(--cad-line);
+        border-top: 3px solid var(--cad-lime);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        animation: o_cad_spin 0.9s linear infinite;
+        margin-bottom: 12px;
+    }
+
+    @keyframes o_cad_spin { to { transform: rotate(360deg); } }
+
+    .o_cad_asof {
+        font-size: 12px;
+        font-style: italic;
+        color: var(--cad-ink-soft);
+        margin: 0 0 20px;
+    }
+
+    .o_cad_asof_top { margin-top: -8px; }
+
+    // ===== KPI GRID =====
+    .o_cad_kpi_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+    }
+
+    .o_cad_kpi_card {
+        background-color: var(--cad-card);
+        border: 1px solid var(--cad-line);
+        border-top: 3px solid var(--cad-slate);
+        border-radius: 4px;
+        padding: 16px;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+
+        &.o_cad_kpi_blue { border-top-color: var(--cad-kpi-blue); }
+        &.o_cad_kpi_teal { border-top-color: var(--cad-kpi-teal); }
+        &.o_cad_kpi_amber { border-top-color: var(--cad-kpi-amber); }
+        &.o_cad_kpi_coral { border-top-color: var(--cad-kpi-coral); }
+        &.o_cad_kpi_purple { border-top-color: var(--cad-kpi-purple); }
+    }
+
+    .o_cad_kpi_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .o_cad_kpi_label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--cad-ink-soft);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+
+        i { margin-right: 5px; color: var(--cad-ink-soft); }
+    }
+
+    .o_cad_viz_switch { display: flex; gap: 2px; flex-shrink: 0; }
+
+    .o_cad_viz_btn {
+        background: none;
+        border: 1px solid var(--cad-line);
+        color: var(--cad-ink-soft);
+        border-radius: 3px;
+        width: 24px;
+        height: 22px;
+        font-size: 11px;
+        cursor: pointer;
+
+        &:hover { border-color: var(--cad-slate); color: var(--cad-slate); }
+        &.is-active { background-color: var(--cad-slate); border-color: var(--cad-slate); color: #fff; }
+    }
+
+    .o_cad_kpi_number {
+        font-family: var(--cad-mono);
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--cad-ink);
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    // Medidor (KPI porcentual sin desglose)
+    .o_cad_meter_wrap { display: flex; align-items: center; justify-content: center; flex: 1; }
+    .o_cad_meter { width: 96px; height: 96px; }
+    .o_cad_meter_track { fill: none; stroke: var(--cad-line); stroke-width: 16; }
+    .o_cad_meter_fill { fill: none; stroke: var(--cad-lime-deep); stroke-width: 16; stroke-linecap: round; }
+    .o_cad_meter_text { font-family: var(--cad-mono); font-size: 18px; font-weight: 700; fill: var(--cad-ink); text-anchor: middle; }
+
+    .o_cad_meterbar_wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .o_cad_meterbar_value { font-family: var(--cad-mono); font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+    // Barras (con desglose)
+    .o_cad_barchart {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .o_cad_barchart_wide { gap: 10px; }
+
+    .o_cad_barrow {
+        display: grid;
+        grid-template-columns: 120px 1fr 40px;
+        align-items: center;
+        gap: 8px;
+
+        &.is-clickable {
+            cursor: pointer;
+            border-radius: 4px;
+            &:hover { background-color: var(--cad-muted-bg); }
+        }
+    }
+
+    .o_cad_barlabel {
+        font-size: 12px;
+        color: var(--cad-ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .o_cad_bar_track { height: 10px; border-radius: 3px; background-color: var(--cad-line); overflow: hidden; }
+    .o_cad_bar_fill { height: 100%; border-radius: 3px; background-color: var(--cad-lime-deep); transition: width 0.5s ease; }
+
+    .o_cad_barvalue {
+        font-family: var(--cad-mono);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: right;
+        color: var(--cad-ink-soft);
+    }
+
+    // Donut (con desglose)
+    .o_cad_donut_wrap { display: flex; align-items: center; gap: 14px; flex: 1; }
+    .o_cad_donut { width: 76px; height: 76px; flex-shrink: 0; }
+    .o_cad_donut_track { fill: none; stroke: var(--cad-line); stroke-width: 16; }
+    .o_cad_donut_slice { fill: none; stroke: var(--cad-lime-deep); stroke-width: 16; stroke-linecap: butt; }
+
+    .o_cad_legend {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+
+        li { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+    }
+
+    .o_cad_legend_swatch { width: 9px; height: 9px; border-radius: 2px; background-color: var(--cad-lime-deep); flex-shrink: 0; }
+    .o_cad_legend_label { color: var(--cad-ink); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_cad_legend_value { font-family: var(--cad-mono); color: var(--cad-ink-soft); }
+
+    .o_cad_kpi_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+
+        td { padding: 3px 0; border-bottom: 1px solid var(--cad-line); }
+        tr:last-child td { border-bottom: none; }
+    }
+
+    // ===== TOOLBAR / SEARCH =====
+    .o_cad_search {
+        width: 100%;
+        max-width: 380px;
+        padding: 8px 14px;
+        border: 1px solid var(--cad-line);
+        border-radius: 20px;
+        font-size: 13px;
+        background-color: var(--cad-card);
+        color: var(--cad-ink);
+        margin-bottom: 18px;
+
+        &:focus {
+            outline: none;
+            border-color: var(--cad-lime);
+            box-shadow: 0 0 0 3px rgba(191, 208, 31, 0.3);
+        }
+    }
+
+    // ===== TABLES =====
+    .o_cad_table_wrap {
+        overflow-x: auto;
+        border: 1px solid var(--cad-line);
+        border-radius: 4px;
+        background-color: var(--cad-card);
+        margin-bottom: 20px;
+    }
+
+    .o_cad_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+
+        th {
+            background-color: var(--cad-slate);
+            color: #fff;
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        td { padding: 10px 14px; border-bottom: 1px solid var(--cad-line); white-space: nowrap; }
+        tr:hover td { background-color: var(--cad-paper); }
+        tr:last-child td { border-bottom: none; }
+    }
+
+    .o_cad_th_sortable {
+        cursor: pointer;
+        user-select: none;
+
+        &:hover { color: var(--cad-lime); }
+        i { margin-left: 4px; opacity: 0.7; }
+    }
+
+    // Encabezado de orden para las listas de Progreso (no son <table>, pero
+    // se ordenan igual que una al hacer clic en "campo").
+    .o_cad_progress_head {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--cad-ink-soft);
+        margin-bottom: 8px;
+
+        span.o_cad_th_sortable { display: inline-flex; align-items: center; width: fit-content; }
+    }
+
+    .o_cad_mono { font-family: var(--cad-mono); font-size: 12px; }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    .o_cad_group_title {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+
+    .o_cad_group_count { font-weight: 400; color: var(--cad-ink-soft); }
+    .o_cad_group_block { margin-bottom: 24px; }
+
+    .o_cad_empty { color: var(--cad-ink-soft); font-style: italic; padding: 16px; }
+
+    .o_cad_empty_state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+        color: var(--cad-green);
+
+        i { font-size: 40px; margin-bottom: 10px; }
+        p { color: var(--cad-ink-soft); font-size: 14px; }
+    }
+
+    // ===== STAMP (mismo lenguaje visual que el dashboard docente) =====
+    .o_cad_stamp {
+        display: inline-block;
+        font-family: var(--cad-mono);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border: 1.5px solid currentColor;
+        border-radius: 3px;
+        white-space: nowrap;
+
+        &.o_cad_stamp_green { color: var(--cad-green); background-color: var(--cad-green-bg); }
+        &.o_cad_stamp_red { color: var(--cad-red); background-color: var(--cad-red-bg); }
+        &.o_cad_stamp_gray { color: var(--cad-muted); background-color: var(--cad-muted-bg); }
+    }
+
+    .o_cad_row_clickable {
+        cursor: pointer;
+        &:hover td { background-color: var(--cad-muted-bg); }
+    }
+
+    // ===== MODAL: detalle de sección =====
+    .o_cad_modal_backdrop {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(51, 51, 50, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 20px;
+    }
+
+    .o_cad_modal {
+        background-color: var(--cad-card);
+        border-radius: 6px;
+        width: 100%;
+        max-width: 460px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .o_cad_modal_head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 2px solid var(--cad-slate);
+
+        h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            font-family: var(--cad-mono);
+
+            i { margin-right: 8px; color: var(--cad-ink-soft); font-family: var(--cad-sans); }
+        }
+    }
+
+    .o_cad_modal_close {
+        background: none;
+        border: none;
+        color: var(--cad-ink-soft);
+        font-size: 16px;
+        cursor: pointer;
+        padding: 4px 8px;
+
+        &:hover { color: var(--cad-red); }
+    }
+
+    .o_cad_modal_body { padding: 16px 20px 20px; }
+
+    .o_cad_modal_row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--cad-line);
+        font-size: 13px;
+
+        span { color: var(--cad-ink-soft); }
+        strong { color: var(--cad-ink); font-weight: 700; text-align: right; }
+
+        &:last-child { border-bottom: none; }
+    }
+
+    .o_cad_modal_divider {
+        height: 1px;
+        background-color: var(--cad-slate);
+        margin: 12px 0;
+        opacity: 0.3;
+    }
+
+    .o_cad_modal_footer {
+        padding: 12px 20px 18px;
+        border-top: 1px solid var(--cad-line);
+        text-align: right;
+    }
+
+    .o_cad_modal_link {
+        color: var(--cad-slate);
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+
+        &:hover { color: var(--cad-lime-deep); }
+        i { margin-right: 5px; }
+    }
+}

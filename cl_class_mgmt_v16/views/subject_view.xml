@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="view_subject_subject_form_inherit_cl" model="ir.ui.view">
+        <field name="name">subject.subject.form.inherit.cl.class.mgmt</field>
+        <field name="model">subject.subject</field>
+        <field name="inherit_id" ref="school.view_subject_subject_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='encuentro_ids']/tree/field[@name='description']" position="after">
+                <field name="es_evaluacion" widget="boolean_toggle"/>
+            </xpath>
+            <xpath expr="//field[@name='encuentro_ids']/form//field[@name='description']" position="after">
+                <field name="es_evaluacion"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

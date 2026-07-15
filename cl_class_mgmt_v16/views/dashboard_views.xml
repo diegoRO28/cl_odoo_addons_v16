@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <record id="action_academic_dashboard" model="ir.actions.client">
+        <field name="name">Académica</field>
+        <field name="tag">cl_academic_dashboard</field>
+    </record>
+
+    <menuitem id="menu_gestion_academica" name="Académica" action="action_academic_dashboard"
+              parent="menu_gestion" groups="school.group_school_administration"
+              sequence="10"/>
+
+    <record id="action_admin_dashboard" model="ir.actions.client">
+        <field name="name">Administrativa</field>
+        <field name="tag">cl_admin_dashboard</field>
+    </record>
+
+    <menuitem id="menu_gestion_administrativa" name="Administrativa" action="action_admin_dashboard"
+              parent="menu_gestion" groups="school.group_school_administration"
+              sequence="30"/>
+
+</odoo>
