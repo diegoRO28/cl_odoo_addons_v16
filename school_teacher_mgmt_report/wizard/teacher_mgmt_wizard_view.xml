@@ -16,7 +16,7 @@
                                options="{'no_create': True, 'no_edit': True}"/>
                         <field name="section_code" 
                                placeholder="Ej: MAT-01"/>
-                        <!-- <field name="report_type" widget="radio"/> -->  <!-- COMENTADO -->
+                        <!-- <field name="report_type" widget="radio"/> -->  <!-- COMENTADO TEMPORALMENTE -->
                         <field name="date_today" invisible="1"/>
                         <div class="text-muted">
                             <i class="fa fa-info-circle"/> El reporte se generará con la fecha de hoy.

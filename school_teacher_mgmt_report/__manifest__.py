@@ -17,7 +17,7 @@
     'depends': [
         'base',
         'school',
-        'report_xlsx',  # <-- IMPORTANTE
+        'report_xlsx',
     ],
     
     'license': 'AGPL-3',

@@ -28,6 +28,16 @@ class TeacherMgmtWizard(models.TransientModel):
         readonly=True
     )
 
+    # report_type = fields.Selection(
+    #     [
+    #         ('pdf', 'PDF'),
+    #         ('xlsx', 'Excel (XLSX)'),
+    #     ],
+    #     string='Tipo de Reporte',
+    #     default='xlsx',
+    #     required=True,
+    # )
+
     def _get_domain(self):
         domain = []
         domain.append(('state', '!=', 'cancel'))
@@ -134,5 +144,5 @@ class TeacherMgmtWizard(models.TransientModel):
         if not data['teachers_data']:
             raise ValidationError(_('No se encontraron profesores con secciones activas con los filtros seleccionados.'))
 
-        # SIEMPRE GENERAR XLSX POR AHORA
+        # FORZAR XLSX
         return self.env.ref('school_teacher_mgmt_report.report_teacher_mgmt_xlsx_action').report_action(self, data=data)
