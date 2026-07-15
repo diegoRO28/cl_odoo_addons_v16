@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="report_teacher_mgmt_xlsx_action" model="ir.actions.report">
+        <field name="name">Gestión Docente (XLSX)</field>
+        <field name="model">teacher.mgmt.wizard</field>
+        <field name="report_type">xlsx</field>
+        <field name="report_name">school_teacher_mgmt_report.teacher_mgmt_xlsx</field>
+        <field name="report_file">school_teacher_mgmt_report.teacher_mgmt_xlsx</field>
+        <field name="print_report_name">'Reporte_Gestion_Docente_%s' % (fields.Date.today().strftime('%Y-%m-%d'))</field>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

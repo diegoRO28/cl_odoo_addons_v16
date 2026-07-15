@@ -17,14 +17,16 @@
     'depends': [
         'base',
         'school',
+        'report_xlsx',  # <-- IMPORTANTE
     ],
     
     'license': 'AGPL-3',
     
     'data': [
-        'security/ir.model.access.csv',  # AÑADIR ESTO
+        'security/ir.model.access.csv',
         'wizard/teacher_mgmt_wizard_view.xml',
         'reports/report_teacher_mgmt.xml',
+        'reports/report_teacher_mgmt_xlsx.xml',
         'views/menu_extension.xml',
     ],
     
