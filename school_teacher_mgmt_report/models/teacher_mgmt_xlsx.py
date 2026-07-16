@@ -11,11 +11,17 @@ class TeacherMgmtXlsx(models.AbstractModel):
     _description = 'Reporte de Gestión Docente (XLSX)'
     _inherit = 'report.report_xlsx.abstract'
 
-    def generate_xlsx_report(self, workbook, data, partners):
-        # Desempaquetar — Odoo envuelve el dict en la clave 'data'
-        wizard_data = data.get('data', {})
+    def generate_xlsx_report(self, workbook, data, wizards):
+        # El controlador de report_xlsx descarta el 'data' de generate_report()
+        # cuando la URL de descarga incluye docids (caso "generic report"), por
+        # lo que hay que recalcular los datos a partir del wizard ya persistido
+        # en vez de confiar en 'data'.
+        wizard = wizards[:1]
+        wizard_data = wizard._get_report_data() if wizard else {}
         teachers_data = wizard_data.get('teachers_data', [])
-        current_date = wizard_data.get('current_date', '')
+        current_date = wizard_data.get('current_date') or ''
+        if current_date and not isinstance(current_date, str):
+            current_date = current_date.strftime('%d/%m/%Y')
         filters = wizard_data.get('filters', {})
 
         _logger.info('Generando XLSX: %d profesores', len(teachers_data))
