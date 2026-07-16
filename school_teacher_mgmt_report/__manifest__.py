@@ -7,7 +7,10 @@
         "Gestión Docente". Se accede desde un nuevo menú "Reportes" bajo
         el menú "Gestión" en la barra de navegación principal.
         
-        El reporte permite filtrar por Profesor, Curso o Código de Sección.
+        El reporte permite filtrar por:
+        - Profesor
+        - Curso (filtrado dinámicamente por el profesor seleccionado)
+        - Sección (filtrada dinámicamente por el curso seleccionado)
     """,
     'author': 'Tu Nombre',
     'category': 'Education',

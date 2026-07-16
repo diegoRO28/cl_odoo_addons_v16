@@ -25,9 +25,10 @@ class TeacherMgmtWizard(models.TransientModel):
         help='Filtrar el reporte por un curso específico.'
     )
     
-    section_code = fields.Char(
-        string='Código de Sección',
-        help='Filtrar el reporte por el código de la sección.'
+    section_id = fields.Many2one(
+        'school.standard',
+        string='Sección',
+        help='Filtrar el reporte por una sección específica.'
     )
     
     date_today = fields.Date(
@@ -35,6 +36,47 @@ class TeacherMgmtWizard(models.TransientModel):
         default=fields.Date.today,
         readonly=True
     )
+
+    # --- ONCHANGE para filtrar dinámicamente ---
+    
+    @api.onchange('teacher_id')
+    def _onchange_teacher_id(self):
+        """
+        Cuando se selecciona un profesor:
+        1. Limpiar curso y sección
+        2. Actualizar el dominio del curso para mostrar solo los del profesor
+        """
+        self.subject_id = False
+        self.section_id = False
+        
+        if self.teacher_id:
+            # Obtener los cursos del profesor
+            subject_ids = self.teacher_id.subject_id.ids
+            # Actualizar dominio del campo subject_id
+            domain = [('id', 'in', subject_ids)] if subject_ids else [('id', '=', False)]
+            return {'domain': {'subject_id': domain}}
+        else:
+            # Si no hay profesor, mostrar todos los cursos
+            return {'domain': {'subject_id': []}}
+        
+    @api.onchange('subject_id')
+    def _onchange_subject_id(self):
+        """
+        Cuando se selecciona un curso:
+        1. Limpiar la sección
+        2. Actualizar el dominio de la sección para mostrar solo las del curso
+        """
+        self.section_id = False
+        
+        if self.subject_id:
+            # Actualizar dominio del campo section_id
+            domain = [('subject_id', '=', self.subject_id.id), ('state', '!=', 'cancel')]
+            return {'domain': {'section_id': domain}}
+        else:
+            # Si no hay curso, mostrar todas las secciones no canceladas
+            return {'domain': {'section_id': [('state', '!=', 'cancel')]}}
+
+    # --- MÉTODOS PRINCIPALES ---
 
     def _get_domain(self):
         """
@@ -50,8 +92,8 @@ class TeacherMgmtWizard(models.TransientModel):
         if self.subject_id:
             domain.append(('subject_id', '=', self.subject_id.id))
             
-        if self.section_code:
-            domain.append(('code', '=', self.section_code.upper().strip()))
+        if self.section_id:
+            domain.append(('id', '=', self.section_id.id))
 
         # Agregar filtro por compañía actual
         if self.env.user.company_id:
@@ -198,7 +240,7 @@ class TeacherMgmtWizard(models.TransientModel):
             'filters': {
                 'teacher': self.teacher_id.name if self.teacher_id else 'Todos',
                 'subject': self.subject_id.nombre if self.subject_id else 'Todos',
-                'section_code': self.section_code if self.section_code else 'Todas',
+                'section': self.section_id.code if self.section_id else 'Todas',
             },
             'total_teachers': len(result),
             'total_sections': sum(len(t['sections']) for t in result),

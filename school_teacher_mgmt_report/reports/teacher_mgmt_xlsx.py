@@ -97,8 +97,8 @@ class TeacherMgmtXlsx(models.AbstractModel):
         sheet.write(3, 1, filters.get('teacher', 'Todos'))
         sheet.write(4, 0, 'CURSO:', workbook.add_format({'bold': True}))
         sheet.write(4, 1, filters.get('subject', 'Todos'))
-        sheet.write(5, 0, 'CÓDIGO DE SECCIÓN:', workbook.add_format({'bold': True}))
-        sheet.write(5, 1, filters.get('section_code', 'Todas'))
+        sheet.write(5, 0, 'SECCIÓN:', workbook.add_format({'bold': True}))
+        sheet.write(5, 1, filters.get('section', 'Todas'))
         
         # Encabezados de columnas
         headers = [
