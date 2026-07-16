@@ -7,7 +7,7 @@
         "Gestión Docente". Se accede desde un nuevo menú "Reportes" bajo
         el menú "Gestión" en la barra de navegación principal.
         
-        El reporte permite filtrar por Profesor o Código de Sección.
+        El reporte permite filtrar por Profesor, Curso o Código de Sección.
     """,
     'author': 'Tu Nombre',
     'category': 'Education',
@@ -24,10 +24,9 @@
     
     'data': [
         'security/ir.model.access.csv',
-        'wizard/teacher_mgmt_wizard_view.xml',
-        'reports/report_teacher_mgmt.xml',
-        'reports/report_teacher_mgmt_xlsx.xml',
+        'views/teacher_mgmt_wizard_view.xml',
         'views/menu_extension.xml',
+        'reports/report_teacher_mgmt_xlsx.xml',
     ],
     
     'images': [
