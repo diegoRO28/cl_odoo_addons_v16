@@ -234,6 +234,7 @@ class TeacherMgmtWizard(models.TransientModel):
             if teacher.id not in teachers_data:
                 teachers_data[teacher.id] = {
                     'teacher': teacher,
+                    'teacher_name': teacher.name or '',
                     'sections': [],
                     'active_groups': 0,
                     'groups_up_to_date': 0,
