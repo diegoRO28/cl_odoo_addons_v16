@@ -13,6 +13,17 @@ class TeacherMgmtXlsx(models.AbstractModel):
     def generate_xlsx_report(self, workbook, data, partners):
         """
         Genera el reporte en formato XLSX con la estructura del modelo.
+        Columnas:
+        A: Teacher
+        B: Course
+        C: Section
+        D: Status
+        E: Class days
+        F: Start - End / Month
+        G: Groups Up to Date
+        H: Active Groups
+        I: Student Cohort Size
+        J: Age Band
         """
         # Obtener los datos del wizard
         wizard_data = data.get('data', {})
@@ -81,11 +92,20 @@ class TeacherMgmtXlsx(models.AbstractModel):
             'bg_color': '#e74c3c',
         })
         
+        status_green_format = workbook.add_format({
+            'border': 1,
+            'align': 'left',
+            'valign': 'vcenter',
+            'font_size': 10,
+            'font_color': 'white',
+            'bg_color': '#27ae60',
+        })
+        
         # Crear la hoja
         sheet = workbook.add_worksheet('Attendance')
         
         # Título
-        sheet.merge_range('A1:K1', 'REPORTE DE GESTIÓN DOCENTE', title_format)
+        sheet.merge_range('A1:J1', 'REPORTE DE GESTIÓN DOCENTE', title_format)
         
         # Fecha de emisión
         sheet.write(2, 0, 'FECHA DE EMISIÓN:', workbook.add_format({'bold': True}))
@@ -102,12 +122,19 @@ class TeacherMgmtXlsx(models.AbstractModel):
         
         # Encabezados de columnas
         headers = [
-            'Teacher', 'Course', 'Section', 'Status',
-            'Class days', 'Start - End / Month', 'Groups Up to Date',
-            'Active Groups', 'Student Cohort Size', 'Age Band'
+            'Teacher',
+            'Course',
+            'Section',
+            'Status',
+            'Class days',
+            'Start - End / Month',
+            'Groups Up to Date',
+            'Active Groups',
+            'Student Cohort Size',
+            'Age Band'
         ]
         
-        # Escribir encabezados
+        # Escribir encabezados (fila 7)
         row = 7
         for col, header in enumerate(headers):
             sheet.write(row, col, header, header_format)
@@ -129,6 +156,7 @@ class TeacherMgmtXlsx(models.AbstractModel):
                 continue
             
             # Escribir el nombre del profesor (fila de cabecera combinada)
+            # Columna A
             sheet.merge_range(
                 current_row, 0,
                 current_row + len(sections) - 1, 0,
@@ -136,7 +164,7 @@ class TeacherMgmtXlsx(models.AbstractModel):
                 teacher_format
             )
             
-            # Escribir Groups Up to Date (combinado)
+            # Escribir Groups Up to Date (combinado) - Columna G
             sheet.merge_range(
                 current_row, 6,
                 current_row + len(sections) - 1, 6,
@@ -144,7 +172,7 @@ class TeacherMgmtXlsx(models.AbstractModel):
                 cell_center_format
             )
             
-            # Escribir Active Groups (combinado)
+            # Escribir Active Groups (combinado) - Columna H
             sheet.merge_range(
                 current_row, 7,
                 current_row + len(sections) - 1, 7,
@@ -154,38 +182,40 @@ class TeacherMgmtXlsx(models.AbstractModel):
             
             # Iterar por las secciones del profesor
             for section_data in sections:
-                # Course
+                # Columna B: Course
                 sheet.write(current_row, 1, section_data.get('course', ''), cell_format)
                 
-                # Section
+                # Columna C: Section
                 sheet.write(current_row, 2, section_data.get('code', ''), cell_format)
                 
-                # Status
+                # Columna D: Status
                 status = section_data.get('status', '')
                 if status == 'READY TO BE FILED':
                     sheet.write(current_row, 3, status, status_red_format)
+                elif status != 'PENDING' and status != 'ACTIVE':
+                    # Si tiene fecha, considerar como "al día" (verde)
+                    # Para este caso, si tiene una fecha, lo mostramos con formato verde
+                    try:
+                        # Intentar parsear como fecha
+                        from datetime import datetime
+                        datetime.strptime(status, '%d/%m/%Y')
+                        sheet.write(current_row, 3, status, status_green_format)
+                    except:
+                        sheet.write(current_row, 3, status, cell_format)
                 else:
                     sheet.write(current_row, 3, status, cell_format)
                 
-                # Class days
+                # Columna E: Class days
                 class_days = section_data.get('class_days', '')
                 if not class_days or class_days == '':
                     class_days = 'ATTENDANCE RECORDS FINALISED'
                 sheet.write(current_row, 4, class_days, cell_format)
                 
-                # Start - End / Month
-                start_date = section_data.get('start_date', '')
-                end_date = section_data.get('end_date', '')
-                date_range = ''
-                if start_date and end_date:
-                    date_range = f"{start_date} - {end_date}"
-                elif start_date:
-                    date_range = start_date
-                elif end_date:
-                    date_range = end_date
+                # Columna F: Start - End / Month
+                date_range = section_data.get('date_range', '')
                 sheet.write(current_row, 5, date_range, cell_format)
                 
-                # Student Cohort Size
+                # Columna I: Student Cohort Size
                 total_students_section = section_data.get('total_students', 0)
                 if total_students_section > 0:
                     sheet.write(current_row, 8, float(total_students_section), cell_right_format)
@@ -193,8 +223,9 @@ class TeacherMgmtXlsx(models.AbstractModel):
                     sheet.write(current_row, 8, 'NO DATA', cell_format)
                 total_students += total_students_section
                 
-                # Age Band
+                # Columna J: Age Band
                 age_band = section_data.get('age_band', '')
+                # Si no tiene age_band, usar la del padre (section)
                 if not age_band and section_data.get('section'):
                     age_band = self._get_age_band(section_data['section'])
                 sheet.write(current_row, 9, age_band, cell_format)
@@ -208,7 +239,7 @@ class TeacherMgmtXlsx(models.AbstractModel):
         # Fila de totales
         total_row = current_row + 1
         
-        # Encabezado de totales
+        # Encabezado de totales (columnas A-F)
         sheet.merge_range(total_row, 0, total_row, 5, 'TOTALES:', workbook.add_format({
             'bold': True,
             'bg_color': '#2c3e50',
@@ -223,9 +254,9 @@ class TeacherMgmtXlsx(models.AbstractModel):
         sheet.write(total_row, 8, float(total_students), cell_right_format)
         
         # Autoajustar columnas
-        sheet.set_column('A:A', 25)
+        sheet.set_column('A:A', 30)
         sheet.set_column('B:B', 35)
-        sheet.set_column('C:C', 20)
+        sheet.set_column('C:C', 22)
         sheet.set_column('D:D', 25)
         sheet.set_column('E:E', 35)
         sheet.set_column('F:F', 30)
