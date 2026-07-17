@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="student_invoice_report_temp_formate">
+            <td t-call="web.html_container">
+                <td t-foreach="docs" t-as="o">
+                    <div class="row, header" width="100%" style="display: flex; margin-left:-5px; margin-right:-5px;">
+                        <div style="float: left;width: 60%;padding: 40px; box-sizing: border-box;">
+                            <table width="100%" style="" >
+                                <tr width="100%" align="center">
+                                    <td width="50%" align="center">
+                                        <img t-if="res_company.logo" t-att-src="image_data_uri(res_company.logo)" align="center" style="max-width: 250px; max-height:200px; margin-top: 2px;margin-bottom: 5px;" alt="Logo"/>
+                                    </td>
+                                </tr>
+                                <tr align="center">
+                                    <th style="font-size:15px;">
+                                        <span t-esc="res_company.name"/><br/>
+                                        <span t-esc="res_company.street"/><span t-esc="res_company.street2"/><br/>
+                                        <b>Telf :</b>&#160;<span t-esc="res_company.phone"/>&#160;&#160;<b>Fax :</b><br/>
+                                        <b>R.I.F : 20546882455</b>&#160;
+                                    </th>
+                                </tr>
+                            </table>
+                        </div>
+                        <div style="float: right;width: 40%;padding: 30px; box-sizing: border-box;">
+                            <table width="100%" style="border-radius: 25px; border: 2px solid black; height: 150px;">
+                                <tr align="center">
+                                    <th style="font-size:17px;">
+                                        <b align="center"></b><br/>
+                                        
+                                        <b align="center" style="font-size:22px;">FACTURA</b><br/>
+                                        <b align="center" style="font-size:18px;"><span t-esc="o.name"/></b><br/>
+                                        <b align="center"></b>
+                                    </th>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <table width="100%" style="border: 1px solid white; border-collapse: collapse;font-size:13px">
+                        <tr style="background-color: #C9CACA;" height="30px" align="center">
+                            <th width="20%" style="border: 1px solid white;">R.U.C. CUSTOMER</th>
+                            <th width="20%" style="border: 1px solid white;">DATE OF ISSUE</th>
+                            <th width="20%" style="border: 1px solid white;">EXPIRY DATE</th>
+                            <th width="10%" style="border: 1px solid white;">L.G.V</th>
+                            <th width="10%" style="border: 1px solid white;">CURRENCY</th>
+                            <th width="20%" colspan="2" style="border: 1px solid white;">EXCHANGE Date</th>
+                        </tr>
+                        <tr style="" height="30px" align="center">
+                            <th width="20%" style="border: 1px solid white;"><span t-esc="o.partner_id.name"/></th>
+                            <th width="20%" style="border: 1px solid white;"><span t-esc="o.invoice_date" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/></th>
+                            <th width="20%" style="border: 1px solid white;"><span t-esc="o.invoice_date_due" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/></th>
+                            <th width="10%" style="border: 1px solid white;"></th>
+                            <th width="10%" style="border: 1px solid white;"><span t-esc="o.currency_id.name"/></th>
+                            <th width="20%" colspan="2" style="border: 1px solid white;"><span t-esc="o.invoice_date_due" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/></th>
+                        </tr>
+                        <tr style="background-color: #C9CACA;" height="30px" align="center">
+                            <th width="20%" style="border: 1px solid white;">PURCHASE ORDER</th>
+                            <th width="20%" style="border: 1px solid white;">VEHICLE PLATE</th>
+                            <th width="20%" style="border: 1px solid white;">CONDITION OF PAYMENT</th>
+                            <th width="10%" colspan="4" style="border: 1px solid white;">SELLER --</th>
+                            <th width="10%" style="border: 1px solid white;background-color: white;"></th>
+                            <th width="20%" style="border: 1px solid white;background-color: white;"></th>
+                        </tr>
+                        <tr style="" height="30px" align="center">
+                            <th width="20%" style="border: 1px solid white;"></th>
+                            <th width="20%" style="border: 1px solid white;"></th>
+                            <th width="20%" style="border: 1px solid white;"></th>
+                            <th width="10%" colspan="2" style="border: 1px solid white;"></th>
+                            <th width="10%" style="border: 1px solid white;"></th>
+                            <th width="20%" style="border: 1px solid white;"></th>
+                        </tr>
+                    </table>
+                    <table width="100%" style="border: 1px solid #C9CACA; border-collapse: collapse;font-size:13px" height="250px">
+                        <tr style="border: 1px solid #C9CACA;background-color: #C9CACA;" height="30px" align="center">
+                            <th width="10%" style="">CANTIDAD</th>
+                            <th width="20%" style="">CODE</th>
+                            <th width="30%" style="">CURSO</th>
+                            <th width="10%" style="">United</th>
+                            <th width="10%" style="">RECIO UNITARIO</th>
+                            <th width="10%" style="">Discount</th>
+                            <th width="10%" style="">SUB TOTAL</th>
+                        </tr>
+                        <t t-foreach="o.invoice_line_ids" t-as="line">
+                            <tr height="30px" styl="border: 1px solid #C9CACA;">
+                                <td width="10%" style="" align="center"><span t-esc="line.quantity"/></td>
+                                <td width="20%" style=""><span t-esc="line.product_id.name"/></td>
+                                <td width="30%" style=""><span t-esc="line.name"/></td>
+                                <td width="10%" style=""><span t-esc="line.product_uom_id.name"/></td>
+                                <td width="10%" style="" align="right"><span t-esc="line.price_unit"/></td>
+                                <td width="10%" style="padding-right:4px;" align="right"><span t-esc="line.discount"/></td>
+                                <td width="10%" style="padding-right:4px;" align="right"><span t-esc="line.price_total"/></td>
+                            </tr>
+                        </t>
+                        <tr>
+                            <td width="10%" style=""></td>
+                            <td width="20%" style=""></td>
+                            <td width="30%" style=""></td>
+                            <td width="10%" style=""></td>
+                            <td width="10%" style=""></td>
+                            <td width="10%" style=""></td>
+                            <td width="10%" style=""></td>
+                        </tr>
+                    </table>
+                    <br/>
+                    <table width="100%" style="border: 1px solid #C9CACA; border-collapse: collapse;">
+                        
+                       
+                        
+                        
+                        
+                        <tr style="" align="left" height="30px">
+                            <td width="30%" style="background-color: #C9CACA;" align="right">TOTAL:</td>
+                            <td width="10%" style="padding-right:4px;" align="right"><span t-esc="o.amount_total" t-options='{"widget": "float", "precision": 2}'/></td>
+                        </tr>
+                        <tr style="" align="left" height="30px">
+                            <td width="30%" style="background-color: #C9CACA;" align="right">Total Pagado:</td>
+                            <td width="10%" style="padding-right:4px;" align="right">0.0</td>
+                        </tr>
+                        <tr style="" align="left" height="30px">
+                            <td width="30%" style="background-color: #C9CACA;" align="right">Total Adeudado:</td>
+                            <td width="10%" style="padding-right:4px;" align="right"><span t-esc="o.amount_residual" t-options='{"widget": "float", "precision": 2}'/></td>
+                        </tr>
+                    </table>
+                    <br/>
+                    <t t-set="payments_vals" t-value="o.sudo().invoice_payments_widget and o.sudo().invoice_payments_widget['content'] or []"/>
+                    
+                    <table width="100%" style="border-collapse: collapse;">
+                        <h4>CREDITO: PAGOS REALIZADOS</h4>
+                        <tr style="background-color: #C9CACA;" height="30px" align="center">
+                            <th width="20%" style="border: 1px solid white;">NUMERO</th>
+                            <th width="40%" style="border: 1px solid white;">FECHA DE VENCIMINETO</th>
+                            <th width="40%" style="border: 1px solid white;">MONTO</th>
+                        </tr>
+                                <t t-foreach="payments_vals" t-as="payment_vals">
+                                                <tr t-if="payment_vals['is_exchange'] == 0">
+                                                    <th width="20%" style="border: 1px solid white;">
+                                                        
+                                                    </th>
+                                                    <th width="40%" style="border: 1px solid white;">
+                                                        <span t-esc="payment_vals['date']" t-options="{&quot;widget&quot;: &quot;date&quot;}"/>
+                                                    </th>
+                                                    <th width="40%" style="border: 1px solid white;">
+                                                        <span t-esc="payment_vals['amount']" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.currency_id}"/>
+                                                    </th>
+                                                </tr>
+                                </t>
+                        
+                    </table>
+                    <div class="footer">
+                    <table width="100%" style="margin-top:15px;">
+                        <tr width="100%">
+                            <td width="100%" align="center">
+                                <!-- <img t-if="res_company.invoice_footer" t-att-src="image_data_uri(res_company.invoice_footer)" style="width: 100%; height:100px" alt="Logo"/> -->
+                            </td>
+                        </tr>
+                    </table>
+                    </div>
+                </td>
+            </td>
+        </template>
+    </data>
+</odoo>

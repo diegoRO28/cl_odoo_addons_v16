@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="report_record_pr_template">
+         <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="oe_structure" />
+                <div class="page">
+                     <table width="20%" style="border: 0px solid white; border-collapse: collapse;" class="text-right" height="20">
+                        <thead>
+                            <tr  height="20px" align="center">
+                                <td style="padding-left:5px;border: 1px solid black;" class="text-left">FECHA : </td>
+                                <td style="padding-left:5px;border: 1px solid black;" class="text-left"><span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/></td>
+                            </tr>
+                        </thead>
+                     </table> 
+
+                    <div style="background-color: #b3b2b1; color: white;" class="text-center"><h2>CONSTANCIA DE PRESENTACIÓN</h2></div>
+					<table width="100%" style="border: 1px solid black; border-collapse: collapse;" height="30">
+                        <thead><tr  height="20px" align="center">
+                                <td colspan='4' style="padding-left:5px;border: 1px solid black;color: black;" align="center">
+                                    Por medio de la presente se hace constar que : <span t-esc="est[0]['nombre']"/>, cédula de identidad Nro. :  <span t-esc="est[0]['cedula']"/> , Código :  <span t-esc="est[0]['codigo']"/>
+                                    <br/> realizará la presentación final para culminar el curso: <span t-esc="est[0]['curso']"/> en fecha : <span t-esc="form_data['date_end']" />.
+                                
+                                    <br/><br/>
+                                    Constancia que se expide a solicitud de la parte interezada en fecha :  <span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/> 
+                                    <br/> <br/>
+                                    <t t-set="signer_id" t-value="env['cei.signer'].sudo().search([('id', '=', signer)])"/>
+                                    <img t-if="signer_id.sign_signature" t-att-src="image_data_uri(signer_id.sign_signature)" align="center" style="max-width: 250px; max-height: 200px; display: block; position: relative; top: 30px;" alt="Logo"/>                                    
+                                    ---------------------------------------
+                                    <br/>
+                                    <strong t-esc="signer_id.name"/> <span t-if="signer_id.job_title">-</span> <strong t-if="signer_id.job_title" t-esc="signer_id.job_title"/> 
+                                    <br/>
+                                    <br/>
+                                </td>
+                            </tr>
+
+                           
+
+                            
+
+                            
+                        </thead>
+                    </table> 
+                  
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_record_pr" model="ir.actions.report">
+        <field name="name">Constancia de Presentación</field>
+        <field name="model">school.student</field>
+        <field name="report_type">qweb-html</field>
+        <field name="report_name">report_class.report_record_pr_template</field>
+        <field name="report_file">report_class.report_record_pr_template</field>
+        <field name="binding_type">report</field>
+    </record>
+    
+</odoo>
