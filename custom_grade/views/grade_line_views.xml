@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Heredar la vista de grade.master -->
+    <record id="view_grade_form_inherit" model="ir.ui.view">
+        <field name="name">grade.master.form.inherit</field>
+        <field name="model">grade.master</field>
+        <field name="inherit_id" ref="school.view_grade_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- Modificar el campo pass_mark para añadir nueva ayuda -->
+            <xpath expr="//field[@name='grade_ids']/tree/field[@name='pass_mark']" position="attributes">
+                <attribute name="help">Nota mínima para aprobar. Configurable por institución</attribute>
+                <attribute name="style">background-color: #f0f8ff;</attribute>
+            </xpath>
+            
+            <!-- Añadir nuevos campos en el tree de grade.line -->
+            <xpath expr="//field[@name='grade_ids']/tree" position="inside">
+                <field name="honor_roll_threshold" optional="show"/>
+                <field name="is_custom" widget="boolean_toggle" optional="hide"/>
+                <field name="description" optional="hide"/>
+            </xpath>
+            
+            <!-- Añadir nuevos campos en el formulario de grade.line -->
+            <xpath expr="//field[@name='grade_ids']/form/group" position="after">
+                <group string="Configuración Personalizada" name="custom_config">
+                    <field name="is_custom" widget="boolean_toggle"/>
+                    <field name="honor_roll_threshold" 
+                           placeholder="Ej: 19" 
+                           attrs="{'invisible': [('is_custom', '=', False)]}"/>
+                    <field name="description" 
+                           placeholder="Descripción de esta escala personalizada" 
+                           attrs="{'invisible': [('is_custom', '=', False)]}"
+                           colspan="2"/>
+                </group>
+            </xpath>
+            
+            <!-- Modificar la ayuda del campo en el formulario -->
+            <xpath expr="//field[@name='grade_ids']/form/group/field[@name='pass_mark']" position="attributes">
+                <attribute name="help">Nota mínima para aprobar el curso</attribute>
+            </xpath>
+            
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_grade_line_custom,grade.line.custom,school.model_grade_line,base.group_user,1,1,1,1
+access_grade_master_custom,grade.master.custom,school.model_grade_master,base.group_user,1,1,1,1
+access_student_inscripcion_custom,student.inscripcion.custom,school.model_student_inscripcion,base.group_user,1,1,1,1
+access_school_standard_custom,school.standard.custom,school.model_school_standard,base.group_user,1,1,1,1
+access_standard_evaluacion_custom,standard.evaluacion.custom,school.model_standard_evaluacion,base.group_user,1,1,1,1
