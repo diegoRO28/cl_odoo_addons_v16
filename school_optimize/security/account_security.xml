@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="group_basic_accounting_user" model="res.groups">
+            <field name="name">Usuario</field>
+            <field name="category_id" ref="base.module_category_accounting_accounting"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>        
+
+        <!-- ====== Billing ====== -->
+        <record id="account.group_account_invoice" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('school_optimize.group_basic_accounting_user'))]"/>
+        </record>        
+
+        <!-- ====== Registro de Inscripción ====== -->
+        <record id="group_set_draft_student_inscripcion" model="res.groups">
+            <field name="name">Reestablecer a borrador las inscripciones</field>
+            <field name="category_id" ref="school.module_category_school"/>
+        </record>        
+
+    </data>
+</odoo>
