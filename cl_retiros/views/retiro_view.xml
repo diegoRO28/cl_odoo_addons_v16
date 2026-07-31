@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <!-- ========================================================== -->
+    <!-- HERENCIA DEL FORMULARIO DE RETIRO DEL PADRE                 -->
+    <!-- ========================================================== -->
+    <record id="view_student_retiro_form_inherit_flotante" model="ir.ui.view">
+        <field name="name">student.retiro.form.inherit.flotante</field>
+        <field name="model">student.retiro</field>
+        <field name="inherit_id" ref="school.view_student_retiro_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- 1. AÑADIMOS LOS NUEVOS BOTONES EN EL HEADER -->
+            <xpath expr="//header/button" position="after">
+                
+                <!-- Botón para poner en Flotante (Solo visible en estado 'draft') -->
+                <button class="btn-warning" icon="fa-pause" name="action_set_flotante" type="object"
+                        string="PONER FLOTANTE" states="draft" 
+                        confirm="¿Está seguro de poner al estudiante en estado Flotante? Esto congelará sus notas y lo sacará de los cupos activos."
+                        groups="school.group_school_administration,school.group_is_admission"/>
+
+                <!-- Botón para Reactivar la inscripción (Solo visible en estado 'flotante') -->
+                <button class="btn-primary" icon="fa-undo" name="action_reactivate" type="object"
+                        string="REACTIVAR INSCRIPCIÓN" states="flotante"
+                        confirm="¿Está seguro de reactivar al estudiante? Volverá a estar inscrito en la sección."
+                        groups="school.group_school_administration,school.group_is_admission"/>
+            </xpath>
+
+            <!-- 2. AÑADIMOS EL ESTADO FLOTANTE A LA BARRA DE ESTADO DEL HEADER -->
+            <xpath expr="//field[@name='state']" position="attributes">
+                <attribute name="statusbar_visible">draft,flotante,done,terminate,cancel</attribute>
+            </xpath>
+
+            <!-- 3. AÑADIMOS UNA CINTA (RIBBON) VISUAL CUANDO EL ESTADO ES FLOTANTE -->
+            <xpath expr="//sheet/widget" position="after">
+                <!-- Cinta de color azul (bg-primary) que aparece solo en estado flotante -->
+                <widget name="web_ribbon" title="FLOTANTE" bg_color="bg-primary" 
+                        attrs="{'invisible': [('state', '!=', 'flotante')]}"/>
+            </xpath>
+
+            <!-- 4. AÑADIMOS EL CAMPO DE CONTROL DENTRO DEL GRUPO DE INFORMACIÓN DEL RETIRO -->
+            <!-- CORRECCIÓN: En lugar de buscar por el 'string' del grupo, buscamos por el nombre del campo existente dentro de él (tiporetiro_id) para insertar nuestro campo -->
+            <xpath expr="//group//field[@name='tiporetiro_id']" position="after">
+                <field name="is_flotante" invisible="1"/> <!-- Oculto, solo para uso interno -->
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

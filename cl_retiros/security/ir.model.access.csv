@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_student_retiro_flotante,student.retiro flotante user,model_student_retiro,school.group_school_administration,1,1,1,1
