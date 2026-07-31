@@ -1,9 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_report_wizard,report.wizard,model_report_wizard,,1,1,1,1
-access_report_wizard_ce,report.wizard_ce,model_report_wizard_ce,,1,1,1,1
-access_report_wizard_fi,report.wizard_fi,model_report_wizard_fi,,1,1,1,1
-access_report_wizard_pr,report.wizard_pr,model_report_wizard_pr,,1,1,1,1
-access_report_wizard_as,report.wizard_as,model_report_wizard_as,,1,1,1,1
-access_report_wizard_in,report.wizard_in,model_report_wizard_in,,1,1,1,1
-access_report_wizard_ca,report.wizard_ca,model_report_wizard_ca,,1,1,1,1
-access_cei_signer,access.cei.signer,model_cei_signer,,1,1,1,1
