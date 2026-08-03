@@ -1,48 +1,190 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <odoo>
 
-    <!-- ========================================================== -->
-    <!-- HERENCIA DEL FORMULARIO DE RETIRO DEL PADRE                 -->
-    <!-- ========================================================== -->
+    <!-- ================================================================ -->
+    <!-- 1. HERENCIA DEL FORMULARIO DE RETIRO (HEADER Y RIBBON)          -->
+    <!-- ================================================================ -->
+
     <record id="view_student_retiro_form_inherit_flotante" model="ir.ui.view">
         <field name="name">student.retiro.form.inherit.flotante</field>
         <field name="model">student.retiro</field>
         <field name="inherit_id" ref="school.view_student_retiro_form"/>
         <field name="arch" type="xml">
-            
-            <!-- 1. AÑADIMOS LOS NUEVOS BOTONES EN EL HEADER -->
+
+            <!-- AÑADIMOS LOS BOTONES EN EL HEADER -->
             <xpath expr="//header/button" position="after">
-                
-                <!-- Botón para poner en Flotante (Solo visible en estado 'draft') -->
                 <button class="btn-warning" icon="fa-pause" name="action_set_flotante" type="object"
-                        string="PONER FLOTANTE" states="draft" 
-                        confirm="¿Está seguro de poner al estudiante en estado Flotante? Esto congelará sus notas y lo sacará de los cupos activos."
+                        string="PONER FLOTANTE" states="draft"
+                        confirm="¿Está seguro de poner al estudiante en estado Flotante? Se congelarán sus notas y se liberará su cupo."
                         groups="school.group_school_administration,school.group_is_admission"/>
 
-                <!-- Botón para Reactivar la inscripción (Solo visible en estado 'flotante') -->
                 <button class="btn-primary" icon="fa-undo" name="action_reactivate" type="object"
                         string="REACTIVAR INSCRIPCIÓN" states="flotante"
                         confirm="¿Está seguro de reactivar al estudiante? Volverá a estar inscrito en la sección."
                         groups="school.group_school_administration,school.group_is_admission"/>
             </xpath>
 
-            <!-- 2. AÑADIMOS EL ESTADO FLOTANTE A LA BARRA DE ESTADO DEL HEADER -->
+            <!-- EXTENDEMOS LA BARRA DE ESTADO -->
             <xpath expr="//field[@name='state']" position="attributes">
                 <attribute name="statusbar_visible">draft,flotante,done,terminate,cancel</attribute>
             </xpath>
 
-            <!-- 3. AÑADIMOS UNA CINTA (RIBBON) VISUAL CUANDO EL ESTADO ES FLOTANTE -->
+            <!-- CINTA (RIBBON) PARA ESTADO FLOTANTE -->
             <xpath expr="//sheet/widget" position="after">
-                <!-- Cinta de color azul (bg-primary) que aparece solo en estado flotante -->
-                <widget name="web_ribbon" title="FLOTANTE" bg_color="bg-primary" 
+                <widget name="web_ribbon" title="FLOTANTE" bg_color="bg-warning"
                         attrs="{'invisible': [('state', '!=', 'flotante')]}"/>
             </xpath>
 
-            <!-- 4. AÑADIMOS EL CAMPO DE CONTROL DENTRO DEL GRUPO DE INFORMACIÓN DEL RETIRO -->
-            <!-- CORRECCIÓN: En lugar de buscar por el 'string' del grupo, buscamos por el nombre del campo existente dentro de él (tiporetiro_id) para insertar nuestro campo -->
+            <!-- CAMPO OCULTO DE CONTROL -->
             <xpath expr="//group//field[@name='tiporetiro_id']" position="after">
-                <field name="is_flotante" invisible="1"/> <!-- Oculto, solo para uso interno -->
+                <field name="is_flotante" invisible="1"/>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- ================================================================ -->
+    <!-- 2. VISTA TREE DE STUDENT.RETIRO (Registro de Retiros)           -->
+    <!-- ================================================================ -->
+    
+    <record id="view_student_retiro_tree_inherit_flotante" model="ir.ui.view">
+        <field name="name">student.retiro.tree.inherit.flotante</field>
+        <field name="model">student.retiro</field>
+        <field name="inherit_id" ref="school.view_student_retiro_tree"/>
+        <field name="arch" type="xml">
+    
+            <!-- 1. Ocultamos cualquier campo state / state_aux que venga del padre -->
+            <xpath expr="//field[@name='state']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='state_aux']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+    
+            <!-- 2. Añadimos el campo state con badge + colores al final del tree -->
+            <xpath expr="//tree" position="inside">
+                <field name="state" string="Status" widget="badge"
+                       decoration-warning="state == 'flotante'"
+                       decoration-danger="state == 'terminate'"
+                       decoration-primary="state == 'cancel'"
+                       decoration-success="state == 'done'"
+                       decoration-info="state == 'draft'"/>
+            </xpath>
+    
+        </field>
+    </record>
+
+
+    <!-- ================================================================ -->
+    <!-- 3. VISTA TREE DE STUDENT.INSCRIPCION (Registro de Inscripción)  -->
+    <!-- ================================================================ -->
+
+    <record id="view_student_inscripcion_tree_inherit_flotante" model="ir.ui.view">
+        <field name="name">student.inscripcion.tree.inherit.flotante</field>
+        <field name="model">student.inscripcion</field>
+        <field name="inherit_id" ref="school.view_student_inscripcion_tree"/>
+        <field name="arch" type="xml">
+
+            <!-- MODIFICAMOS STATE_AUX CON WIDGET BADGE Y DECORACIONES -->
+            <xpath expr="//field[@name='state_aux']" position="attributes">
+                <attribute name="widget">badge</attribute>
+                <attribute name="decoration-warning">state_aux == 'flotante'</attribute>
+                <attribute name="decoration-success">state_aux == 'inscrito'</attribute>
+                <attribute name="decoration-danger">state_aux == 'retirado'</attribute>
+                <attribute name="decoration-info">state_aux in ('preinscrito', 'culminado')</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- ================================================================ -->
+    <!-- 4. VISTA TREE DE SCHOOL.STANDARD (Pestaña de Estudiantes)       -->
+    <!-- ================================================================ -->
+
+    <record id="view_school_standard_students_tree_inherit_flotante" model="ir.ui.view">
+        <field name="name">school.standard.students.tree.inherit.flotante</field>
+        <field name="model">school.standard</field>
+        <field name="inherit_id" ref="school.view_school_standard_form"/>
+        <field name="arch" type="xml">
+
+            <!-- MODIFICAMOS STATE_AUX EN EL TREE DE STUDENT_IDS -->
+            <xpath expr="//field[@name='student_ids']/tree/field[@name='state_aux']" position="attributes">
+                <attribute name="widget">badge</attribute>
+                <attribute name="decoration-warning">state_aux == 'flotante'</attribute>
+                <attribute name="decoration-success">state_aux == 'inscrito'</attribute>
+                <attribute name="decoration-danger">state_aux == 'retirado'</attribute>
+                <attribute name="decoration-info">state_aux in ('preinscrito', 'culminado')</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- ================================================================ -->
+    <!-- 5. VISTA TREE DE STANDARD.EVALUACION (Registro de Evaluaciones) -->
+    <!-- ================================================================ -->
+
+    <record id="view_standard_evaluacion_tree_inherit_flotante" model="ir.ui.view">
+        <field name="name">standard.evaluacion.tree.inherit.flotante</field>
+        <field name="model">standard.evaluacion</field>
+        <field name="inherit_id" ref="school.view_standard_evaluacion_tree"/>
+        <field name="arch" type="xml">
+
+            <!-- MODIFICAMOS STATE_AUX CON WIDGET BADGE Y DECORACIONES -->
+            <xpath expr="//field[@name='state_aux']" position="attributes">
+                <attribute name="widget">badge</attribute>
+                <attribute name="decoration-warning">state_aux == 'flotante'</attribute>
+                <attribute name="decoration-success">state_aux == 'iniciado'</attribute>
+                <attribute name="decoration-danger">state_aux == 'por iniciar'</attribute>
+                <attribute name="decoration-info">state_aux in ('culminado', 'recuperado')</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- ================================================================ -->
+    <!-- 6. VISTA TREE DE SUBJECT.ASISTENCIA (Registro de Asistencias)   -->
+    <!-- ================================================================ -->
+
+    <record id="view_subject_asistencia_tree_inherit_flotante" model="ir.ui.view">
+        <field name="name">subject.asistencia.tree.inherit.flotante</field>
+        <field name="model">subject.asistencia</field>
+        <field name="inherit_id" ref="school.view_subject_asistencia_tree"/>
+        <field name="arch" type="xml">
+
+            <!-- MODIFICAMOS STATE_AUX CON WIDGET BADGE Y DECORACIONES -->
+            <xpath expr="//field[@name='state_aux']" position="attributes">
+                <attribute name="widget">badge</attribute>
+                <attribute name="decoration-warning">state_aux == 'flotante'</attribute>
+                <attribute name="decoration-success">state_aux == 'iniciado'</attribute>
+                <attribute name="decoration-danger">state_aux == 'por iniciar'</attribute>
+                <attribute name="decoration-info">state_aux == 'culminado'</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <!-- ================================================================ -->
+    <!-- 7. VISTA TREE DE SUBJECT.ASISTENCIAS (Asistencias del Alumno)   -->
+    <!-- ================================================================ -->
+
+    <record id="view_subject_asistencias_tree_inherit_flotante" model="ir.ui.view">
+        <field name="name">subject.asistencias.tree.inherit.flotante</field>
+        <field name="model">subject.asistencias</field>
+        <field name="inherit_id" ref="school.view_subject_asistencia_tree_1"/>
+        <field name="arch" type="xml">
+
+            <!-- MODIFICAMOS STATE CON WIDGET BADGE Y DECORACIONES -->
+            <xpath expr="//field[@name='state']" position="attributes">
+                <attribute name="widget">badge</attribute>
+                <attribute name="decoration-warning">state == 'flotante'</attribute>
+                <attribute name="decoration-success">state == 'done'</attribute>
+                <attribute name="decoration-danger">state == 'cancel'</attribute>
+                <attribute name="decoration-info">state in ('draft', 'terminate')</attribute>
             </xpath>
 
         </field>
