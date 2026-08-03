@@ -102,22 +102,27 @@
     <!-- ================================================================ -->
     <!-- 4. VISTA TREE DE SCHOOL.STANDARD (Pestaña de Estudiantes)       -->
     <!-- ================================================================ -->
-
+    
     <record id="view_school_standard_students_tree_inherit_flotante" model="ir.ui.view">
         <field name="name">school.standard.students.tree.inherit.flotante</field>
         <field name="model">school.standard</field>
         <field name="inherit_id" ref="school.view_school_standard_form"/>
         <field name="arch" type="xml">
-
-            <!-- MODIFICAMOS STATE_AUX EN EL TREE DE STUDENT_IDS -->
+    
+            <!-- 1. Ocultamos el campo state_aux original dentro del tree de student_ids -->
             <xpath expr="//field[@name='student_ids']/tree/field[@name='state_aux']" position="attributes">
-                <attribute name="widget">badge</attribute>
-                <attribute name="decoration-warning">state_aux == 'flotante'</attribute>
-                <attribute name="decoration-success">state_aux == 'inscrito'</attribute>
-                <attribute name="decoration-danger">state_aux == 'retirado'</attribute>
-                <attribute name="decoration-info">state_aux in ('preinscrito', 'culminado')</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
-
+    
+            <!-- 2. Agregamos el campo state_aux con badge + colores al final del tree de estudiantes -->
+            <xpath expr="//field[@name='student_ids']/tree" position="inside">
+                <field name="state_aux" string="Status" widget="badge"
+                       decoration-warning="state_aux == 'flotante'"
+                       decoration-success="state_aux == 'inscrito'"
+                       decoration-danger="state_aux == 'retirado'"
+                       decoration-info="state_aux in ('preinscrito', 'culminado')"/>
+            </xpath>
+    
         </field>
     </record>
 

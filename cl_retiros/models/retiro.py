@@ -9,28 +9,40 @@ class StudentInscripcion(models.Model):
 
     state_aux = fields.Selection(
         selection_add=[('flotante', 'Flotante')],
-        ondelete={'flotante': 'cascade'}
+        ondelete={'flotante': 'cascade'},
+        store=True,
+        default='preinscrito',          # valor válido
     )
+
+    @api.depends('state')
+    def _compute_state(self):
+        """Sobreescribimos el compute del padre para respetar el estado Flotante."""
+        for rec in self:
+            flotante_retiro = self.env['student.retiro'].search([
+                ('ri_id', '=', rec.id),
+                ('state', '=', 'flotante'),
+            ], limit=1)
+
+            if flotante_retiro:
+                rec.state_aux = 'flotante'
+            else:
+                rec.state_aux = self.get_estado(rec.state)
 
 
 class StudentRetiro(models.Model):
     _inherit = 'student.retiro'
 
-    # Extendemos el estado y cambiamos las etiquetas
     state = fields.Selection(
         selection_add=[
             ('flotante', 'Flotante'),
             ('terminate', 'Retirado'),
-            ('cancel', 'Reinscrito'),      # ← nueva etiqueta
+            ('cancel', 'Reinscrito'),
         ],
         ondelete={'flotante': 'cascade'}
     )
 
     is_flotante = fields.Boolean(string='Es Flotante?', default=False, readonly=True)
 
-    # ==============================================================
-    # ACCIÓN 1: PASAR DE INSCRITO A FLOTANTE
-    # ==============================================================
     def action_set_flotante(self):
         for rec in self:
             if rec.state != 'draft':
@@ -39,71 +51,48 @@ class StudentRetiro(models.Model):
             rec.state = 'flotante'
             rec.is_flotante = True
 
-            # Cambiamos state_aux del RI a 'flotante'
             if rec.ri_id:
-                rec.ri_id.state_aux = 'flotante'
                 rec.ri_id.state = 'done'
                 rec.student_id.state = 'done'
+                # Forzamos el recálculo del state_aux
+                rec.ri_id._compute_state()
 
-                # Recalcular cupos (libera el cupo)
                 rec.standard_id._compute_total_student()
-
-                # Eliminar al estudiante de asistencias activas
                 self._remove_from_active_asistencias(rec)
 
-    # ==============================================================
-    # ACCIÓN 2: VOLVER DE FLOTANTE A INSCRITO
-    # ==============================================================
     def action_reactivate(self):
         for rec in self:
             if rec.state != 'flotante':
                 raise ValidationError("Solo se puede reactivar un registro que esté en estado Flotante.")
 
-            # Volver a 'inscrito'
             if rec.ri_id:
-                rec.ri_id.state_aux = 'inscrito'
                 rec.ri_id.state = 'done'
                 rec.student_id.state = 'done'
+                rec.ri_id._compute_state()
 
             rec.is_flotante = False
-            rec.state = 'cancel'  # El retiro se cancela
+            rec.state = 'cancel'          # se muestra como "Reinscrito"
 
-            # Recalcular cupos (ocupa el cupo nuevamente)
             rec.standard_id._compute_total_student()
-
-            # Volver a agregar al estudiante a asistencias activas
             self._add_to_active_asistencias(rec)
 
-    # ==============================================================
-    # ACCIÓN 3: PASAR DE FLOTANTE A RETIRADO DEFINITIVO
-    # ==============================================================
     def admission_done(self):
         for rec in self:
             if rec.state == 'flotante':
-                # Llamamos al padre para que haga el retiro definitivo
                 super(StudentRetiro, rec).admission_done()
                 rec.is_flotante = False
             else:
                 super(StudentRetiro, rec).admission_done()
 
-    # ==============================================================
-    # Lógica de Create
-    # ==============================================================
     @api.model
     def create(self, vals):
         if vals.get('state') == 'flotante':
             vals['is_flotante'] = True
         return super(StudentRetiro, self).create(vals)
 
-    # =========================================================================
-    # MÉTODOS AUXILIARES PARA MANEJAR LAS ASISTENCIAS
-    # =========================================================================
-
     def _remove_from_active_asistencias(self, rec):
-        """Elimina al estudiante de todas las asistencias activas de la sección."""
         if not rec.ri_id or not rec.standard_id:
             return
-
         active_asistencias = rec.standard_id.asistencia_ids.filtered(
             lambda a: a.state in ['draft', 'done']
         )
@@ -116,10 +105,8 @@ class StudentRetiro(models.Model):
                 asistencias_estudiante.unlink()
 
     def _add_to_active_asistencias(self, rec):
-        """Re-agrega al estudiante a las asistencias activas de la sección."""
         if not rec.ri_id or not rec.standard_id:
             return
-
         active_asistencias = rec.standard_id.asistencia_ids.filtered(
             lambda a: a.state in ['draft', 'done']
         )
@@ -144,31 +131,15 @@ class StudentRetiro(models.Model):
                     })
 
 
-# =============================================================================
-# CLASE PARA MANEJAR EL ERROR DE EVALUACIONES
-# =============================================================================
-
 class StandardEvaluacion(models.Model):
     _inherit = 'standard.evaluacion'
 
     def set_done_corregir(self):
-        """
-        Sobrescribimos parcialmente este método del padre.
-        Antes de poner la evaluación en 'draft', nos aseguramos de que
-        TODOS los estudiantes activos (state='done') tengan su registro
-        en evaluacion_ids.
-        """
         for rec in self:
-            # 1. Obtener todos los estudiantes activos de la sección
             active_students = rec.standard_id.student_ids.filtered(lambda s: s.state == 'done')
-
-            # 2. Obtener los IDs de los estudiantes que YA tienen registro en esta evaluación
             existing_student_ids = rec.evaluacion_ids.mapped('student_id.id')
-
-            # 3. Identificar a los estudiantes FALTANTES
             missing_students = active_students.filtered(lambda s: s.student_id.id not in existing_student_ids)
 
-            # 4. Si hay faltantes, los CREAMOS antes de continuar
             if missing_students:
                 evaluacion_obj = self.env['standard.evaluaciones']
                 for inscripcion in missing_students:
@@ -178,5 +149,4 @@ class StandardEvaluacion(models.Model):
                         'student_id': inscripcion.student_id.id,
                     })
 
-            # 5. Ahora que la lista está completa, llamamos al método original del padre
             super(StandardEvaluacion, rec).set_done_corregir()
