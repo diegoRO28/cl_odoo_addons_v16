@@ -14,8 +14,13 @@ class Wizard(models.TransientModel):
     date_end = fields.Date('Fecha Fin', required=True, default=fields.Date.today)
 
     # Campo para seleccionar la sección
-    section_id = fields.Many2one('school.standard', string="Sección")
-    
+    # domain permite elegir también secciones archivadas en el selector
+    section_id = fields.Many2one(
+        'school.standard',
+        string="Sección",
+        domain="[('active', 'in', [True, False])]"
+    )
+
     # Campo para el tipo de reporte
     report_type = fields.Selection([
         ('pdf', 'PDF'),
@@ -55,7 +60,12 @@ class Wizard(models.TransientModel):
         if self.section_id:
             domain.append(('standard_id', '=', self.section_id.id))
 
-        asi_obj = self.env['subject.asistencias'].search(domain, order='date_start asc')
+        # with_context(active_test=False): incluye asistencias cuya sección
+        # (standard_id) fue archivada, para que esos estudiantes no
+        # desaparezcan del reporte de inasistencias.
+        asi_obj = self.env['subject.asistencias'].with_context(active_test=False).search(
+            domain, order='date_start asc'
+        )
 
         if asi_obj:
             line_ina = asi_obj.filtered(lambda x: not x.is_attended)
