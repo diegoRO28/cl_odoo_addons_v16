@@ -108,17 +108,19 @@
         <field name="inherit_id" ref="school.view_school_standard_form"/>
         <field name="arch" type="xml">
     
+            <!-- Ocultamos el state_aux original -->
             <xpath expr="//field[@name='student_ids']/tree/field[@name='state_aux']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
     
+            <!-- Agregamos is_flotante + el nuevo campo de visualización -->
             <xpath expr="//field[@name='student_ids']/tree" position="inside">
                 <field name="is_flotante" invisible="1"/>
-                <field name="state_aux" string="Status" widget="badge"
+                <field name="status_display" string="Status" widget="badge"
                        decoration-warning="is_flotante"
-                       decoration-success="state_aux == 'inscrito' and not is_flotante"
-                       decoration-danger="state_aux == 'retirado'"
-                       decoration-info="state_aux in ('preinscrito', 'culminado') and not is_flotante"/>
+                       decoration-success="status_display == 'Inscrito'"
+                       decoration-danger="status_display == 'Retirado'"
+                       decoration-info="status_display in ('Preinscrito', 'Culminado')"/>
             </xpath>
     
         </field>

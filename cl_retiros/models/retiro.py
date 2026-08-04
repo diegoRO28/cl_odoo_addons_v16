@@ -216,6 +216,35 @@ class SchoolStandard(models.Model):
             record.total_students_cancel = len(line_cancel)
             record.remaining_seats = record.capacity - len(line_done)
 
+class StudentInscripcion(models.Model):
+    _inherit = 'student.inscripcion'
+
+    is_flotante = fields.Boolean(
+        string='Es Flotante?',
+        default=False,
+        readonly=True,
+        copy=False,
+    )
+
+    status_display = fields.Char(
+        string='Status',
+        compute='_compute_status_display',
+    )
+
+    @api.depends('state_aux', 'is_flotante')
+    def _compute_status_display(self):
+        for rec in self:
+            if rec.is_flotante:
+                rec.status_display = 'Flotante'
+            else:
+                # Mantiene los textos originales de state_aux
+                mapping = {
+                    'inscrito': 'Inscrito',
+                    'retirado': 'Retirado',
+                    'preinscrito': 'Preinscrito',
+                    'culminado': 'Culminado',
+                }
+                rec.status_display = mapping.get(rec.state_aux, rec.state_aux or '')
 
 class StandardEvaluacion(models.Model):
     _inherit = 'standard.evaluacion'
