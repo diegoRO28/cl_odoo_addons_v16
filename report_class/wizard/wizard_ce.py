@@ -338,7 +338,7 @@ class Wizard(models.TransientModel):
                         
                     if riObj.standard_id.registroeva_ids[j-1].state == 'terminate':
                         
-                        reObj   = riObj.standard_id.registroeva_ids[j-1].evaluacion_ids
+                        reObj   = riObj.standard_id.registroeva_ids[j-1].with_context(active_test=False).evaluacion_ids
                         no_evas = len(reObj)
                         
                         #-----------------------------------------------------------------------#
@@ -400,7 +400,7 @@ class Wizard(models.TransientModel):
                         
                     if riObj.standard_id.asistencia_ids[j-1].state == 'terminate':
                         
-                        raObj   = riObj.standard_id.asistencia_ids[j-1].asistencia_ids
+                        raObj   = riObj.standard_id.asistencia_ids[j-1].with_context(active_test=False).asistencia_ids
                         no_detalle_asi  = len(raObj)
 
                         #-----------------------------------------------------------------------#
