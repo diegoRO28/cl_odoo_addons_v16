@@ -85,16 +85,15 @@
         <field name="model">student.inscripcion</field>
         <field name="inherit_id" ref="school.view_student_inscripcion_tree"/>
         <field name="arch" type="xml">
-
-            <!-- MODIFICAMOS STATE_AUX CON WIDGET BADGE Y DECORACIONES -->
+    
+            <!-- Solo Inscrito / Retirado / etc. Nunca Flotante -->
             <xpath expr="//field[@name='state_aux']" position="attributes">
                 <attribute name="widget">badge</attribute>
-                <attribute name="decoration-warning">state_aux == 'flotante'</attribute>
                 <attribute name="decoration-success">state_aux == 'inscrito'</attribute>
                 <attribute name="decoration-danger">state_aux == 'retirado'</attribute>
                 <attribute name="decoration-info">state_aux in ('preinscrito', 'culminado')</attribute>
             </xpath>
-
+    
         </field>
     </record>
 
@@ -109,18 +108,17 @@
         <field name="inherit_id" ref="school.view_school_standard_form"/>
         <field name="arch" type="xml">
     
-            <!-- 1. Ocultamos el campo state_aux original dentro del tree de student_ids -->
             <xpath expr="//field[@name='student_ids']/tree/field[@name='state_aux']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
     
-            <!-- 2. Agregamos el campo state_aux con badge + colores al final del tree de estudiantes -->
             <xpath expr="//field[@name='student_ids']/tree" position="inside">
+                <field name="is_flotante" invisible="1"/>
                 <field name="state_aux" string="Status" widget="badge"
-                       decoration-warning="state_aux == 'flotante'"
-                       decoration-success="state_aux == 'inscrito'"
+                       decoration-warning="is_flotante"
+                       decoration-success="state_aux == 'inscrito' and not is_flotante"
                        decoration-danger="state_aux == 'retirado'"
-                       decoration-info="state_aux in ('preinscrito', 'culminado')"/>
+                       decoration-info="state_aux in ('preinscrito', 'culminado') and not is_flotante"/>
             </xpath>
     
         </field>
