@@ -10,40 +10,60 @@
                         <thead>
                             <tr  height="20px" align="center">
                                 <td style="padding-left:5px;border: 1px solid black;" class="text-left">FECHA : </td>
-                                <td style="padding-left:5px;border: 1px solid black;" class="text-left"><span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/></td>
+                                <td style="padding-left:5px;border: 1px solid black;" class="text-left">
+                                    <span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/>
+                                </td>
                             </tr>
                         </thead>
                      </table> 
 
                     <div style="background-color: #b3b2b1; color: white;" class="text-center"><h2>CONSTANCIA DE PRESENTACIÓN</h2></div>
 					<table width="100%" style="border: 1px solid black; border-collapse: collapse;" height="30">
-                        <thead><tr  height="20px" align="center">
+                        <thead>
+                            <tr  height="20px" align="center">
                                 <td colspan='4' style="padding-left:5px;border: 1px solid black;color: black;" align="center">
-                                    Por medio de la presente se hace constar que : <span t-esc="est[0]['nombre']"/>, cédula de identidad Nro. :  <span t-esc="est[0]['cedula']"/> , Código :  <span t-esc="est[0]['codigo']"/>
-                                    <br/> realizará la presentación final para culminar el curso: <span t-esc="est[0]['curso']"/> en fecha : <span t-esc="form_data['date_end']" />.
-                                
-                                    <br/><br/>
-                                    Constancia que se expide a solicitud de la parte interezada en fecha :  <span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/> 
-                                    <br/> <br/>
-                                    <t t-set="signer_id" t-value="env['cei.signer'].sudo().search([('id', '=', signer)])"/>
-                                    <img t-if="signer_id.sign_signature" t-att-src="image_data_uri(signer_id.sign_signature)" align="center" style="max-width: 250px; max-height: 200px; display: block; position: relative; top: 30px;" alt="Logo"/>                                    
+                                    <t t-if="est and len(est) > 0">
+                                        Por medio de la presente se hace constar que : 
+                                        <span t-esc="est[0].get('nombre', '')"/>, 
+                                        cédula de identidad Nro. : <span t-esc="est[0].get('cedula', '')"/>, 
+                                        Código : <span t-esc="est[0].get('codigo', '')"/>
+                                        <br/> 
+                                        realizará la presentación final para culminar el curso: 
+                                        <span t-esc="est[0].get('curso', '')"/> 
+                                        en fecha : <span t-esc="form_data.get('date_end', '')" />.
+                                    
+                                        <br/><br/>
+                                        Constancia que se expide a solicitud de la parte interezada en fecha :  
+                                        <span t-esc="form_data.get('date_start', '')" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/> 
+                                        <br/> <br/>
+                                    </t>
+                                    <t t-if="not est or len(est) == 0">
+                                        <strong style="color: red;">No se encontraron datos del estudiante. Verifique que la sección no esté archivada.</strong>
+                                        <br/><br/>
+                                    </t>
+                                    
+                                    <t t-set="signer_id" t-value="env['cei.signer'].sudo().with_context(active_test=False).search([('id', '=', signer)])"/>
+                                    <t t-if="signer_id and signer_id.sign_signature">
+                                        <img t-att-src="image_data_uri(signer_id.sign_signature)" align="center" style="max-width: 250px; max-height: 200px; display: block; position: relative; top: 30px;" alt="Logo"/>
+                                    </t>
+                                    <t t-else="">
+                                        <div style="height: 50px;"></div>
+                                    </t-else>
                                     ---------------------------------------
                                     <br/>
-                                    <strong t-esc="signer_id.name"/> <span t-if="signer_id.job_title">-</span> <strong t-if="signer_id.job_title" t-esc="signer_id.job_title"/> 
+                                    <t t-if="signer_id and signer_id.name">
+                                        <strong t-esc="signer_id.name"/>
+                                    </t>
+                                    <t t-if="signer_id and signer_id.job_title">
+                                        <span> - </span>
+                                        <strong t-esc="signer_id.job_title"/>
+                                    </t>
                                     <br/>
                                     <br/>
                                 </td>
                             </tr>
-
-                           
-
-                            
-
-                            
                         </thead>
                     </table> 
-                  
-
                 </div>
             </t>
         </t>

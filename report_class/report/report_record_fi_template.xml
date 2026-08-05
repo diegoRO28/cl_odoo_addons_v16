@@ -10,113 +10,111 @@
                         <thead>
                             <tr  height="20px" align="center">
                                 <td style="padding-left:5px;border: 1px solid black;" class="text-left">FECHA : </td>
-                                <td style="padding-left:5px;border: 1px solid black;" class="text-left"><span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/></td>
+                                <td style="padding-left:5px;border: 1px solid black;" class="text-left">
+                                    <span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/>
+                                </td>
                             </tr>
                         </thead>
                      </table> 
 
                     <div style="color: black;" class="text-center"><h2>CONSTANCIA DE APROBACIÓN</h2></div>
 
-
-
 					<table width="100%" style="border: none;" height="30" align="justify">
                         <thead>
-
-                        <tr  height="20px" align="justify">
-                           <td colspan='4' style="padding-left:5px;padding-right:5px;border: 1px solid black;color: black;" align="justify">
-                                       La Coordinación Académica de <span t-esc="est[0]['empresa']"/>, certifica que la alumno(a)
-                                    <span t-esc="est[0]['nombre']"/> titular de la cédula de identidad N° <span t-esc="est[0]['cedula']"/> 
-                                    
-                                    registrado(a) bajo el código: <span t-esc="est[0]['codigo']"/> aprobó de manera sastisfactoria los siguientes cursos:
-                                     <br/>
-                                       
-                                             
-                    
-                                <table width="70%" height="30" align="justify" style="border: none;">
-                                    <thead>
+                            <tr  height="20px" align="justify">
+                                <td colspan='4' style="padding-left:5px;padding-right:5px;border: 1px solid black;color: black;" align="justify">
+                                    <t t-if="est and len(est) > 0">
+                                        La Coordinación Académica de <span t-esc="est[0].get('empresa', '')"/>, certifica que la alumno(a)
+                                        <span t-esc="est[0].get('nombre', '')"/> titular de la cédula de identidad N° <span t-esc="est[0].get('cedula', '')"/> 
                                         
-                                        <tr style="font-size: 20px;" height="30px" align="center">
-                                            
-                                            <th colspan="5" style="border: 1px solid black;color: black;">CURSOS</th>
-                                            
-                                        </tr>
-
-                                        <tr style="font-size: 12px;" height="25px" align="center">
-                                            
-                                            <th   style="border: 1px solid black;color: black;">#</th>
+                                        registrado(a) bajo el código: <span t-esc="est[0].get('codigo', '')"/> aprobó de manera satisfactoria los siguientes cursos:
+                                        <br/>
                                         
-                                            <th  style="border: 1px solid black;color: black;">NOMBRE</th>
-                                            <th  style="border: 1px solid black;color: black;">SECCIÓN</th>
-                                            <th  style="border: 1px solid black;color: black;">CALIFICACIÓN</th>
-                                            <th  style="border: 1px solid black;color: black;">VALORACIÓN</th>
-                                            
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                                        <table width="70%" height="30" align="justify" style="border: none;">
+                                            <thead>
+                                                <tr style="font-size: 20px;" height="30px" align="center">
+                                                    <th colspan="5" style="border: 1px solid black;color: black;">CURSOS</th>
+                                                </tr>
+                                                <tr style="font-size: 12px;" height="25px" align="center">
+                                                    <th style="border: 1px solid black;color: black;">#</th>
+                                                    <th style="border: 1px solid black;color: black;">NOMBRE</th>
+                                                    <th style="border: 1px solid black;color: black;">SECCIÓN</th>
+                                                    <th style="border: 1px solid black;color: black;">CALIFICACIÓN</th>
+                                                    <th style="border: 1px solid black;color: black;">VALORACIÓN</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <t t-set="i" t-value="0" />
+                                                <t t-foreach="cur" t-as="line">
+                                                    <tr style="font-size: 12px;">
+                                                        <t t-set="i" t-value="i+1"/>
+                                                        <td style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center">
+                                                            <span t-esc="i" />
+                                                        </td>
+                                                        <td style="padding-right:4px;padding-left:4px;border: 1px solid black;" class="text-left">
+                                                            <span t-esc="line.get('curso', '')"/>
+                                                        </td>
+                                                        <td style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center">
+                                                            <span t-esc="line.get('seccion', '')" />
+                                                        </td>
+                                                        <td style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center">
+                                                            <span t-esc="line.get('nota', 0.0)" t-options='{"widget": "float", "precision": 2}'/>
+                                                        </td>
+                                                        <td style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center">
+                                                            <span t-esc="line.get('status', '')" />
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                                <div>
+                                                    <p t-if="i == 0"><h2>NO HAY ITEMS PARA MOSTRAR</h2></p>
+                                                </div>
+                                            </tbody>
+                                        </table>
 
-                                        <t t-set="i" t-value="0" />
-                                    
-                                        <t t-foreach="cur" t-as="line">
-                                            <tr style="font-size: 12px;">
-
-                                                <t t-set="i" t-value="i+1"/>
-                            
-                                                <td   style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center"> <span t-esc="i" /></td>
-                                                
-                                                <td  style="padding-right:4px;padding-left:4px;border: 1px solid black;" class="text-left"><span t-esc="line['curso']"/></td>
-                                                <td  style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center"> <span t-esc="line['seccion']" /> </td>
-                                                <td  style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center"> <span t-esc="line['nota']" t-options='{"widget": "float", "precision": 2}'/> </td>
-                                                <td  style="padding-right:4px;padding-left:4px;border: 1px solid black;" align="center"> <span t-esc="line['status']" /> </td>
-
-                                            </tr>
-                                        </t>
-            
-                                        <div>
-                                            <p t-if="i == 0"><h2>NO HAY ITEMS PARA MOSTRAR</h2></p>
-                                        </div>
-                                    </tbody>
-                                </table>
-
-                                          pertenecientes a nuestro programa de <span t-esc="est[0]['programa']"/>.
-                                          Nuestro método de aprendizaje en el idioma Inglés consta de 6 niveles:
-                                          Beginner, Elementary, Pre-Inmediate, Advanced y avanced Plus.
+                                        pertenecientes a nuestro programa de <span t-esc="est[0].get('programa', '')"/>.
+                                        Nuestro método de aprendizaje en el idioma Inglés consta de 6 niveles:
+                                        Beginner, Elementary, Pre-Inmediate, Advanced y avanced Plus.
+                                        <br/>
+                                        <br/>
+                                        Constancia que se expide en la ciudad de Acarigua en fecha :  
+                                        <span t-esc="form_data.get('date_start', '')" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/> 
+                                        <br/> 
+                                        Atentamente,
+                                        <br/>
+                                        <br/>
+                                        <br/>
+                                    </t>
+                                    <t t-if="not est or len(est) == 0">
+                                        <strong style="color: red;">No se encontraron datos del estudiante. Verifique que la sección no esté archivada.</strong>
+                                        <br/><br/>
+                                    </t>
                                     <br/>
-                                    <br/>
-                                    Constancia que se expide en la ciudad de Acarigua en fecha :  <span t-esc="form_data['date_start']" t-options='{"widget": "date","format": "dd-MM-yyyy"}'/> 
-                                    <br/> 
-                                    Atentamente,
-                                    <br/>
-                                    <br/>
-                                    <br/>
-
-                                <br/>
-
-                            </td>
-
-
+                                </td>
                             </tr>
                             <tr align="center">
                                 <td>
-                                    <t t-set="signer_id" t-value="env['cei.signer'].sudo().search([('id', '=', signer)])"/>
-                                    <img t-if="signer_id.sign_signature" t-att-src="image_data_uri(signer_id.sign_signature)" align="center" style="max-width: 250px; max-height: 200px; display: block; position: relative; top: 30px;" alt="Logo"/>                                    
+                                    <t t-set="signer_id" t-value="env['cei.signer'].sudo().with_context(active_test=False).search([('id', '=', signer)])"/>
+                                    <t t-if="signer_id and signer_id.sign_signature">
+                                        <img t-att-src="image_data_uri(signer_id.sign_signature)" align="center" style="max-width: 250px; max-height: 200px; display: block; position: relative; top: 30px;" alt="Logo"/>
+                                    </t>
+                                    <t t-else="">
+                                        <div style="height: 50px;"></div>
+                                    </t-else>
                                     ---------------------------------------
                                     <br/>
-                                    <strong t-esc="signer_id.name"/> <span t-if="signer_id.job_title">-</span> <strong t-if="signer_id.job_title" t-esc="signer_id.job_title"/> 
+                                    <t t-if="signer_id and signer_id.name">
+                                        <strong t-esc="signer_id.name"/>
+                                    </t>
+                                    <t t-if="signer_id and signer_id.job_title">
+                                        <span> - </span>
+                                        <strong t-esc="signer_id.job_title"/>
+                                    </t>
                                     <br/>
                                     <br/>
                                 </td>
                             </tr>
-                             
-
                         </thead>
-                        
                     </table>
-
-
-
-
-      
-
                 </div>
             </t>
         </t>
