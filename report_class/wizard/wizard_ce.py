@@ -11,19 +11,8 @@ class Wizard(models.TransientModel):
 
     date_start      = fields.Date('Fecha Inicio', required=True, default=fields.Date.today)
     date_end        = fields.Date('Fecha Fin', required=True, default=fields.Date.today)
-    student_id = fields.Many2one(
-        'student.student',
-        string="Estudiante",
-        required=True,
-        context={'active_test': False}  # <--- AÑADIR ESTO
-    )
-    inscripcion_id = fields.Many2one(
-        'student.inscripcion',
-        'Sección',
-        help='Seleccione la sección',
-        required=True,
-        context={'active_test': False}  # <--- AÑADIR ESTO
-    )
+    student_id      = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
+    inscripcion_id  = fields.Many2one('student.inscripcion', 'Sección', help='Selecione la secciòn', required=True, context={'active_test': False})
     signer_id       = fields.Many2one('cei.signer', string='Firmante')
 
     def primer_dia_mes(self):
@@ -239,20 +228,15 @@ class Wizard(models.TransientModel):
         # ============================================================
         # 1. Estudiante e Inscripción
         # ============================================================
-        stuObj = self.env['student.student'].sudo().with_context(active_test=False).search(
-            [('id', '=', self.student_id.id)], order='name asc')
-
-        if not stuObj:
+        stuObj = self.env['student.student'].sudo().with_context(active_test=False).browse(self.student_id.id)
+        if not stuObj.exists():
             raise UserError('No se encontró el estudiante seleccionado.')
 
-        riObj = self.env['student.inscripcion'].sudo().with_context(active_test=False).search(
-            [('id', '=', self.inscripcion_id.id)], order='name asc')
-
-        if not riObj:
+        riObj = self.env['student.inscripcion'].sudo().with_context(active_test=False).browse(self.inscripcion_id.id)
+        if not riObj.exists():
             raise UserError('No se encontró la inscripción seleccionada.')
 
-        signer = self.env['cei.signer'].sudo().with_context(active_test=False).search(
-            [('id', '=', self.signer_id.id)])
+        signer = self.env['cei.signer'].sudo().with_context(active_test=False).browse(self.signer_id.id) if self.signer_id else False
 
         cedula = stuObj.student_ci or ''
         codigo = stuObj.student_code or ''
@@ -307,76 +291,80 @@ class Wizard(models.TransientModel):
 
         if standard_rec:
             # ============================================================
-            # 3. EVALUACIONES - Búsqueda DIRECTA
+            # 3. EVALUACIONES - Búsqueda CORRECTA para secciones archivadas
             # ============================================================
-            registros_eva = self.env['standard.evaluacion'].sudo().with_context(active_test=False).search([
-                ('standard_id', '=', standard_rec.id)
+            # PRIMERO: Buscar TODAS las evaluaciones de la sección (incluyendo archivadas)
+            evaluaciones_seccion = self.env['standard.evaluacion'].sudo().with_context(active_test=False).search([
+                ('standard_id', '=', standard_rec.id),
+                ('state', '=', 'terminate')
             ])
+            
+            # SEGUNDO: Para cada evaluación, buscar las notas del estudiante
+            for eval_seccion in evaluaciones_seccion:
+                evaluaciones = self.env['standard.evaluaciones'].sudo().with_context(active_test=False).search([
+                    ('evaluacion_id', '=', eval_seccion.id),
+                    ('student_id', '=', stuObj.id)
+                ])
 
-            for registro_eva in registros_eva:
-                if registro_eva.state == 'terminate':
-                    evaluaciones = self.env['standard.evaluaciones'].sudo().with_context(active_test=False).search([
-                        ('evaluacion_id', '=', registro_eva.id),
-                        ('student_id', '=', stuObj.id)
+                for evaluacion in evaluaciones:
+                    contaEva += 1
+                    nombreEva = evaluacion.evaluacion_id.nombre if evaluacion.evaluacion_id else ''
+                    notaT = evaluacion.nota if evaluacion.nota else 0.0
+                    nombreSta = evaluacion.state if evaluacion.state else ''
+                    acumEva += notaT
+
+                    actividades = self.env['standard.actividades'].sudo().with_context(active_test=False).search([
+                        ('evaluacion_id', '=', evaluacion.id)
                     ])
 
-                    for evaluacion in evaluaciones:
-                        contaEva += 1
-                        nombreEva = evaluacion.evaluacion_id.nombre if evaluacion.evaluacion_id else ''
-                        notaT = evaluacion.nota if evaluacion.nota else 0.0
-                        nombreSta = evaluacion.state if evaluacion.state else ''
-                        acumEva += notaT
-
-                        actividades = self.env['standard.actividades'].sudo().with_context(active_test=False).search([
-                            ('evaluacion_id', '=', evaluacion.id)
-                        ])
-
-                        act_list = []
-                        for actividad in actividades:
-                            act_list.append({
-                                'nombreAct': (actividad.nombre or '').upper(),
-                                'nota': actividad.nota or 0.0,
-                                'nota_r': actividad.nota_r or 0.0,
-                            })
-
-                        eva.append({
-                            'nombreEva': (nombreEva or '').upper(),
-                            'nota': notaT,
-                            'nombreSta': (nombreSta or '').upper(),
-                            'noAct': len(act_list),
-                            'listAct': act_list,
+                    act_list = []
+                    for actividad in actividades:
+                        act_list.append({
+                            'nombreAct': (actividad.nombre or '').upper(),
+                            'nota': actividad.nota or 0.0,
+                            'nota_r': actividad.nota_r or 0.0,
                         })
 
+                    eva.append({
+                        'nombreEva': (nombreEva or '').upper(),
+                        'nota': notaT,
+                        'nombreSta': (nombreSta or '').upper(),
+                        'noAct': len(act_list),
+                        'listAct': act_list,
+                    })
+
             # ============================================================
-            # 4. ASISTENCIAS - Búsqueda DIRECTA
+            # 4. ASISTENCIAS - Búsqueda CORRECTA para secciones archivadas
             # ============================================================
-            registros_asi = self.env['subject.asistencia'].sudo().with_context(active_test=False).search([
-                ('standard_id', '=', standard_rec.id)
+            # PRIMERO: Buscar TODAS las asistencias de la sección (incluyendo archivadas)
+            asistencias_seccion = self.env['subject.asistencia'].sudo().with_context(active_test=False).search([
+                ('standard_id', '=', standard_rec.id),
+                ('state', '=', 'terminate')
             ])
+            
+            # SEGUNDO: Para cada asistencia, buscar el registro del estudiante
+            for asis_seccion in asistencias_seccion:
+                asistencias = self.env['subject.asistencias'].sudo().with_context(active_test=False).search([
+                    ('asistencia_id', '=', asis_seccion.id),
+                    ('student_id', '=', stuObj.id)
+                ])
 
-            for registro_asi in registros_asi:
-                if registro_asi.state == 'terminate':
-                    asistencias = self.env['subject.asistencias'].sudo().with_context(active_test=False).search([
-                        ('asistencia_id', '=', registro_asi.id),
-                        ('student_id', '=', stuObj.id)
-                    ])
+                for asistencia in asistencias:
+                    contaAsi += 1
+                    nombreAsi = asistencia.asistencia_id.name if asistencia.asistencia_id else ''
+                    nombreSta = self.get_estado(asistencia.asistencia_id.state) if asistencia.asistencia_id else ''
 
-                    for asistencia in asistencias:
-                        contaAsi += 1
-                        nombreAsi = asistencia.asistencia_id.name if asistencia.asistencia_id else ''
-                        nombreSta = self.get_estado(asistencia.asistencia_id.state) if asistencia.asistencia_id else ''
+                    if asistencia.is_attended:
+                        contaAsiste += 1
+                        is_asistio = 'ASISTENTE'
+                    else:
+                        is_asistio = 'INASISTENTE'
 
-                        if asistencia.is_attended:
-                            contaAsiste += 1
-                            is_asistio = 'ASISTENTE'
-                        else:
-                            is_asistio = 'INASISTENTE'
-
-                        asi.append({
-                            'nombreAsi': nombreAsi,
-                            'nombreSta': nombreSta,
-                            'is_asistio': is_asistio,
-                        })
+                    asi.append({
+                        'nombreAsi': nombreAsi,
+                        'nombreSta': nombreSta,
+                        'is_asistio': is_asistio,
+                    })
 
         # ============================================================
         # 5. Promedios

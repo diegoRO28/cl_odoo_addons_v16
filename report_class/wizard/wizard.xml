@@ -8,12 +8,10 @@
             <form string="Record Académico">
                 <sheet> 
                     <group col="2">
-                        <!-- <separator string="SELECCIONE EL ESTUDIANTE" colspan="2" /> -->
                         <group string="SELECCIONE EL ESTUDIANTE">
                               <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
                         </group>
                         
-                        <!-- <separator string="SELECCIONE LA SECCIÓN" colspan="2" /> -->
                         <group string="SELECCIONE LA SECCIÓN">
                               <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection" />
                         </group>
@@ -51,11 +49,10 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="report_wizard_view_form" />
         <field name="target">new</field>
-        <!-- AÑADIR ESTA LÍNEA -->
         <field name="context">{'active_test': False}</field>
     </record>
-	
-	<!-- Definición del menú -->
+    
+    <!-- Definición del menú -->
     <menuitem
               id="report_menu_docu"
             name="Documentos"

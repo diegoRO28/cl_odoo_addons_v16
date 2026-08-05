@@ -39,10 +39,10 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="report_wizard_ce_view_form" />
         <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
     </record>
-	
-	<!-- Definición del menú -->
-
+    
+    <!-- Definición del menú -->
         <menuitem id="menu_constancia" 
                 name='Constancias'
               parent="report_menu_docu" 
