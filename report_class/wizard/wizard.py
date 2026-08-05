@@ -62,8 +62,8 @@ class Wizard(models.TransientModel):
         elif sta == 'aplazado':
             return 'APLAZADO'
         else:
-            return sta
-        return sta
+            return sta or ''
+        return sta or ''
 
     def get_estado_estudiante(self, sta):
         if sta == 'draft':
@@ -75,8 +75,8 @@ class Wizard(models.TransientModel):
         elif sta == 'cancel':
             return 'RETIRADO'
         else:
-            return sta
-        return sta
+            return sta or ''
+        return sta or ''
 
     def action_search_salida(self):
         form_data = self.read()[0]
@@ -97,16 +97,12 @@ class Wizard(models.TransientModel):
         # ============================================================
         # 1. Estudiante e Inscripción (incluyendo archivados)
         # ============================================================
-        stuObj = self.env['student.student'].sudo().with_context(active_test=False).search(
-            [('id', '=', self.student_id.id)], order='name asc')
-
-        if not stuObj:
+        stuObj = self.env['student.student'].sudo().with_context(active_test=False).browse(self.student_id.id)
+        if not stuObj.exists():
             raise UserError('No se encontró el estudiante seleccionado.')
 
-        riObj = self.env['student.inscripcion'].sudo().with_context(active_test=False).search(
-            [('id', '=', self.inscripcion_id.id)], order='name asc')
-
-        if not riObj:
+        riObj = self.env['student.inscripcion'].sudo().with_context(active_test=False).browse(self.inscripcion_id.id)
+        if not riObj.exists():
             raise UserError('No se encontró la inscripción seleccionada.')
 
         cedula = stuObj.student_ci or ''
@@ -116,13 +112,15 @@ class Wizard(models.TransientModel):
         # ============================================================
         # 2. Sección (incluyendo archivada)
         # ============================================================
-        standard_rec = riObj.standard_id.sudo().with_context(active_test=False) if riObj.standard_id else None
+        standard_rec = False
+        if riObj.standard_id:
+            standard_rec = self.env['school.standard'].sudo().with_context(active_test=False).browse(riObj.standard_id.id)
 
         seccion = ''
         curso = ''
         estado = ''
 
-        if standard_rec:
+        if standard_rec and standard_rec.exists():
             seccion = (standard_rec.code + '-' + standard_rec.name) if standard_rec.code and standard_rec.name else (standard_rec.name or '')
             curso = standard_rec.subject_id.nombre if standard_rec.subject_id else ''
             estado = self.get_estado_estudiante(riObj.state) if riObj else ''
@@ -136,90 +134,79 @@ class Wizard(models.TransientModel):
             'estado': estado,
         })
 
-        if standard_rec:
+        if standard_rec and standard_rec.exists():
             # ============================================================
-            # 3. EVALUACIONES - Búsqueda DIRECTA (solución al problema)
+            # 3. EVALUACIONES - Búsqueda DIRECTA por estudiante + sección
+            #    (no depende del estado del maestro ni de One2many)
             # ============================================================
-            registros_eva = self.env['standard.evaluacion'].sudo().with_context(active_test=False).search([
-                ('standard_id', '=', standard_rec.id)
+            evaluaciones = self.env['standard.evaluaciones'].sudo().with_context(active_test=False).search([
+                ('student_id', '=', stuObj.id),
+                ('evaluacion_id.standard_id', '=', standard_rec.id),
             ])
 
-            for registro_eva in registros_eva:
-                if registro_eva.state == 'terminate':
-                    # Detalle de evaluación del estudiante
-                    evaluaciones = self.env['standard.evaluaciones'].sudo().with_context(active_test=False).search([
-                        ('evaluacion_id', '=', registro_eva.id),
-                        ('student_id', '=', stuObj.id)
-                    ])
+            for evaluacion in evaluaciones:
+                contaEva += 1
+                nombreEva = evaluacion.evaluacion_id.nombre if evaluacion.evaluacion_id else ''
+                notaT = evaluacion.nota if evaluacion.nota else 0.0
+                nombreSta = evaluacion.state if evaluacion.state else ''
+                acumEva += notaT
 
-                    for evaluacion in evaluaciones:
-                        contaEva += 1
-                        nombreEva = evaluacion.evaluacion_id.nombre if evaluacion.evaluacion_id else ''
-                        notaT = evaluacion.nota if evaluacion.nota else 0.0
-                        nombreSta = evaluacion.state if evaluacion.state else ''
-                        acumEva += notaT
+                # Actividades del detalle
+                actividades = self.env['standard.actividades'].sudo().with_context(active_test=False).search([
+                    ('evaluacion_id', '=', evaluacion.id)
+                ])
 
-                        # Actividades
-                        actividades = self.env['standard.actividades'].sudo().with_context(active_test=False).search([
-                            ('evaluacion_id', '=', evaluacion.id)
-                        ])
+                act_list = []
+                for actividad in actividades:
+                    act_list.append({
+                        'nombreAct': (actividad.nombre or '').upper(),
+                        'nota': actividad.nota or 0.0,
+                        'nota_r': actividad.nota_r or 0.0,
+                    })
 
-                        act_list = []
-                        for actividad in actividades:
-                            act_list.append({
-                                'nombreAct': (actividad.nombre or '').upper(),
-                                'nota': actividad.nota or 0.0,
-                                'nota_r': actividad.nota_r or 0.0,
-                            })
-
-                        eva.append({
-                            'nombreEva': (nombreEva or '').upper(),
-                            'nota': notaT,
-                            'nombreSta': (nombreSta or '').upper(),
-                            'noAct': len(act_list),
-                            'listAct': act_list,
-                        })
+                eva.append({
+                    'nombreEva': (nombreEva or '').upper(),
+                    'nota': notaT,
+                    'nombreSta': (nombreSta or '').upper(),
+                    'noAct': len(act_list),
+                    'listAct': act_list,
+                })
 
             # ============================================================
-            # 4. ASISTENCIAS - Búsqueda DIRECTA (solución al problema)
+            # 4. ASISTENCIAS - Búsqueda DIRECTA por estudiante + sección
             # ============================================================
-            registros_asi = self.env['subject.asistencia'].sudo().with_context(active_test=False).search([
-                ('standard_id', '=', standard_rec.id)
+            asistencias = self.env['subject.asistencias'].sudo().with_context(active_test=False).search([
+                ('student_id', '=', stuObj.id),
+                ('asistencia_id.standard_id', '=', standard_rec.id),
             ])
 
-            for registro_asi in registros_asi:
-                if registro_asi.state == 'terminate':
-                    asistencias = self.env['subject.asistencias'].sudo().with_context(active_test=False).search([
-                        ('asistencia_id', '=', registro_asi.id),
-                        ('student_id', '=', stuObj.id)
-                    ])
+            for asistencia in asistencias:
+                contaAsi += 1
 
-                    for asistencia in asistencias:
-                        contaAsi += 1
+                nombreAsi = asistencia.asistencia_id.name if asistencia.asistencia_id else ''
+                encuentro_nombre = ''
+                if asistencia.asistencia_id and asistencia.asistencia_id.encuentro_id:
+                    encuentro_nombre = asistencia.asistencia_id.encuentro_id.name or ''
+                descripcion = asistencia.asistencia_id.note if asistencia.asistencia_id and asistencia.asistencia_id.note else ''
+                nombreSta = self.get_estado(asistencia.asistencia_id.state) if asistencia.asistencia_id else ''
 
-                        nombreAsi = asistencia.asistencia_id.name if asistencia.asistencia_id else ''
-                        encuentro_nombre = asistencia.asistencia_id.encuentro_id.name if asistencia.asistencia_id and asistencia.asistencia_id.encuentro_id else ''
-                        descripcion = asistencia.asistencia_id.note if asistencia.asistencia_id and asistencia.asistencia_id.note else ''
-                        nombreSta = self.get_estado(asistencia.asistencia_id.state) if asistencia.asistencia_id else ''
+                if asistencia.is_attended:
+                    contaAsiste += 1
+                    is_asistio = 'ASISTENTE'
+                else:
+                    is_asistio = 'INASISTENTE'
 
-                        if asistencia.is_attended:
-                            contaAsiste += 1
-                            is_asistio = 'ASISTENTE'
-                        else:
-                            is_asistio = 'INASISTENTE'
-
-                        asi.append({
-                            'nombreAsi': nombreAsi,
-                            'encuentro_nombre': encuentro_nombre,
-                            'descripcion': descripcion,
-                            'nombreSta': nombreSta,
-                            'is_asistio': is_asistio,
-                        })
+                asi.append({
+                    'nombreAsi': nombreAsi,
+                    'encuentro_nombre': encuentro_nombre,
+                    'descripcion': descripcion,
+                    'nombreSta': nombreSta,
+                    'is_asistio': is_asistio,
+                })
 
         # ============================================================
         # 5. Promedios
         # ============================================================
-        nombreSta = ''
         promeT = riObj.nota if riObj and riObj.nota else 0.0
         nombreSta = self.get_estado(riObj.state_eva) if riObj and riObj.state_eva else ''
 
