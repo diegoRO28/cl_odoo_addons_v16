@@ -75,7 +75,6 @@ class SchoolStudent(models.Model):
     state = fields.Selection([('draft', 'Draft'), ('done', 'Done'),
         ('terminate', 'Terminate'), ('cancel', 'Cancel'),
         ('alumni', 'Alumni')], 'Status', readonly=True, default="draft", tracking=True, help='State of the student registration form')
-    
     @api.model
     def create(self, vals):
         

@@ -50,7 +50,7 @@ class AccountMove(models.Model):
     @api.constrains('invoice_date_due')
     def _validate_invoice_date_due(self):
         for rec in self:
-            if rec.invoice_date_due < rec.course_start_date:
+            if rec.invoice_date_due and rec.course_start_date and rec.invoice_date_due < rec.course_start_date:
                 raise ValidationError(_(f'La Fecha de vencimiento ({rec.invoice_date_due.strftime("%d/%m/%Y")}) no puede ser menor a la Fecha de inicio del curso ({rec.course_start_date.strftime("%d/%m/%Y")}).'))
 
             if rec.fee_line_ids:

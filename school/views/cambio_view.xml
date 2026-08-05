@@ -6,7 +6,6 @@
         <field name="name">student.cambio.tree.1</field>
         <field name="model">student.cambio</field>
         <field name="arch" type="xml">
-            <!-- <tree string="Student Information" create="false" delete="false"> -->
             <tree string="Student Information" delete="1" 
                                     decoration-danger="state == 'cancel'"
                                     decoration-info="state == 'terminate'"
@@ -29,126 +28,59 @@
 
     <!-- Form View 1 Of Student's Profiles -->
     <record id="view_student_cambio_form" model="ir.ui.view">
-        <field name="name">student.cambio.form.1</field>
+        <field name="name">student.cambio.form</field>
         <field name="model">student.cambio</field>
         <field name="arch" type="xml">
-            <!-- <form string="Student Information" create="false" delete="false"> -->
-            <form string="Student Information" delete="0" duplicate="0">
+            <form string="Cambio de Sección">
                 <header>
-                    <!-- <button class="oe_highlight oe_stat_button" name="%(school.action_terminate_wizard)d" string="Terminate" type="action" icon="fa-ban" states="done" groups="school.group_school_administration" /> -->
-                    <!-- <button class="oe_stat_button" name="set_alumni" string="Alumni" type="object" icon="fa-archive" states="done" groups="school.group_school_administration" /> -->
-                    <button class="btn-success" icon="fa-check" name="admission_done" type="object" confirm="Está seguro de Confirmar el cambio ?"
-                            string="CONFIRMAR CAMBIO DE SECCIÓN" states="draft" groups="school.group_school_administration" /> 
-                    <!-- <button class="btn-danger" icon="fa-ban" name="cancel_admission" type="object" confirm="Está seguro de Cancelar la Inscripción ?"
-                            string="CANCELAR INSCRIPCIÒN" states="done" groups="school.group_school_administration"/> -->
-                    <field name="state" widget="statusbar" statusbar_visible="draft,done,terminate,cancel"/>
+                    <button name="admission_done" string="Confirmar Cambio" type="object" 
+                            class="btn-primary" states="draft"/>
+                    <button name="action_ver_cadena_cambios" string="Ver Cadena Completa" type="object" 
+                            class="btn-secondary"/>
+                    <button name="action_revertir_ultimo_cambio" string="Revertir Último Cambio" type="object" 
+                            class="btn-danger" states="terminate"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done,terminate"/>
                 </header>
                 <sheet>
-                    <widget name="web_ribbon" title="Borrador" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
-                    <widget name="web_ribbon" title="En proceso"   bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
-                    <widget name="web_ribbon" title="Realizado"  bg_color="bg-info"  attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
-                    <!-- <widget name="web_ribbon" title="Retirado"  bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/> -->
-
-                    <div class="oe_button_box" name="buttons"></div>
-                   
                     <div class="oe_title">
-                            <h3>
-                                <field name="name" readonly="1"/>
-                            </h3>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
                     </div>
-                   
-                        <group col="2" string="INFORMACIÓN DEL ESTUDIANTE">
-                             <group>
-                                 <field name="student_id" placeholder="Estudiante" required="1" attrs="{'readonly': [('state', 'in', ['done','terminate'])]}" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
-                                 <field name="ri_id" placeholder="RI" help="Seleccione la factura" domain="[('student_id','=', student_id),('state','in', ['done'])]"  attrs="{'readonly': [('state', 'in', ['done','terminate'])]}" options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
-                                 <field name="student_code" string="Código" placeholder="Estudiante" readonly="1" required="1" attrs="{'readonly': [('state', 'in', ['done','terminate'])]}"
-                                           decoration-info="1"
-                                        widget="badge"
-                                 />
-                             </group>
-                             
-                             <group>
-                                 <field name="photo" widget="image" class="float-left oe_avatar" readonly="1" nolabel="1"/>
-                             </group>
+                    <group>
+                        <group>
+                            <field name="student_id"/>
+                            <field name="student_code"/>
+                            <field name="ri_id" readonly="1" options="{'no_create': True, 'no_search': True}"/>
+                            <field name="cambio_date"/>
+                            <field name="tipocambio_id"/>
                         </group>
-
-                    <group col="2">
-
-                        <group string="INFORMACIÓN DE LA SECCIÓN-ORIGEN">                                        
-                                <field name="inscripcion_date" placeholder="Fecha Inscripción" readonly="1"/>
-                                <field name="school_id" placeholder="Campus" widget="selection" help="School of Student" readonly="1"/>
-                                <field name="standard_id" placeholder="Secciòn" readonly="1" widget="selection"/> 
-                                <field name="subject_id" placeholder="Curso"  readonly="1" widget="selection"/>
-                                <field name="company_id" placeholder="Compañía" readonly="1" widget="selection" />
-                        
-                                <field name="state_aux" attrs="{'invisible': [('state', 'not in', ['terminate'])]}"
-                                        decoration-danger="state_aux =='retirado'"
-                                        widget="badge" />                                
-                                
+                        <group>
+                            <field name="photo" widget="image" class="oe_avatar"/>
                         </group>
-
-                        <group string="INFORMACIÓN DE LA FACTURA">
-                                <field name="move_id" placeholder="Factura Asociada" help="Seleccione la factura" readonly="1"/>
-                                <field name="move_type" string="Tipo" readonly="1"/>
-                                <field name="state_invoice" string="Status" readonly="1"/>
-                        </group>
- 
-                     </group>
-                     <group col="2">
-                        <group string="INFORMACIÓN DE LA SECCIÓN-DESTINO">                                        
-                                <field name="school_des_id" placeholder="Campus" widget="selection" help="School of Student" />
-                                <field name="standard_des_id" placeholder="Secciòn" 
-                                                            domain="[('school_id','=', school_des_id), ('state','in',['draft','done']), ('remaining_seats','>',0)]" 
-                                                            attrs="{'readonly': [('state', 'in', ['done','terminate','cancel'])]}" 
-                                                            options="{'no_edit': True, 'no_create': True, 'no_open': True}"
-                                /> 
-                                <field name="subject_des_id" placeholder="Curso"  readonly="1" widget="selection"/>                            
-                                <field name="company_des_id" placeholder="Compañía" readonly="1" widget="selection" />
-
-                        </group>
-                        <group string="INFORMACIÓN DEL cambio">
-                               <field name="cambio_date" placeholder="Fecha cambio" widget="date" help="Escriba la fecha" attrs="{'readonly': [('state', 'in', ['done','terminate'])]}"/>
-                               <field name="tipocambio_id" placeholder="Tipo de cambio" help="Seleccione la factura" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
-                        </group>
-
-                     </group>
-
-                    <separator string="Observaciones" />
-                    <group colspan="4">
-                       <field name="note" colspan="2" placeholder="Observaciones" nolabel="1" widget="text"/>
                     </group>
-                    
+                
+                    <group string="Secciones">
+                        <group string="Origen">
+                            <field name="standard_id" readonly="1" string="Sección Origen (Actual)"/>
+                            <field name="school_id" readonly="1" string="Campus Origen"/>
+                            <field name="subject_id" readonly="1"/>
+                        </group>
+                        <group string="Destino">
+                            <field name="standard_des_id" 
+                                   domain="[('school_id','=',school_des_id), ('id','!=', standard_id)]" 
+                                   required="1"/>
+                            <field name="school_des_id" string="Campus Destino" required="1"/>
+                            <field name="subject_des_id" readonly="1"/>
+                            <field name="standard_des_id.remaining_seats" string="Cupos Disponibles" readonly="1"/>
+                        </group>
+                    </group>
+                
+                    <group string="Información Adicional">
+                        <field name="note"/>
+                    </group>
                 </sheet>
-                <div class="oe_chatter">
-                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
-                    <field name="message_ids" widget="mail_thread"/>
-                </div>
             </form>
-        </field>
-    </record>
-
-    <!-- Search View Of School Standard Information -->
-    <record id="view_student_cambio_search" model="ir.ui.view">
-        <field name="name">school.cambio.search</field>
-        <field name="model">student.cambio</field>
-        <field name="arch" type="xml">
-            <search string="Información de Grupo">
-                <group col="10" colspan="4">
-
-                    <field name="student_code" string="Código estudiante"/>
-                    <field name="student_id"   string="Nombre estudiante" />
-                    <field name="standard_id"  string="Sección"/>
-                    <field name="school_id"    string="Campus"/>
-                   
-                </group>
-                <newline />
-                <group expand="0" string="Group By..." colspan="12" col="10">
-                    <filter name="school" string="Estudiante" help="By Sedes" context="{'group_by':'student_id'}" />
-                    <filter name="school" string="Campus" help="By Sedes" context="{'group_by':'school_id'}" />
-                    <filter name="class" string="Secciòn" help="By Class" context="{'group_by':'standard_id'}" />
-                    <filter name="medium" string="Status" help="By Status" context="{'group_by':'state'}" />
-                </group>
-            </search>
         </field>
     </record>
   

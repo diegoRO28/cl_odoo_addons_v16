@@ -188,7 +188,7 @@
             <field name="name">Rule Access teacher Evaluaciones</field>
             <field name="model_id" ref="model_subject_evaluaciones"/>
             <field name="global" eval="True"/>
-            <field name="domain_force">[('teacher_id.emplyee_id.user_id','=',user.id)]</field>
+            <field name="domain_force">[('teacher_id.user_id','=',user.id)]</field>
             <field name="groups" eval="[(4, ref('group_school_teacher'))]"/>
         </record>
 

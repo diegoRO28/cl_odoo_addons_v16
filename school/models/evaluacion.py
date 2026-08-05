@@ -427,6 +427,7 @@ class SubjectEvaluaciones(models.Model):
     inscripcion_id = fields.Many2one('student.inscripcion', string='Registro Inscripciòn', required=True, help='Registro Inscripcion')
     evaluacion_id  = fields.Many2one('subject.evaluacion',  string="Evaluaciones", required=True)
     student_id     = fields.Many2one('student.student',     string='Estudiante', required=True, help='Estudiante')
+    teacher_id    = fields.Many2one('school.teacher', 'Profesor', help='Profesor')
 
     eva_oral    = fields.Float('Evaluación Oral', help='Escriba la evaluación Oral', default=0)
     eva_esc     = fields.Float('Evaluación Escrita', help='Escriba la evaluación Escrita', default=0)
