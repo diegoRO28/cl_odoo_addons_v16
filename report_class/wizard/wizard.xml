@@ -51,6 +51,8 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="report_wizard_view_form" />
         <field name="target">new</field>
+        <!-- AÑADIR ESTA LÍNEA -->
+        <field name="context">{'active_test': False}</field>
     </record>
 	
 	<!-- Definición del menú -->

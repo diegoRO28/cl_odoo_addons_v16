@@ -11,8 +11,19 @@ class Wizard(models.TransientModel):
 
     date_start      = fields.Date('Fecha Inicio', required=True, default=fields.Date.today)
     date_end        = fields.Date('Fecha Fin', required=True, default=fields.Date.today)
-    student_id      = fields.Many2one('student.student', string="Estudiante", required=True)
-    inscripcion_id  = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True)
+    student_id = fields.Many2one(
+        'student.student',
+        string="Estudiante",
+        required=True,
+        context={'active_test': False}  # <--- AÑADIR ESTO
+    )
+    inscripcion_id = fields.Many2one(
+        'student.inscripcion',
+        'Sección',
+        help='Seleccione la sección',
+        required=True,
+        context={'active_test': False}  # <--- AÑADIR ESTO
+    )
 
     standard_id      = fields.Many2one('school.standard', 'Sección', related='inscripcion_id.standard_id', help='Select student standard', required=True, readonly=True)
     school_id        = fields.Many2one('school.campus', 'Campus', related='inscripcion_id.school_id', help='Select Campus', required=True, readonly=True)
