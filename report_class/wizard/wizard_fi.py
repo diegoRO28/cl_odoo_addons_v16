@@ -124,20 +124,24 @@ class Wizard(models.TransientModel):
                  # Tomar datos de la primera inscripción para información general
                  first_inscripcion = riObj[0]
                  
-                 if first_inscripcion.standard_id.code:
-                    seccion += first_inscripcion.standard_id.code
-                 if first_inscripcion.standard_id.name:
-                    seccion += '-' + first_inscripcion.standard_id.name
+                 # FORZAR active_test=False para la sección
+                 standard_rec = first_inscripcion.standard_id.with_context(active_test=False) if first_inscripcion.standard_id else None
                  
-                 curso      = first_inscripcion.standard_id.subject_id.nombre if first_inscripcion.standard_id.subject_id else ''
-                 schedule   = first_inscripcion.standard_id.note if first_inscripcion.standard_id.note else ''
-                 signature  = first_inscripcion.standard_id.company_id.director_signature if first_inscripcion.standard_id.company_id else False
-                 director   = first_inscripcion.standard_id.company_id.director_name if first_inscripcion.standard_id.company_id else ''
-                 director_id = first_inscripcion.standard_id.company_id.director_id if first_inscripcion.standard_id.company_id else ''
-                 director_job = first_inscripcion.standard_id.company_id.director_job if first_inscripcion.standard_id.company_id else ''
-                 empresa    = first_inscripcion.standard_id.company_id.name if first_inscripcion.standard_id.company_id else ''
-                 programa   = first_inscripcion.standard_id.subject_id.programa_id.name if first_inscripcion.standard_id.subject_id and first_inscripcion.standard_id.subject_id.programa_id else ''
-                 estado     = self.get_estado(first_inscripcion.state)
+                 if standard_rec:
+                    seccion = ''
+                    if standard_rec.code:
+                       seccion += standard_rec.code
+                    if standard_rec.name:
+                       seccion += '-' + standard_rec.name
+                    curso      = standard_rec.subject_id.nombre if standard_rec.subject_id else ''
+                    schedule   = standard_rec.note if standard_rec.note else ''
+                    signature  = standard_rec.company_id.director_signature if standard_rec.company_id else False
+                    director   = standard_rec.company_id.director_name if standard_rec.company_id else ''
+                    director_id = standard_rec.company_id.director_id if standard_rec.company_id else ''
+                    director_job = standard_rec.company_id.director_job if standard_rec.company_id else ''
+                    empresa    = standard_rec.company_id.name if standard_rec.company_id else ''
+                    programa   = standard_rec.subject_id.programa_id.name if standard_rec.subject_id and standard_rec.subject_id.programa_id else ''
+                    estado     = self.get_estado(first_inscripcion.state)
 
              est.append({      
                             'cedula'        : cedula,  
@@ -153,14 +157,12 @@ class Wizard(models.TransientModel):
                             'empresa'       : empresa,
                             'programa'      : programa,
                             'estado'        : estado,
-                      
                           })
 
              
              if riObj:
                  
                  no_cur      = len(riObj)
-                 
 
                 #-----------------------------------------------------------------------#
                 # CICLO CURSOS - Iterar sobre todas las inscripciones                   #
@@ -171,6 +173,7 @@ class Wizard(models.TransientModel):
                     if riObj[j-1].standard_id and (riObj[j-1].nota == 0 or riObj[j-1].state_eva == 'borrador'):
                         try:
                             # Ejecutar método set_avance para recalcular promedios
+                            # FORZAR active_test=False para la sección
                             riObj[j-1].standard_id.with_context(active_test=False).set_avance()
                         except Exception as e:
                             # Si hay error, continuar sin detener el proceso
@@ -186,7 +189,7 @@ class Wizard(models.TransientModel):
                     else:
                         seccion = seccion_completa
                     
-                    nota      = riObj[j-1].nota
+                    nota      = riObj[j-1].nota if riObj[j-1].nota else 0.0
                     status    = riObj[j-1].state_eva if riObj[j-1].state_eva else ''
                   
                     cur.append({      
@@ -194,7 +197,6 @@ class Wizard(models.TransientModel):
                                 'seccion'  : seccion, 
                                 'nota'     : nota,
                                 'status'   : status
-
                                 })
                         
                     j = j + 1

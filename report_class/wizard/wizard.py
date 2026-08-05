@@ -169,7 +169,8 @@ class Wizard(models.TransientModel):
                         
                     if standard_rec.registroeva_ids[j-1].state == 'terminate':
                         
-                        reObj   = standard_rec.registroeva_ids[j-1].with_context(active_test=False).evaluacion_ids
+                        # FORZAR active_test=False para los detalles de evaluación
+                        reObj = standard_rec.registroeva_ids[j-1].with_context(active_test=False).evaluacion_ids
                         no_evas = len(reObj)
                         
                         #-----------------------------------------------------------------------#
@@ -177,32 +178,36 @@ class Wizard(models.TransientModel):
                         #-----------------------------------------------------------------------#
 
                         r = 1
-
+                        nombreEva = ''
+                        notaT = 0.0
+                        nombreSta = ''
+                        
                         while r <= no_evas:
-                            if stuObj.id == reObj[r-1].student_id.id:
+                            # Verificar que el estudiante existe en esta evaluación
+                            if reObj[r-1].student_id.id == stuObj.id:
 
                                 contaEva = contaEva + 1
 
-                                nombreEva = reObj[r-1].evaluacion_id.nombre
-                                notaT     = reObj[r-1].nota
-                                nombreSta = reObj[r-1].state
+                                nombreEva = reObj[r-1].evaluacion_id.nombre if reObj[r-1].evaluacion_id else ''
+                                notaT     = reObj[r-1].nota if reObj[r-1].nota else 0.0
+                                nombreSta = reObj[r-1].state if reObj[r-1].state else ''
                                 acumEva  += notaT
                                 
-                                raObj     = reObj[r-1].actividad_ids
-                                no_act    = len(raObj)
-                                act       = []
+                                # FORZAR active_test=False para las actividades
+                                raObj = reObj[r-1].with_context(active_test=False).actividad_ids
+                                no_act = len(raObj)
+                                act = []
                                 i = 1
 
                                 while i <= no_act:
-                                    nombreAct = raObj[i-1].nombre
-                                    nota      = raObj[i-1].nota
-                                    nota_r    = raObj[i-1].nota_r
+                                    nombreAct = raObj[i-1].nombre if raObj[i-1].nombre else ''
+                                    nota = raObj[i-1].nota if raObj[i-1].nota else 0.0
+                                    nota_r = raObj[i-1].nota_r if raObj[i-1].nota_r else 0.0
                                 
                                     act.append({      
                                         'nombreAct' : nombreAct.upper(),       
                                         'nota'      : nota,
                                         'nota_r'    : nota_r,  
-                                        #'company': self.env.user.company_id
                                     })
 
                                     i = i + 1
@@ -216,9 +221,6 @@ class Wizard(models.TransientModel):
                                     'nombreSta' : nombreSta.upper(),  
                                     'noAct'     : no_act, 
                                     'listAct'   : act,
-                                    
-
-                                    #'company': self.env.user.company_id
                                    })
 
                     j = j + 1
@@ -231,8 +233,9 @@ class Wizard(models.TransientModel):
                         
                     if standard_rec.asistencia_ids[j-1].state == 'terminate':
                         
-                        raObj   = standard_rec.asistencia_ids[j-1].with_context(active_test=False).asistencia_ids
-                        no_detalle_asi  = len(raObj)
+                        # FORZAR active_test=False para los detalles de asistencia
+                        raObj = standard_rec.asistencia_ids[j-1].with_context(active_test=False).asistencia_ids
+                        no_detalle_asi = len(raObj)
 
                         #-----------------------------------------------------------------------#
                         # CICLO DETALLES DE ASISTENCIA DE LA SECCION                            #
@@ -243,16 +246,16 @@ class Wizard(models.TransientModel):
                         encuentro_nombre = ''
                         descripcion = ''
                         is_asistio = False
+                        nombreSta = ''
                         
                         while r <= no_detalle_asi:
-                            if stuObj.id == raObj[r-1].student_id.id:
+                            if raObj[r-1].student_id.id == stuObj.id:
                                 contaAsi = contaAsi + 1
-                                nombreAsi = raObj.asistencia_id.name
-                                # Obtener el nombre del encuentro
-                                encuentro_nombre = raObj.asistencia_id.encuentro_id.name if raObj.asistencia_id.encuentro_id else ''
-                                # Obtener la descripción/nota
-                                descripcion = raObj.asistencia_id.note if raObj.asistencia_id.note else ''
-                                nombreSta = self.get_estado(raObj.asistencia_id.state)
+                                # Acceder a los campos con valores por defecto si son None
+                                nombreAsi = raObj.asistencia_id.name if raObj.asistencia_id else ''
+                                encuentro_nombre = raObj.asistencia_id.encuentro_id.name if raObj.asistencia_id and raObj.asistencia_id.encuentro_id else ''
+                                descripcion = raObj.asistencia_id.note if raObj.asistencia_id and raObj.asistencia_id.note else ''
+                                nombreSta = self.get_estado(raObj.asistencia_id.state) if raObj.asistencia_id else ''
                                 
                                 if raObj[r-1].is_attended:
                                     contaAsiste = contaAsiste + 1
@@ -274,18 +277,16 @@ class Wizard(models.TransientModel):
         
         # OBTENER CALIFICACIÓN Y VALORACIÓN DIRECTAMENTE DEL MODELO student.inscripcion
         nombreSta = ''
-        promeT = riObj.nota if riObj else 0
+        promeT = riObj.nota if riObj and riObj.nota else 0.0
         nombreSta = self.get_estado(riObj.state_eva) if riObj and riObj.state_eva else ''
                 
         if contaAsi != 0:
             promeA = (contaAsiste/contaAsi)*100
 
-
         pro.append({      
                     'promeT'    : promeT,
                     'promeA'    : promeA,
                     'nombreSta' : nombreSta,
-
                    })
         
         data = {

@@ -277,9 +277,10 @@ class Wizard(models.TransientModel):
 
         calificaVals = self.get_escala()
 
-        stuObj = self.env['student.student'].search([('id','=', self.student_id.id)] , order ='name asc')
+        # Incluir registros archivados
+        stuObj = self.env['student.student'].with_context(active_test=False).search([('id','=', self.student_id.id)] , order ='name asc')
 
-        riObj = self.env['student.inscripcion'].search([('id','=', self.inscripcion_id.id)] , order ='name asc')
+        riObj = self.env['student.inscripcion'].with_context(active_test=False).search([('id','=', self.inscripcion_id.id)] , order ='name asc')
 
         signer = self.env['cei.signer'].sudo().search([('id','=', self.signer_id.id)])
 
@@ -288,21 +289,35 @@ class Wizard(models.TransientModel):
              cedula     = stuObj.student_ci
              codigo     = stuObj.student_code
              nombre     = stuObj.name
-             seccion    = riObj.standard_id.code +  '-' + riObj.standard_id.name
              
-             # MODIFICACIÓN: Extraer solo el nivel del curso
-             curso_completo = riObj.standard_id.subject_id.nombre if riObj.standard_id.subject_id else ''
-             curso = self.extraer_nivel_curso(curso_completo)
+             # FORZAR active_test=False para la sección
+             standard_rec = riObj.standard_id.with_context(active_test=False) if riObj.standard_id else None
              
-             schedule   = riObj.standard_id.note
-             signature  = riObj.standard_id.company_id.director_signature
-             director   = riObj.standard_id.company_id.director_name
-             director_id = riObj.standard_id.company_id.director_id
-             director_job = riObj.standard_id.company_id.director_job
-             empresa    = riObj.standard_id.company_id.name
-             programa   = riObj.standard_id.subject_id.programa_id.name
-             estado     = self.get_estado(riObj.state)
+             seccion    = ''
+             curso      = ''
+             schedule   = ''
+             signature  = False
+             director   = ''
+             director_id = ''
+             director_job = ''
+             empresa    = ''
+             programa   = ''
+             estado     = ''
              date       = self.get_date()
+             
+             if standard_rec:
+                 seccion    = standard_rec.code + '-' + standard_rec.name if standard_rec.code and standard_rec.name else standard_rec.name or ''
+                 # MODIFICACIÓN: Extraer solo el nivel del curso
+                 curso_completo = standard_rec.subject_id.nombre if standard_rec.subject_id else ''
+                 curso = self.extraer_nivel_curso(curso_completo)
+                 schedule   = standard_rec.note if standard_rec.note else ''
+                 signature  = standard_rec.company_id.director_signature if standard_rec.company_id else False
+                 director   = standard_rec.company_id.director_name if standard_rec.company_id else ''
+                 director_id = standard_rec.company_id.director_id if standard_rec.company_id else ''
+                 director_job = standard_rec.company_id.director_job if standard_rec.company_id else ''
+                 empresa    = standard_rec.company_id.name if standard_rec.company_id else ''
+                 programa   = standard_rec.subject_id.programa_id.name if standard_rec.subject_id and standard_rec.subject_id.programa_id else ''
+                 estado     = self.get_estado(riObj.state) if riObj else ''
 
              est.append({      
                             'cedula'        : cedula,  
@@ -317,18 +332,15 @@ class Wizard(models.TransientModel):
                             'director_job'  : director_job,
                             'empresa'       : empresa,
                             'programa'      : programa,
-
                             'estado'        : estado,
                             'date'          : date,
-                      
                           })
              
-             if riObj:
+             if standard_rec:
                  
-                 seccion     = riObj.standard_id.name
-                 arreEva     = riObj.standard_id.registroeva_ids
-                 no_eva      = len(riObj.standard_id.registroeva_ids)
-                 no_asi      = len(riObj.standard_id.asistencia_ids)
+                 seccion     = standard_rec.name
+                 no_eva      = len(standard_rec.registroeva_ids)
+                 no_asi      = len(standard_rec.asistencia_ids)
 
                 #-----------------------------------------------------------------------#
                 # CICLO EVALUACIONES DE LA SECCION                                      #
@@ -336,9 +348,10 @@ class Wizard(models.TransientModel):
                  j       = 1
                  while j <= no_eva:
                         
-                    if riObj.standard_id.registroeva_ids[j-1].state == 'terminate':
+                    if standard_rec.registroeva_ids[j-1].state == 'terminate':
                         
-                        reObj   = riObj.standard_id.registroeva_ids[j-1].with_context(active_test=False).evaluacion_ids
+                        # FORZAR active_test=False para detalles de evaluación
+                        reObj = standard_rec.registroeva_ids[j-1].with_context(active_test=False).evaluacion_ids
                         no_evas = len(reObj)
                         
                         #-----------------------------------------------------------------------#
@@ -346,32 +359,35 @@ class Wizard(models.TransientModel):
                         #-----------------------------------------------------------------------#
 
                         r = 1
-
+                        nombreEva = ''
+                        notaT = 0.0
+                        nombreSta = ''
+                        
                         while r <= no_evas:
-                            if stuObj.id == reObj[r-1].student_id.id:
+                            if reObj[r-1].student_id.id == stuObj.id:
 
                                 contaEva = contaEva + 1
 
-                                nombreEva = reObj[r-1].evaluacion_id.nombre
-                                notaT     = reObj[r-1].nota
-                                nombreSta = reObj[r-1].state
+                                nombreEva = reObj[r-1].evaluacion_id.nombre if reObj[r-1].evaluacion_id else ''
+                                notaT     = reObj[r-1].nota if reObj[r-1].nota else 0.0
+                                nombreSta = reObj[r-1].state if reObj[r-1].state else ''
                                 acumEva  += notaT
                                 
-                                raObj     = reObj[r-1].actividad_ids
-                                no_act    = len(raObj)
-                                act       = []
+                                # FORZAR active_test=False para actividades
+                                raObj = reObj[r-1].with_context(active_test=False).actividad_ids
+                                no_act = len(raObj)
+                                act = []
                                 i = 1
 
                                 while i <= no_act:
-                                    nombreAct = raObj[i-1].nombre
-                                    nota      = raObj[i-1].nota
-                                    nota_r    = raObj[i-1].nota_r
+                                    nombreAct = raObj[i-1].nombre if raObj[i-1].nombre else ''
+                                    nota      = raObj[i-1].nota if raObj[i-1].nota else 0.0
+                                    nota_r    = raObj[i-1].nota_r if raObj[i-1].nota_r else 0.0
                                 
                                     act.append({      
                                         'nombreAct' : nombreAct.upper(),       
                                         'nota'      : nota,
                                         'nota_r'    : nota_r,  
-                                        #'company': self.env.user.company_id
                                     })
 
                                     i = i + 1
@@ -385,9 +401,6 @@ class Wizard(models.TransientModel):
                                     'nombreSta' : nombreSta.upper(),  
                                     'noAct'     : no_act, 
                                     'listAct'   : act,
-                                    
-
-                                    #'company': self.env.user.company_id
                                    })
 
                     j = j + 1
@@ -398,10 +411,11 @@ class Wizard(models.TransientModel):
                  j       = 1
                  while j <= no_asi:
                         
-                    if riObj.standard_id.asistencia_ids[j-1].state == 'terminate':
+                    if standard_rec.asistencia_ids[j-1].state == 'terminate':
                         
-                        raObj   = riObj.standard_id.asistencia_ids[j-1].with_context(active_test=False).asistencia_ids
-                        no_detalle_asi  = len(raObj)
+                        # FORZAR active_test=False para detalles de asistencia
+                        raObj = standard_rec.asistencia_ids[j-1].with_context(active_test=False).asistencia_ids
+                        no_detalle_asi = len(raObj)
 
                         #-----------------------------------------------------------------------#
                         # CICLO DETALLES DE ASISTENCIA DE LA SECCION                          #
@@ -410,11 +424,13 @@ class Wizard(models.TransientModel):
                         r = 1
                         nombreAsi = ''
                         is_asistio = False
+                        nombreSta = ''
+                        
                         while r <= no_detalle_asi:
-                            if stuObj.id == raObj[r-1].student_id.id:
+                            if raObj[r-1].student_id.id == stuObj.id:
                                 contaAsi = contaAsi + 1
-                                nombreAsi  = raObj.asistencia_id.name
-                                nombreSta  = self.get_estado(raObj.asistencia_id.state)
+                                nombreAsi = raObj.asistencia_id.name if raObj.asistencia_id else ''
+                                nombreSta = self.get_estado(raObj.asistencia_id.state) if raObj.asistencia_id else ''
                                 
                                 if raObj[r-1].is_attended:
                                     contaAsiste = contaAsiste + 1
@@ -428,8 +444,6 @@ class Wizard(models.TransientModel):
                                     'nombreAsi' : nombreAsi, 
                                     'nombreSta' : nombreSta, 
                                     'is_asistio': is_asistio, 
-                                    
-                                    #'company': self.env.user.company_id
                                    })
                         
                     j = j + 1
@@ -451,10 +465,8 @@ class Wizard(models.TransientModel):
                     'promeT'    : promeT,
                     'promeA'    : promeA,
                     'nombreSta' : nombreSta,
-
                    })
         
-        # raise UserError(f'signer: {signer}')
         data = {
             'form_data': form_data,
             'est'   : est,
@@ -462,7 +474,7 @@ class Wizard(models.TransientModel):
             'act'   : act,
             'asi'   : asi,
             'pro'   : pro,
-            'signer': signer.id,
+            'signer': signer.id if signer else False,
         }
 
         return self.env.ref('report_class.action_report_record_ce').report_action(self, data=data)
