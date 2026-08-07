@@ -37,6 +37,8 @@
                             class="btn-primary" states="draft"/>
                     <button name="action_ver_cadena_cambios" string="Ver Cadena Completa" type="object" 
                             class="btn-secondary"/>
+                    <button name="action_nuevo_cambio" string="Nuevo Cambio" type="object" states="terminate" 
+                            class="btn-primary"/>
                     <button name="action_revertir_ultimo_cambio" string="Revertir Último Cambio" type="object" 
                             class="btn-danger" states="terminate"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,done,terminate"/>
@@ -62,17 +64,17 @@
                 
                     <group string="Secciones">
                         <group string="Origen">
-                            <field name="standard_id" readonly="1" string="Sección Origen (Actual)"/>
+                            <field name="seccion_origen_hist" string="Sección Origen" readonly="1"/>
                             <field name="school_id" readonly="1" string="Campus Origen"/>
                             <field name="subject_id" readonly="1"/>
                         </group>
                         <group string="Destino">
-                            <field name="standard_des_id" 
-                                   domain="[('school_id','=',school_des_id), ('id','!=', standard_id)]" 
-                                   required="1"/>
                             <field name="school_des_id" string="Campus Destino" required="1"/>
+                            <field name="standard_des_id" 
+                                   domain="[('school_id','=',school_des_id), ('id','!=', seccion_origen_hist)]" 
+                                   required="1"/>
                             <field name="subject_des_id" readonly="1"/>
-                            <field name="standard_des_id.remaining_seats" string="Cupos Disponibles" readonly="1"/>
+                            <field name="remaining_seats_destino" string="Cupos Disponibles" readonly="1"/>
                         </group>
                     </group>
                 

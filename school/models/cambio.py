@@ -122,9 +122,20 @@ class StudentCambio(models.Model):
     note = fields.Text('Observaciones', states={'terminate': [('readonly', True)]}, help='Observaciones')
     
     school_des_id    = fields.Many2one('school.campus', 'Campus', help='Select Campus', required=True, tracking=True)
-    standard_des_id  = fields.Many2one('school.standard', 'Sección', help='Select student standard', required=True, tracking=True)
+    standard_des_id  = fields.Many2one('school.standard', 'Sección', help='Select student standard', tracking=True)
     subject_des_id   = fields.Many2one('subject.subject', 'Curso', related='standard_des_id.subject_id', required=True, help='Curso')
     company_des_id   = fields.Many2one('res.company', 'Companía', related='standard_des_id.company_id', store=True, help='Company_id of the school')
+    remaining_seats_destino = fields.Integer(
+        string='Cupos Disponibles',
+        related='standard_des_id.remaining_seats',
+        readonly=True
+    )
+    seccion_origen_hist = fields.Many2one(
+        'school.standard',
+        string='Sección Origen',
+        compute='_compute_seccion_origen_hist',
+        help='Sección en la que estaba el estudiante al momento del cambio',
+    )
 
 #-----------------------------------------------------------------------#
     def set_to_draft(self):
@@ -171,6 +182,22 @@ class StudentCambio(models.Model):
         
 #-----------------------------------------------------------------------#
 
+    @api.depends('student_id', 'ri_id', 'cambio_date')
+    def _compute_seccion_origen_hist(self):
+        for rec in self:
+            cambio_anterior = rec._get_cambio_anterior()
+            if cambio_anterior:
+                rec.seccion_origen_hist = cambio_anterior.standard_des_id
+            else:
+                # Primer cambio: buscar la primera inscripción del estudiante
+                primera_inscripcion = self.env['student.inscripcion'].search([
+                    ('student_id', '=', rec.student_id.id),
+                ], order='inscription_date asc', limit=1)
+                if primera_inscripcion:
+                    rec.seccion_origen_hist = primera_inscripcion.standard_id
+                else:
+                    rec.seccion_origen_hist = rec.standard_id  # fallback
+
     @api.onchange('student_id')
     def _onchange_student_id(self):
         """Cuando se selecciona un estudiante, buscar su última inscripción activa y asignarla a ri_id."""
@@ -180,10 +207,11 @@ class StudentCambio(models.Model):
                 ('state', '=', 'done')
             ], order='inscription_date desc', limit=1)
             if inscripcion_activa:
+                # standard_id, school_id y move_id son campos related a ri_id.*
+                # (no-stored y sin readonly=True): se llenan solos al asignar ri_id,
+                # NO hay que reasignarlos a mano (eso puede escribir de vuelta sobre
+                # la inscripción real vía el inverso del related).
                 self.ri_id = inscripcion_activa
-                self.standard_id = inscripcion_activa.standard_id
-                self.school_id = inscripcion_activa.school_id
-                self.move_id = inscripcion_activa.move_id
             else:
                 self.ri_id = False
                 return {
@@ -196,22 +224,13 @@ class StudentCambio(models.Model):
             self.ri_id = False
 
     def _get_cambio_anterior(self):
-        """Devuelve el cambio anterior (si existe) basado en la sección origen."""
         self.ensure_one()
-        if not self.ri_id:
-            return False
-        seccion_origen = self.ri_id.standard_id
-        if not seccion_origen:
-            return False
-        # Buscar un cambio anterior que haya tenido como destino esta sección
-        # y que sea del mismo estudiante y esté en estado 'terminate'
-        cambio_anterior = self.search([
+        return self.search([
             ('student_id', '=', self.student_id.id),
-            ('standard_des_id', '=', seccion_origen.id),
+            ('cambio_date', '<', self.cambio_date),
             ('state', '=', 'terminate'),
-            ('id', '!=', self.id)  # evitar autoreferencia
+            ('id', '!=', self._origin.id)
         ], order='cambio_date desc', limit=1)
-        return cambio_anterior
 
     def _get_cambio_siguiente(self):
         """Devuelve el cambio siguiente (si existe) basado en la inscripción destino."""
@@ -225,46 +244,27 @@ class StudentCambio(models.Model):
             ('ri_id.standard_id', '=', self.standard_des_id.id),
             ('state', '=', 'terminate'),
             ('cambio_date', '>', self.cambio_date),
-            ('id', '!=', self.id)
+            ('id', '!=', self._origin.id)
         ], order='cambio_date asc', limit=1)
         return cambio_siguiente
 
     def admission_done(self):
-        '''Method to confirm admission'''
-    
         for rec in self:
-
-            # Obtener sección origen real (desde la inscripción origen)
-            seccion_origen = rec.ri_id.standard_id
+            seccion_origen = rec.seccion_origen_hist
             if not seccion_origen:
-                raise ValidationError("El registro de inscripción origen no tiene sección.")
-        # Verificar que la sección origen y destino sean diferentes
+                raise ValidationError("No se encontró la sección origen.")
             if seccion_origen == rec.standard_des_id:
                 raise ValidationError("Error: La sección ORIGEN y DESTINO deben ser diferentes.")
-
-        # Verificar cupo en sección destino
             if rec.standard_des_id.remaining_seats <= 0:
                 raise ValidationError("Error: La sección destino no tiene cupos disponibles.")
-        
-            # Marcar como procesado
+            
             rec.state = 'terminate'
-
-            # Crear nueva inscripción en destino (si no hay cambio siguiente)
-            # Para saber si hay cambio siguiente, usamos _get_cambio_siguiente
             cambio_siguiente = rec._get_cambio_siguiente()
-        
-            # --- CAMBIO 3: Generar nueva inscripción en sección destino ---
-            # Pero solo si es el último cambio (no tiene cambio_destino_id)
             if not cambio_siguiente:
-                # Es el último cambio, crear nueva inscripción
                 self._actualizar_inscripcion(rec)
-        
-            # Actualizar estudiante (si tienes campo de sección actual)
-            #if rec.student_id:
-             #   rec.student_id.write({
-              #      'standard_actual_id': rec.standard_des_id.id,
-               #     'state': 'done'
-                #})
+            
+            seccion_origen._compute_total_student()
+            rec.standard_des_id._compute_total_student()
 
     def _actualizar_inscripcion(self, rec):
         '''Actualiza la inscripción origen con los datos de la sección destino'''
@@ -273,6 +273,11 @@ class StudentCambio(models.Model):
             inscripcion = rec.ri_id
             if not inscripcion:
                 raise ValidationError("No hay inscripción origen para actualizar.")
+
+            # --- Capturar la sección ORIGEN antes de escribir ---
+            # rec.standard_id es un related (ri_id.standard_id) sin store=True: si se lee
+            # después del write(), ya devuelve la sección destino y no la que se está dejando.
+            seccion_origen_real = inscripcion.standard_id
 
             # --- Actualizar la inscripción con los datos de la sección destino ---
             inscripcion.write({
@@ -285,11 +290,12 @@ class StudentCambio(models.Model):
             # --- Recalcular cupos ---
             # Se asume que al cambiar la sección, se ajustan los cupos automáticamente
             # Si no, puedes llamar a métodos específicos aquí
-            rec.standard_id._compute_total_student()  # origen
+            if seccion_origen_real:
+                seccion_origen_real._compute_total_student()  # origen (real, capturado antes del write)
             rec.standard_des_id._compute_total_student()  # destino
 
             # Actualizar el standard_id del cambio para que apunte a la nueva sección
-            rec.write({'standard_id': rec.standard_des_id.id})
+            #rec.write({'standard_id': rec.standard_des_id.id})
 
             return inscripcion
 
@@ -318,24 +324,81 @@ class StudentCambio(models.Model):
 
     def action_revertir_ultimo_cambio(self):
         self.ensure_one()
+        if self.state != 'terminate':
+            raise ValidationError(_("Solo se puede revertir un cambio en estado 'terminate'."))
+        
         cambio_anterior = self._get_cambio_anterior()
         if not cambio_anterior:
-            raise ValidationError("No se puede revertir el primer cambio de sección.")
+            raise ValidationError(_("No se puede revertir el primer cambio de sección."))
+        
+        seccion_a_restaurar = cambio_anterior.standard_des_id
+        if not seccion_a_restaurar:
+            raise ValidationError(_("El cambio anterior no tiene sección destino definida."))
+        
+        inscripcion = self.ri_id
+        if not inscripcion:
+            raise ValidationError(_("No hay inscripción asociada a este cambio."))
 
-        # Crear nuevo cambio que vaya desde la sección actual (self.standard_des_id)
-        # a la sección del cambio anterior (cambio_anterior.standard_des_id)
+        # --- Capturar la sección ACTUAL (la que el alumno está dejando) antes de escribir ---
+        # self.standard_id es un related (ri_id.standard_id) sin store=True: si se lee
+        # después del write(), ya devuelve la sección restaurada y nunca se libera el cupo
+        # de la sección que realmente se está abandonando.
+        seccion_actual = inscripcion.standard_id
+
+        # Actualizar inscripción
+        inscripcion.write({
+            'standard_id': seccion_a_restaurar.id,
+            'school_id': seccion_a_restaurar.school_id.id,
+            'inscription_date': fields.Date.today(),
+            'note': _('Reversión del cambio %s - restaurada sección %s') % (self.name, seccion_a_restaurar.display_name),
+        })
+        
+        # Recalcular cupos
+        if seccion_actual:
+            seccion_actual._compute_total_student()
+        if seccion_a_restaurar:
+            seccion_a_restaurar._compute_total_student()
+        
+        # Guardar datos antes de eliminar
+        student_id = self.student_id.id
+        student_name = self.student_id.display_name
+        
+        # Eliminar el cambio actual
+        self.unlink()
+        
+        # Mostrar lista de cambios del estudiante
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'student.cambio',
+            'view_mode': 'tree,form',
+            'domain': [('student_id', '=', student_id)],
+            'target': 'current',
+            'name': _('Cambios de %s') % student_name,
+        }
+
+    def action_nuevo_cambio(self):
+        self.ensure_one()
+        if self.state != 'terminate':
+            raise ValidationError("Solo se puede crear un nuevo cambio a partir de un cambio ya confirmado (estado 'terminate').")
+        
         vals = {
             'student_id': self.student_id.id,
-            'ri_id': self.ri_id.id,  # la inscripción actual
-            'standard_des_id': cambio_anterior.standard_des_id.id,
-            'school_des_id': cambio_anterior.school_des_id.id,
+            'ri_id': self.ri_id.id,
+            'school_des_id': self.ri_id.school_id.id,
             'cambio_date': fields.Date.today(),
             'tipocambio_id': self.tipocambio_id.id,
-            'note': f'Revertir cambio: {self.name} -> {cambio_anterior.name}',
+            'note': self.note,
+            'state': 'draft',
+            # No se asigna standard_des_id, el usuario lo elegirá
         }
-        nuevo_cambio = self.create(vals)
-        nuevo_cambio.admission_done()
-        return nuevo_cambio
+        nuevo = self.create(vals)
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'student.cambio',
+            'res_id': nuevo.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
 #-----------------------------------------------------------------------#
     def get_estado(self , sta):
@@ -359,6 +422,25 @@ class StudentCambio(models.Model):
 
         if vals.get('name', _('New')) == _('New'):
              vals['name'] = self.env['ir.sequence'].next_by_code('cambio.code') or _('New')
-    
+
+        # --- Respaldo server-side: si ri_id no llegó del cliente (el onchange corre
+        # en el navegador y puede no viajar en el payload final, sobre todo en campos
+        # readonly), lo resolvemos aquí a partir del student_id, igual que hace
+        # _onchange_student_id. Así el guardado no depende únicamente del cliente.
+        if not vals.get('ri_id') and vals.get('student_id'):
+            inscripcion_activa = self.env['student.inscripcion'].search([
+                ('student_id', '=', vals['student_id']),
+                ('state', '=', 'done')
+            ], order='inscription_date desc', limit=1)
+            if inscripcion_activa:
+                vals['ri_id'] = inscripcion_activa.id
+
+        if not vals.get('ri_id'):
+            raise ValidationError(_(
+                "No se pudo determinar la inscripción (RI) del estudiante. "
+                "Verifique que el estudiante tenga una inscripción activa (estado 'Inscrito') "
+                "antes de registrar el cambio de sección."
+            ))
+
         res = super(StudentCambio, self).create(vals)
         return res
