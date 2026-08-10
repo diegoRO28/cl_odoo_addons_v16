@@ -134,7 +134,10 @@ class StudentCambio(models.Model):
         'school.standard',
         string='Sección Origen',
         compute='_compute_seccion_origen_hist',
-        help='Sección en la que estaba el estudiante al momento del cambio',
+        store=True,
+        readonly=True,
+        help='Sección en la que estaba el estudiante al momento del cambio '
+             '(se calcula una sola vez, al crear el registro, y queda fija).',
     )
 
 #-----------------------------------------------------------------------#
@@ -185,18 +188,14 @@ class StudentCambio(models.Model):
     @api.depends('student_id', 'ri_id', 'cambio_date')
     def _compute_seccion_origen_hist(self):
         for rec in self:
-            cambio_anterior = rec._get_cambio_anterior()
-            if cambio_anterior:
-                rec.seccion_origen_hist = cambio_anterior.standard_des_id
-            else:
-                # Primer cambio: buscar la primera inscripción del estudiante
-                primera_inscripcion = self.env['student.inscripcion'].search([
-                    ('student_id', '=', rec.student_id.id),
-                ], order='inscription_date asc', limit=1)
-                if primera_inscripcion:
-                    rec.seccion_origen_hist = primera_inscripcion.standard_id
-                else:
-                    rec.seccion_origen_hist = rec.standard_id  # fallback
+            # El origen de ESTE cambio es, simplemente, la sección que la
+            # inscripción (ri_id) tiene en este preciso momento -- antes de
+            # que ESTE cambio la sobreescriba. Como siempre reutilizamos la
+            # MISMA inscripción en toda la cadena, esto es fiable tanto para
+            # el primer cambio como para cualquiera de los siguientes, y no
+            # depende de comparar 'cambio_date' (que puede repetirse el
+            # mismo día y romper la búsqueda del cambio anterior).
+            rec.seccion_origen_hist = rec.ri_id.standard_id
 
     @api.onchange('student_id')
     def _onchange_student_id(self):
@@ -212,6 +211,10 @@ class StudentCambio(models.Model):
                 # NO hay que reasignarlos a mano (eso puede escribir de vuelta sobre
                 # la inscripción real vía el inverso del related).
                 self.ri_id = inscripcion_activa
+                # Sección origen: se fija explícitamente aquí (además del compute
+                # con store=True) para que se vea de inmediato en pantalla, sea
+                # el primer cambio o uno encadenado.
+                self.seccion_origen_hist = inscripcion_activa.standard_id
             else:
                 self.ri_id = False
                 return {
@@ -225,12 +228,17 @@ class StudentCambio(models.Model):
 
     def _get_cambio_anterior(self):
         self.ensure_one()
-        return self.search([
+        domain = [
             ('student_id', '=', self.student_id.id),
-            ('cambio_date', '<', self.cambio_date),
             ('state', '=', 'terminate'),
-            ('id', '!=', self._origin.id)
-        ], order='cambio_date desc', limit=1)
+        ]
+        # Ordenamos por 'id' (orden real de creación) en vez de 'cambio_date':
+        # dos cambios pueden compartir la misma fecha (mismo día), y en ese
+        # caso comparar por fecha no distingue cuál fue "antes" en la cadena.
+        # El id sí lo hace de forma inequívoca.
+        if self._origin.id:
+            domain.append(('id', '<', self._origin.id))
+        return self.search(domain, order='id desc', limit=1)
 
     def _get_cambio_siguiente(self):
         """Devuelve el cambio siguiente (si existe) basado en la inscripción destino."""
@@ -239,13 +247,16 @@ class StudentCambio(models.Model):
         if self.state != 'terminate':
             return False
 
-        cambio_siguiente = self.search([
+        domain = [
             ('student_id', '=', self.student_id.id),
             ('ri_id.standard_id', '=', self.standard_des_id.id),
             ('state', '=', 'terminate'),
-            ('cambio_date', '>', self.cambio_date),
-            ('id', '!=', self._origin.id)
-        ], order='cambio_date asc', limit=1)
+        ]
+        # Orden por 'id' en vez de 'cambio_date' por la misma razón que en
+        # _get_cambio_anterior: la fecha puede repetirse el mismo día.
+        if self._origin.id:
+            domain.append(('id', '>', self._origin.id))
+        cambio_siguiente = self.search(domain, order='id asc', limit=1)
         return cambio_siguiente
 
     def admission_done(self):
