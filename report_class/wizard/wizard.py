@@ -149,20 +149,19 @@ class Wizard(models.TransientModel):
              
              if riObj:
                  
-                 seccion     = riObj.standard_id.name
-                 arreEva     = riObj.standard_id.registroeva_ids
-                 no_eva      = len(riObj.standard_id.registroeva_ids)
-                 no_asi      = len(riObj.standard_id.asistencia_ids)
+                 standard = riObj.standard_id.with_context(active_test=False)
+                 no_eva = len(standard.registroeva_ids.with_context(active_test=False))
+                 no_asi = len(standard.asistencia_ids.with_context(active_test=False))
 
                 #-----------------------------------------------------------------------#
                 # CICLO EVALUACIONES DE LA SECCION                                      #
                 #-----------------------------------------------------------------------#
                  j       = 1
                  while j <= no_eva:
+                    registro_eva = standard.registroeva_ids.with_context(active_test=False)[j-1]    
+                    if registro_eva.state == 'terminate':
                         
-                    if riObj.standard_id.registroeva_ids[j-1].state == 'terminate':
-                        
-                        reObj   = riObj.standard_id.registroeva_ids[j-1].evaluacion_ids
+                        reObj = registro_eva.evaluacion_ids.with_context(active_test=False)
                         no_evas = len(reObj)
                         
                         #-----------------------------------------------------------------------#
@@ -221,10 +220,10 @@ class Wizard(models.TransientModel):
                 #-----------------------------------------------------------------------#
                  j       = 1
                  while j <= no_asi:
+                    registro_asi = standard.asistencia_ids.with_context(active_test=False)[j-1]    
+                    if registro_asi.state == 'terminate':
                         
-                    if riObj.standard_id.asistencia_ids[j-1].state == 'terminate':
-                        
-                        raObj   = riObj.standard_id.asistencia_ids[j-1].asistencia_ids
+                        raObj   = registro_asi.asistencia_ids.with_context(active_test=False)
                         no_detalle_asi  = len(raObj)
 
                         #-----------------------------------------------------------------------#

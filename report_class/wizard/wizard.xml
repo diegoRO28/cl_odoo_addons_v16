@@ -15,7 +15,9 @@
                         
                         <!-- <separator string="SELECCIONE LA SECCIÓN" colspan="2" /> -->
                         <group string="SELECCIONE LA SECCIÓN">
-                              <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection" />
+                              <field name="inscripcion_id" 
+                                     domain="[('student_id','=', student_id), '|', ('active','=', True), ('active','=', False)]"
+                                     widget="selection" />
                         </group>
                     </group>
 
@@ -51,6 +53,7 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="report_wizard_view_form" />
         <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
     </record>
 	
 	<!-- Definición del menú -->
