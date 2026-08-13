@@ -7,14 +7,58 @@ import datetime
 
 
 class WizardCeOptimized(models.TransientModel):
-    _name = 'report.wizard.ce.optimized'
-    _description = 'Report Wizard Optimizado - Constancia de Estudios'
+    """
+    Hereda de report.wizard_ce y mejora la obtención de datos
+    para incluir secciones archivadas.
+    """
+    _name = 'report.wizard_ce'
+    _inherit = 'report.wizard_ce'  # Hereda del wizard original
 
-    # Campos del wizard
-    student_id = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
-    inscripcion_id = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True, context={'active_test': False})
-    signer_id = fields.Many2one('cei.signer', string='Firmante', context={'active_test': False})
-    date_start = fields.Date('Fecha Inicio', required=True, default=fields.Date.today)
+    def action_search_salida(self):
+        """
+        Sobrescribe el método original para incluir secciones archivadas.
+        """
+        form_data = self.read()[0]
+
+        helper = self.env['report.helper.optimized']
+
+        # Obtener estudiante e inscripción (incluye archivados)
+        student = helper.get_student(self.student_id.id)
+        inscripcion = helper.get_inscripcion(self.inscripcion_id.id)
+        standard = helper.get_standard(inscripcion)
+
+        # Obtener firmante
+        signer = False
+        if self.signer_id:
+            signer = self.env['cei.signer'].sudo().with_context(active_test=False).browse(self.signer_id.id)
+
+        # Preparar datos del estudiante
+        est = [{
+            'cedula': student.student_ci or '',
+            'codigo': student.student_code or '',
+            'nombre': student.name or '',
+            'seccion': standard.code if standard else '',
+            'curso': self.extraer_nivel_curso(standard.subject_id.nombre) if standard and standard.subject_id else '',
+            'schedule': standard.note if standard else '',
+            'signature': standard.company_id.director_signature if standard and standard.company_id else False,
+            'director': standard.company_id.director_name if standard and standard.company_id else '',
+            'director_id': standard.company_id.director_id if standard and standard.company_id else '',
+            'director_job': standard.company_id.director_job if standard and standard.company_id else '',
+            'empresa': standard.company_id.name if standard and standard.company_id else '',
+            'programa': standard.subject_id.programa_id.name if standard and standard.subject_id and standard.subject_id.programa_id else '',
+            'estado': self.get_estado(inscripcion.state),
+            'date': self.get_date(),
+        }]
+
+        data = {
+            'form_data': form_data,
+            'est': est,
+            'signer': signer.id if signer else False,
+        }
+
+        return self.env.ref('report_class.action_report_record_ce') \
+            .with_context(active_test=False) \
+            .report_action(self, data=data)
 
     def get_date(self):
         """Obtiene la fecha en formato texto."""
@@ -104,53 +148,6 @@ class WizardCeOptimized(models.TransientModel):
             texto_unidad = ""
 
         return "%s %s %s" % (texto_centena, texto_decena, texto_unidad)
-
-    def action_search_salida(self):
-        """
-        Método optimizado para generar la constancia de estudios
-        incluyendo secciones archivadas.
-        """
-        form_data = self.read()[0]
-
-        helper = self.env['report.helper.optimized']
-
-        # Obtener estudiante e inscripción (incluye archivados)
-        student = helper.get_student(self.student_id.id)
-        inscripcion = helper.get_inscripcion(self.inscripcion_id.id)
-        standard = helper.get_standard(inscripcion)
-
-        # Obtener firmante
-        signer = False
-        if self.signer_id:
-            signer = self.env['cei.signer'].sudo().with_context(active_test=False).browse(self.signer_id.id)
-
-        # Preparar datos del estudiante
-        est = [{
-            'cedula': student.student_ci or '',
-            'codigo': student.student_code or '',
-            'nombre': student.name or '',
-            'seccion': standard.code if standard else '',
-            'curso': self.extraer_nivel_curso(standard.subject_id.nombre) if standard and standard.subject_id else '',
-            'schedule': standard.note if standard else '',
-            'signature': standard.company_id.director_signature if standard and standard.company_id else False,
-            'director': standard.company_id.director_name if standard and standard.company_id else '',
-            'director_id': standard.company_id.director_id if standard and standard.company_id else '',
-            'director_job': standard.company_id.director_job if standard and standard.company_id else '',
-            'empresa': standard.company_id.name if standard and standard.company_id else '',
-            'programa': standard.subject_id.programa_id.name if standard and standard.subject_id and standard.subject_id.programa_id else '',
-            'estado': self.get_estado(inscripcion.state),
-            'date': self.get_date(),
-        }]
-
-        data = {
-            'form_data': form_data,
-            'est': est,
-            'signer': signer.id if signer else False,
-        }
-
-        return self.env.ref('report_class.action_report_record_ce') \
-            .with_context(active_test=False) \
-            .report_action(self, data=data)
 
     def extraer_nivel_curso(self, nombre_curso):
         """Extrae el nivel del curso."""

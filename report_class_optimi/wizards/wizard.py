@@ -7,36 +7,24 @@ import datetime
 
 
 class WizardOptimized(models.TransientModel):
-    _name = 'report.wizard.optimized'
-    _description = 'Report Wizard Optimizado - Record Académico'
-
-    # Campos del wizard
-    student_id = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
-    inscripcion_id = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True, context={'active_test': False})
-    
-    standard_id = fields.Many2one('school.standard', 'Sección', related='inscripcion_id.standard_id', help='Select student standard', readonly=True)
-    school_id = fields.Many2one('school.campus', 'Campus', related='inscripcion_id.school_id', help='Select Campus', readonly=True)
-    subject_id = fields.Many2one('subject.subject', 'Curso', related='inscripcion_id.subject_id', help='Curso', readonly=True)
-    start_date = fields.Date('Fecha de inicio', related='standard_id.start_date', help='Starting date of Lapso Académico', readonly=True)
-    end_date = fields.Date('Fecha de finalización', related='standard_id.end_date', help='End date of Lapso Académico', readonly=True)
-    state_sec = fields.Selection([
-        ('por iniciar', 'Por iniciar'),
-        ('iniciado', 'Iniciado'),
-        ('culminado', 'Culminado'),
-    ], 'Status', readonly=True, default="por iniciar", help='State of the student registration form',
-        related='standard_id.state_aux')
+    """
+    Hereda de report.wizard y mejora la obtención de datos
+    para incluir secciones archivadas.
+    """
+    _name = 'report.wizard'
+    _inherit = 'report.wizard'  # Hereda del wizard original
 
     def action_search_salida(self):
         """
-        Método optimizado para generar el record académico
-        incluyendo secciones archivadas.
+        Sobrescribe el método original para incluir secciones archivadas.
         """
+        # Obtener los datos del formulario
         form_data = self.read()[0]
 
         # Usar el helper optimizado
         helper = self.env['report.helper.optimized']
 
-        # Obtener datos del estudiante e inscripción
+        # Obtener datos del estudiante e inscripción (incluye archivados)
         student = helper.get_student(self.student_id.id)
         inscripcion = helper.get_inscripcion(self.inscripcion_id.id)
         standard = helper.get_standard(inscripcion)
@@ -112,7 +100,7 @@ class WizardOptimized(models.TransientModel):
             'pro': pro,
         }
 
-        # Usar el reporte original pero con contexto optimizado
+        # Usar el reporte original con contexto optimizado
         return self.env.ref('report_class.action_report_record') \
             .with_context(active_test=False) \
             .report_action(self, data=data)

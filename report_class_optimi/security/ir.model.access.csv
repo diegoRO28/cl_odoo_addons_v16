@@ -1,6 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_report_wizard_optimized,access_report_wizard_optimized,model_report_wizard_optimized,base.group_user,1,1,1,0
-access_report_wizard_ce_optimized,access_report_wizard_ce_optimized,model_report_wizard_ce_optimized,base.group_user,1,1,1,0
-access_report_wizard_fi_optimized,access_report_wizard_fi_optimized,model_report_wizard_fi_optimized,base.group_user,1,1,1,0
-access_report_wizard_pr_optimized,access_report_wizard_pr_optimized,model_report_wizard_pr_optimized,base.group_user,1,1,1,0
 access_report_helper_optimized,access_report_helper_optimized,model_report_helper_optimized,base.group_user,1,0,0,0

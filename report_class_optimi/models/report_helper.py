@@ -7,7 +7,6 @@ from odoo.exceptions import UserError
 class ReportHelperOptimized(models.AbstractModel):
     _name = "report.helper.optimized"
     _description = "Helper Optimizado para Reportes Académicos"
-    # NO hereda de report.helper porque no existe en report_class
 
     # ============================================================
     # MÉTODOS PARA INCLUIR REGISTROS ARCHIVADOS
@@ -202,36 +201,3 @@ class ReportHelperOptimized(models.AbstractModel):
                 'aprobado': escalaObj.pass_mark
             }
         return califica_vals
-
-    def get_report_data_optimized(self, student_id, inscripcion_id=None):
-        """
-        Obtiene todos los datos del reporte incluyendo secciones archivadas.
-        """
-        student = self.get_student(student_id)
-        
-        data = {
-            'student': student,
-            'inscripcion': None,
-            'standard': None,
-            'evaluaciones': [],
-            'asistencias': [],
-            'inscripciones_historicas': [],
-            'promedios': {},
-        }
-
-        # Si se especifica una inscripción, obtener sus datos
-        if inscripcion_id:
-            inscripcion = self.get_inscripcion(inscripcion_id)
-            data['inscripcion'] = inscripcion
-            standard = self.get_standard(inscripcion)
-            data['standard'] = standard
-
-            if standard:
-                data['evaluaciones'] = self.get_evaluaciones(standard)
-                data['asistencias'] = self.get_asistencias(standard)
-                data['promedios'] = self.calcular_promedios_optimizado(inscripcion)
-
-        # Siempre obtener las inscripciones históricas
-        data['inscripciones_historicas'] = self.get_inscripciones_historicas(student)
-
-        return data

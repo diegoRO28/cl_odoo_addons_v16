@@ -8,9 +8,10 @@
         visualizar las notas de estudiantes incluso cuando la sección está archivada.
         
         Características principales:
+        - Hereda y mejora los wizards de report_class
         - Visualización de notas en secciones archivadas
         - Mejora en la obtención de datos históricos
-        - Compatibilidad con todos los reportes del módulo report_class
+        - Mismos menús y acciones que el módulo original
     """,
     'author': 'Tu Empresa',
     'website': 'https://www.tuempresa.com',

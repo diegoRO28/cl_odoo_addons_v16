@@ -7,20 +7,16 @@ import datetime
 
 
 class WizardPrOptimized(models.TransientModel):
-    _name = 'report.wizard.pr.optimized'
-    _description = 'Report Wizard Optimizado - Constancia de Presentación'
-
-    # Campos del wizard
-    student_id = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
-    inscripcion_id = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True, context={'active_test': False})
-    signer_id = fields.Many2one('cei.signer', string='Firmante', context={'active_test': False})
-    date_end = fields.Datetime('Fecha Presentación', required=True, default=fields.Datetime.now())
-    date_start = fields.Date('Fecha Inicio', required=True, default=fields.Date.today)
+    """
+    Hereda de report.wizard_pr y mejora la obtención de datos
+    para incluir secciones archivadas.
+    """
+    _name = 'report.wizard_pr'
+    _inherit = 'report.wizard_pr'  # Hereda del wizard original
 
     def action_search_salida(self):
         """
-        Método optimizado para generar la constancia de presentación
-        incluyendo secciones archivadas.
+        Sobrescribe el método original para incluir secciones archivadas.
         """
         form_data = self.read()[0]
 
