@@ -2,70 +2,199 @@
 <odoo>
 
     <!-- =========================================== -->
-    <!-- SOLO LAS VISTAS QUE SON ESTRICTAMENTE NECESARIAS -->
+    <!-- VISTAS OPTIMIZADAS (USANDO IDs ÚNICOS)     -->
     <!-- =========================================== -->
 
-    <!-- Solo heredamos las vistas existentes para añadir el contexto active_test=False -->
-    <record id="report_class.report_wizard_view_form" model="ir.ui.view">
-        <field name="name">report.wizard.view.form (optimized)</field>
+    <!-- Record Académico Optimizado -->
+    <record id="report_wizard_optimized_view_form" model="ir.ui.view">
+        <field name="name">report.wizard.view.form.optimized</field>
         <field name="model">report.wizard</field>
-        <field name="inherit_id" ref="report_class.report_wizard_view_form"/>
         <field name="arch" type="xml">
-            <field name="student_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
-            <field name="inscripcion_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
+            <form string="Record Académico">
+                <sheet>
+                    <group col="2">
+                        <group string="SELECCIONE EL ESTUDIANTE">
+                            <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}" 
+                                   context="{'active_test': False}"/>
+                        </group>
+                        <group string="SELECCIONE LA SECCIÓN">
+                            <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection"
+                                   context="{'active_test': False}"/>
+                        </group>
+                    </group>
+
+                    <separator string="INFORMACIÓN DE LA SECCIÓN" colspan="2" />
+                    <group col="2">
+                        <group>
+                            <field name="standard_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                            <field name="school_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                            <field name="subject_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="start_date" />
+                            <field name="end_date" />
+                            <field name="state_sec" decoration-warning="state_sec =='por iniciar'"
+                                                    decoration-success="state_sec =='iniciado'"
+                                                    decoration-info="state_sec =='culminado'"
+                                                    widget="badge"/>
+                        </group>
+                    </group>
+
+                    <footer>
+                        <button name="action_search_salida" type="object" string="Generar Record" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                    </footer>
+                </sheet>
+            </form>
         </field>
     </record>
 
-    <record id="report_class.report_wizard_ce_view_form" model="ir.ui.view">
-        <field name="name">report.wizard_ce.view.form (optimized)</field>
+    <!-- Constancia de Estudios Optimizada -->
+    <record id="report_wizard_ce_optimized_view_form" model="ir.ui.view">
+        <field name="name">report.wizard_ce.view.form.optimized</field>
         <field name="model">report.wizard_ce</field>
-        <field name="inherit_id" ref="report_class.report_wizard_ce_view_form"/>
         <field name="arch" type="xml">
-            <field name="student_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
-            <field name="inscripcion_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
-            <field name="signer_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
+            <form string="Constancia de Estudios">
+                <sheet>
+                    <separator string="SELECCIONE EL ESTUDIANTE" colspan="2" />
+                    <group>
+                        <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <separator string="SELECCIONE LA SECCIÓN" colspan="2" />
+                    <group>
+                        <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <separator string="SELECCIONE EL FIRMANTE" colspan="2" />
+                    <group>
+                        <field name="signer_id" required="1" 
+                               options="{'no_edit': True, 'no_create': True, 'no_quick_create': True, 'no_create_edit': True, 'no_open': True}"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <footer>
+                        <button name="action_search_salida" type="object" string="Generar Constancia" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                    </footer>
+                </sheet>
+            </form>
         </field>
     </record>
 
-    <record id="report_class.report_wizard_fi_view_form" model="ir.ui.view">
-        <field name="name">report.wizard_fi.view.form (optimized)</field>
+    <!-- Constancia de Finalización Optimizada -->
+    <record id="report_wizard_fi_optimized_view_form" model="ir.ui.view">
+        <field name="name">report.wizard_fi.view.form.optimized</field>
         <field name="model">report.wizard_fi</field>
-        <field name="inherit_id" ref="report_class.report_wizard_fi_view_form"/>
         <field name="arch" type="xml">
-            <field name="student_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
-            <field name="signer_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
+            <form string="Constancia de Finalización">
+                <sheet>
+                    <separator string="SELECCIONE EL ESTUDIANTE" colspan="2" />
+                    <group>
+                        <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <separator string="SELECCIONE EL FIRMANTE" colspan="2" />
+                    <group>
+                        <field name="signer_id" required="1"
+                               options="{'no_edit': True, 'no_create': True, 'no_quick_create': True, 'no_create_edit': True, 'no_open': True}"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <footer>
+                        <button name="action_search_salida" type="object" string="Generar Constancia" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                    </footer>
+                </sheet>
+            </form>
         </field>
     </record>
 
-    <record id="report_class.report_wizard_pr_view_form" model="ir.ui.view">
-        <field name="name">report.wizard_pr.view.form (optimized)</field>
+    <!-- Constancia de Presentación Optimizada -->
+    <record id="report_wizard_pr_optimized_view_form" model="ir.ui.view">
+        <field name="name">report.wizard_pr.view.form.optimized</field>
         <field name="model">report.wizard_pr</field>
-        <field name="inherit_id" ref="report_class.report_wizard_pr_view_form"/>
         <field name="arch" type="xml">
-            <field name="student_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
-            <field name="inscripcion_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
-            <field name="signer_id" position="attributes">
-                <attribute name="context">{'active_test': False}</attribute>
-            </field>
+            <form string="Constancia de Presentación">
+                <sheet>
+                    <separator string="SELECCIONE EL ESTUDIANTE" colspan="2" />
+                    <group>
+                        <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <separator string="SELECCIONE LA SECCIÓN" colspan="2" />
+                    <group>
+                        <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <separator string="SELECCIONE LA FECHA DE PRESENTACIÓN" colspan="2" />
+                    <group>
+                        <field name="date_end" widget="Datetime"/>
+                    </group>
+
+                    <separator string="SELECCIONE EL FIRMANTE" colspan="2" />
+                    <group>
+                        <field name="signer_id" required="1"
+                               options="{'no_edit': True, 'no_create': True, 'no_quick_create': True, 'no_create_edit': True, 'no_open': True}"
+                               context="{'active_test': False}"/>
+                    </group>
+
+                    <footer>
+                        <button name="action_search_salida" type="object" string="Generar Constancia" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                    </footer>
+                </sheet>
+            </form>
         </field>
+    </record>
+
+    <!-- =========================================== -->
+    <!-- ACCIONES QUE REEMPLAZAN LAS ORIGINALES     -->
+    <!-- =========================================== -->
+
+    <!-- Acción para el Record Académico Optimizado -->
+    <record id="report_wizard_action" model="ir.actions.act_window">
+        <field name="name">Generar Record Académico</field>
+        <field name="res_model">report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_optimized_view_form" />
+        <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <!-- Acción para Constancia de Estudios Optimizada -->
+    <record id="report_wizard_ce_action" model="ir.actions.act_window">
+        <field name="name">Generar Constancia de Estudios</field>
+        <field name="res_model">report.wizard_ce</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_ce_optimized_view_form" />
+        <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <!-- Acción para Constancia de Finalización Optimizada -->
+    <record id="report_wizard_fi_action" model="ir.actions.act_window">
+        <field name="name">Generar Constancia de Finalización</field>
+        <field name="res_model">report.wizard_fi</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_fi_optimized_view_form" />
+        <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <!-- Acción para Constancia de Presentación Optimizada -->
+    <record id="report_wizard_pr_action" model="ir.actions.act_window">
+        <field name="name">Generar Constancia de Presentación</field>
+        <field name="res_model">report.wizard_pr</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_pr_optimized_view_form" />
+        <field name="target">new</field>
+        <field name="context">{'active_test': False}</field>
     </record>
 
 </odoo>
