@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from odoo import api, models
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class ReportHelperOptimized(models.AbstractModel):
@@ -16,12 +19,14 @@ class ReportHelperOptimized(models.AbstractModel):
         """
         Obtiene el estudiante incluyendo registros archivados.
         """
+        _logger.info(f"Buscando estudiante con ID: {student_id}")
         student = self.env['student.student']\
             .sudo()\
             .with_context(active_test=False)\
             .browse(student_id)
 
         if not student.exists():
+            _logger.error(f"Estudiante no encontrado con ID: {student_id}")
             raise UserError("No se encontró el estudiante.")
 
         return student
@@ -30,12 +35,14 @@ class ReportHelperOptimized(models.AbstractModel):
         """
         Obtiene la inscripción incluyendo registros archivados.
         """
+        _logger.info(f"Buscando inscripción con ID: {inscripcion_id}")
         inscripcion = self.env['student.inscripcion']\
             .sudo()\
             .with_context(active_test=False)\
             .browse(inscripcion_id)
 
         if not inscripcion.exists():
+            _logger.error(f"Inscripción no encontrada con ID: {inscripcion_id}")
             raise UserError("No se encontró la inscripción.")
 
         return inscripcion
@@ -124,6 +131,20 @@ class ReportHelperOptimized(models.AbstractModel):
                 ('state', 'in', ['done', 'terminate'])
             ])
 
+    def get_escala(self):
+        """
+        Obtiene la escala de calificación.
+        """
+        califica_vals = {'minimo': 0, 'maximo': 0, 'aprobado': 0}
+        escalaObj = self.env['grade.line'].sudo().with_context(active_test=False).search([('sequence', '=', '1')], limit=1)
+        if escalaObj:
+            califica_vals = {
+                'minimo': escalaObj.from_mark,
+                'maximo': escalaObj.to_mark,
+                'aprobado': escalaObj.pass_mark
+            }
+        return califica_vals
+
     def calcular_promedios_optimizado(self, inscripcion):
         """
         Calcula los promedios del estudiante asegurando que se usen
@@ -187,17 +208,3 @@ class ReportHelperOptimized(models.AbstractModel):
             'cantidad_asistencias': total_asistencias,
             'estado': estado,
         }
-
-    def get_escala(self):
-        """
-        Obtiene la escala de calificación.
-        """
-        califica_vals = {'minimo': 0, 'maximo': 0, 'aprobado': 0}
-        escalaObj = self.env['grade.line'].sudo().with_context(active_test=False).search([('sequence', '=', '1')], limit=1)
-        if escalaObj:
-            califica_vals = {
-                'minimo': escalaObj.from_mark,
-                'maximo': escalaObj.to_mark,
-                'aprobado': escalaObj.pass_mark
-            }
-        return califica_vals
