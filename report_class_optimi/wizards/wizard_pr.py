@@ -27,10 +27,13 @@ class WizardPrOptimized(models.TransientModel):
         inscripcion = helper.get_inscripcion(self.inscripcion_id.id)
         standard = helper.get_standard(inscripcion)
 
-        # Obtener firmante
-        signer = False
-        if self.signer_id:
-            signer = self.env['cei.signer'].sudo().with_context(active_test=False).browse(self.signer_id.id)
+        # Obtener datos de la empresa (si existe)
+        company_data = {}
+        if standard and standard.company_id:
+            company_data = {
+                'signature': standard.company_id.director_signature or False,
+                'director': standard.company_id.director_name or '',
+            }
 
         # Preparar datos del estudiante
         est = [{
@@ -40,15 +43,14 @@ class WizardPrOptimized(models.TransientModel):
             'seccion': standard.code if standard else '',
             'curso': standard.subject_id.nombre if standard and standard.subject_id else '',
             'schedule': standard.note if standard else '',
-            'signature': standard.company_id.director_signature if standard and standard.company_id else False,
-            'director': standard.company_id.director_name if standard and standard.company_id else '',
+            'signature': company_data.get('signature', False),
+            'director': company_data.get('director', ''),
             'estado': self.get_estado(inscripcion.state),
         }]
 
         data = {
             'form_data': form_data,
             'est': est,
-            'signer': signer.id if signer else False,
         }
 
         return self.env.ref('report_class.action_report_record_pr') \

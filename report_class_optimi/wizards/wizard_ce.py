@@ -27,10 +27,16 @@ class WizardCeOptimized(models.TransientModel):
         inscripcion = helper.get_inscripcion(self.inscripcion_id.id)
         standard = helper.get_standard(inscripcion)
 
-        # Obtener firmante
-        signer = False
-        if self.signer_id:
-            signer = self.env['cei.signer'].sudo().with_context(active_test=False).browse(self.signer_id.id)
+        # Obtener datos de la empresa (si existe)
+        company_data = {}
+        if standard and standard.company_id:
+            company_data = {
+                'signature': standard.company_id.director_signature or False,
+                'director': standard.company_id.director_name or '',
+                'director_id': standard.company_id.director_id or '',
+                'director_job': standard.company_id.director_job or '',
+                'empresa': standard.company_id.name or '',
+            }
 
         # Preparar datos del estudiante
         est = [{
@@ -40,11 +46,11 @@ class WizardCeOptimized(models.TransientModel):
             'seccion': standard.code if standard else '',
             'curso': self.extraer_nivel_curso(standard.subject_id.nombre) if standard and standard.subject_id else '',
             'schedule': standard.note if standard else '',
-            'signature': standard.company_id.director_signature if standard and standard.company_id else False,
-            'director': standard.company_id.director_name if standard and standard.company_id else '',
-            'director_id': standard.company_id.director_id if standard and standard.company_id else '',
-            'director_job': standard.company_id.director_job if standard and standard.company_id else '',
-            'empresa': standard.company_id.name if standard and standard.company_id else '',
+            'signature': company_data.get('signature', False),
+            'director': company_data.get('director', ''),
+            'director_id': company_data.get('director_id', ''),
+            'director_job': company_data.get('director_job', ''),
+            'empresa': company_data.get('empresa', ''),
             'programa': standard.subject_id.programa_id.name if standard and standard.subject_id and standard.subject_id.programa_id else '',
             'estado': self.get_estado(inscripcion.state),
             'date': self.get_date(),
@@ -53,7 +59,6 @@ class WizardCeOptimized(models.TransientModel):
         data = {
             'form_data': form_data,
             'est': est,
-            'signer': signer.id if signer else False,
         }
 
         return self.env.ref('report_class.action_report_record_ce') \

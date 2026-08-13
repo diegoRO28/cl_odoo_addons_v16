@@ -25,11 +25,6 @@ class WizardFiOptimized(models.TransientModel):
         # Obtener estudiante (incluye archivados)
         student = helper.get_student(self.student_id.id)
 
-        # Obtener firmante
-        signer = False
-        if self.signer_id:
-            signer = self.env['cei.signer'].sudo().with_context(active_test=False).browse(self.signer_id.id)
-
         # Datos del estudiante
         est = [{
             'cedula': student.student_ci or '',
@@ -64,7 +59,6 @@ class WizardFiOptimized(models.TransientModel):
             'form_data': form_data,
             'est': est,
             'cur': cur,
-            'signer': signer.id if signer else False,
         }
 
         return self.env.ref('report_class.action_report_record_fi') \

@@ -16,8 +16,8 @@
     'author': 'Tu Empresa',
     'website': 'https://www.tuempresa.com',
     'depends': [
-        'report_class',  # Dependencia del módulo padre
-        'school',        # Módulo base de gestión académica
+        'report_class',
+        'school',
     ],
     'data': [
         'security/ir.model.access.csv',
