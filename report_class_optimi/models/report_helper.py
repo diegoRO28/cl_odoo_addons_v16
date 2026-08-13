@@ -19,14 +19,12 @@ class ReportHelperOptimized(models.AbstractModel):
         """
         Obtiene el estudiante incluyendo registros archivados.
         """
-        _logger.info(f"Buscando estudiante con ID: {student_id}")
         student = self.env['student.student']\
             .sudo()\
             .with_context(active_test=False)\
             .browse(student_id)
 
         if not student.exists():
-            _logger.error(f"Estudiante no encontrado con ID: {student_id}")
             raise UserError("No se encontró el estudiante.")
 
         return student
@@ -35,14 +33,12 @@ class ReportHelperOptimized(models.AbstractModel):
         """
         Obtiene la inscripción incluyendo registros archivados.
         """
-        _logger.info(f"Buscando inscripción con ID: {inscripcion_id}")
         inscripcion = self.env['student.inscripcion']\
             .sudo()\
             .with_context(active_test=False)\
             .browse(inscripcion_id)
 
         if not inscripcion.exists():
-            _logger.error(f"Inscripción no encontrada con ID: {inscripcion_id}")
             raise UserError("No se encontró la inscripción.")
 
         return inscripcion
@@ -62,6 +58,7 @@ class ReportHelperOptimized(models.AbstractModel):
     def get_evaluaciones(self, standard):
         """
         Obtiene las evaluaciones de la sección incluyendo archivadas.
+        Busca en standard.evaluacion (maestro)
         """
         return self.env['standard.evaluacion']\
             .sudo()\
@@ -74,6 +71,7 @@ class ReportHelperOptimized(models.AbstractModel):
     def get_evaluacion_detalle(self, evaluacion, student):
         """
         Obtiene el detalle de evaluación del estudiante incluyendo archivados.
+        Busca en standard.evaluaciones (detalle)
         """
         return self.env['standard.evaluaciones']\
             .sudo()\
@@ -86,6 +84,7 @@ class ReportHelperOptimized(models.AbstractModel):
     def get_actividades(self, evaluacion_detalle):
         """
         Obtiene las actividades de la evaluación incluyendo archivadas.
+        Busca en standard.actividades
         """
         return self.env['standard.actividades']\
             .sudo()\
@@ -97,6 +96,7 @@ class ReportHelperOptimized(models.AbstractModel):
     def get_asistencias(self, standard):
         """
         Obtiene las asistencias de la sección incluyendo archivadas.
+        Busca en subject.asistencia (maestro)
         """
         return self.env['subject.asistencia']\
             .sudo()\
@@ -109,6 +109,7 @@ class ReportHelperOptimized(models.AbstractModel):
     def get_asistencia_detalle(self, asistencia, student):
         """
         Obtiene el detalle de asistencia del estudiante incluyendo archivados.
+        Busca en subject.asistencias (detalle)
         """
         return self.env['subject.asistencias']\
             .sudo()\
@@ -162,7 +163,7 @@ class ReportHelperOptimized(models.AbstractModel):
                 'estado': 'SIN SECCIÓN',
             }
 
-        # Obtener evaluaciones y asistencias
+        # Obtener evaluaciones y asistencias (con active_test=False)
         evaluaciones = self.get_evaluaciones(standard)
         asistencias = self.get_asistencias(standard)
 

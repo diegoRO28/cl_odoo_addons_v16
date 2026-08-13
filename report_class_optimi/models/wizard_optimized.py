@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from odoo import api, fields, models
 from odoo.exceptions import UserError
-import logging
 
 _logger = logging.getLogger(__name__)
 
@@ -190,6 +190,7 @@ class WizardCeOptimized(models.TransientModel):
 
     def get_date(self):
         """Obtiene la fecha en formato texto."""
+        from datetime import datetime
         meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
                  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
         dias = ['ero', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete',
@@ -199,7 +200,6 @@ class WizardCeOptimized(models.TransientModel):
                 'veinticinco', 'veintiséis', 'veintisiete', 'veintiocho',
                 'veintinueve', 'treinta', 'treinta y uno']
 
-        from datetime import datetime
         fecha = datetime.now()
         year = fecha.year
         month = fecha.strftime("%m")
