@@ -9,7 +9,12 @@ import datetime
 class WizardCeOptimized(models.TransientModel):
     _name = 'report.wizard.ce.optimized'
     _description = 'Report Wizard Optimizado - Constancia de Estudios'
-    _inherit = 'report.wizard_ce'  # Hereda del wizard original
+
+    # Campos del wizard
+    student_id = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
+    inscripcion_id = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True, context={'active_test': False})
+    signer_id = fields.Many2one('cei.signer', string='Firmante', context={'active_test': False})
+    date_start = fields.Date('Fecha Inicio', required=True, default=fields.Date.today)
 
     def get_date(self):
         """Obtiene la fecha en formato texto."""
@@ -34,7 +39,6 @@ class WizardCeOptimized(models.TransientModel):
 
     def numero_to_letras(self, numero):
         """Convierte un número a letras."""
-        # Implementación completa del método
         indicador = [("", ""), ("MIL", "MIL"), ("MILLON", "MILLONES"), ("MIL", "MIL"), ("BILLON", "BILLONES")]
         entero = int(numero)
         contador = 0

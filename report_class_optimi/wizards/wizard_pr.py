@@ -9,7 +9,13 @@ import datetime
 class WizardPrOptimized(models.TransientModel):
     _name = 'report.wizard.pr.optimized'
     _description = 'Report Wizard Optimizado - Constancia de Presentación'
-    _inherit = 'report.wizard_pr'  # Hereda del wizard original
+
+    # Campos del wizard
+    student_id = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
+    inscripcion_id = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True, context={'active_test': False})
+    signer_id = fields.Many2one('cei.signer', string='Firmante', context={'active_test': False})
+    date_end = fields.Datetime('Fecha Presentación', required=True, default=fields.Datetime.now())
+    date_start = fields.Date('Fecha Inicio', required=True, default=fields.Date.today)
 
     def action_search_salida(self):
         """

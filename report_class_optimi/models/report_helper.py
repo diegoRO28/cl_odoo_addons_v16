@@ -7,10 +7,10 @@ from odoo.exceptions import UserError
 class ReportHelperOptimized(models.AbstractModel):
     _name = "report.helper.optimized"
     _description = "Helper Optimizado para Reportes Académicos"
-    _inherit = "report.helper"  # Hereda del helper original
+    # NO hereda de report.helper porque no existe en report_class
 
     # ============================================================
-    # SOBREESCRITURA DE MÉTODOS PARA INCLUIR ARCHIVADOS
+    # MÉTODOS PARA INCLUIR REGISTROS ARCHIVADOS
     # ============================================================
 
     def get_student(self, student_id):

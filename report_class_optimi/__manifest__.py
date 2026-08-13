@@ -19,6 +19,7 @@
         'school',        # Módulo base de gestión académica
     ],
     'data': [
+        'security/ir.model.access.csv',
         'views/wizard_views.xml',
     ],
     'installable': True,

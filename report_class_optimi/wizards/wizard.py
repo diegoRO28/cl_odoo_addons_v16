@@ -9,7 +9,22 @@ import datetime
 class WizardOptimized(models.TransientModel):
     _name = 'report.wizard.optimized'
     _description = 'Report Wizard Optimizado - Record Académico'
-    _inherit = 'report.wizard'  # Hereda del wizard original
+
+    # Campos del wizard
+    student_id = fields.Many2one('student.student', string="Estudiante", required=True, context={'active_test': False})
+    inscripcion_id = fields.Many2one('student.inscripcion', 'Sección', help='Seleccione la sección', required=True, context={'active_test': False})
+    
+    standard_id = fields.Many2one('school.standard', 'Sección', related='inscripcion_id.standard_id', help='Select student standard', readonly=True)
+    school_id = fields.Many2one('school.campus', 'Campus', related='inscripcion_id.school_id', help='Select Campus', readonly=True)
+    subject_id = fields.Many2one('subject.subject', 'Curso', related='inscripcion_id.subject_id', help='Curso', readonly=True)
+    start_date = fields.Date('Fecha de inicio', related='standard_id.start_date', help='Starting date of Lapso Académico', readonly=True)
+    end_date = fields.Date('Fecha de finalización', related='standard_id.end_date', help='End date of Lapso Académico', readonly=True)
+    state_sec = fields.Selection([
+        ('por iniciar', 'Por iniciar'),
+        ('iniciado', 'Iniciado'),
+        ('culminado', 'Culminado'),
+    ], 'Status', readonly=True, default="por iniciar", help='State of the student registration form',
+        related='standard_id.state_aux')
 
     def action_search_salida(self):
         """
