@@ -6,7 +6,7 @@
     <!-- =========================================== -->
 
     <!-- Record Académico - Añadir contexto active_test=False -->
-    <record id="report_class.report_wizard_view_form" model="ir.ui.view">
+    <record id="report_wizard_view_form_optimized" model="ir.ui.view">
         <field name="name">report.wizard.view.form.optimized</field>
         <field name="model">report.wizard</field>
         <field name="inherit_id" ref="report_class.report_wizard_view_form"/>
@@ -21,7 +21,7 @@
     </record>
 
     <!-- Constancia de Estudios - Añadir contexto active_test=False -->
-    <record id="report_class.report_wizard_ce_view_form" model="ir.ui.view">
+    <record id="report_wizard_ce_view_form_optimized" model="ir.ui.view">
         <field name="name">report.wizard_ce.view.form.optimized</field>
         <field name="model">report.wizard_ce</field>
         <field name="inherit_id" ref="report_class.report_wizard_ce_view_form"/>
@@ -36,7 +36,7 @@
     </record>
 
     <!-- Constancia de Finalización - Añadir contexto active_test=False -->
-    <record id="report_class.report_wizard_fi_view_form" model="ir.ui.view">
+    <record id="report_wizard_fi_view_form_optimized" model="ir.ui.view">
         <field name="name">report.wizard_fi.view.form.optimized</field>
         <field name="model">report.wizard_fi</field>
         <field name="inherit_id" ref="report_class.report_wizard_fi_view_form"/>
@@ -48,7 +48,7 @@
     </record>
 
     <!-- Constancia de Presentación - Añadir contexto active_test=False -->
-    <record id="report_class.report_wizard_pr_view_form" model="ir.ui.view">
+    <record id="report_wizard_pr_view_form_optimized" model="ir.ui.view">
         <field name="name">report.wizard_pr.view.form.optimized</field>
         <field name="model">report.wizard_pr</field>
         <field name="inherit_id" ref="report_class.report_wizard_pr_view_form"/>
