@@ -1,7 +1,7 @@
 # See LICENSE file for full copyright and licensing details.
 
-
-
+import requests
+import urllib.parse
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
@@ -63,6 +63,12 @@ class StudentInscripcion(models.Model):
 
     company_id       = fields.Many2one('res.company', 'Companía', related='standard_id.company_id', store=True, help='Company_id of the school')
     photo            = fields.Image('Foto', related='student_id.photo', help='Attach student photo')
+    moodle_enrolled = fields.Boolean(
+        string='Inscrito en Moodle', 
+        default=False, 
+        copy=False, 
+        help="Indica si el estudiante ya fue sincronizado con Moodle"
+    )
 
     move_type = fields.Selection(
          selection=[
@@ -339,6 +345,89 @@ class StudentInscripcion(models.Model):
     #     '''Method to display standard and division'''
     #     return [(rec.id, rec.name + '/' + rec.standard_id.code + '/' + rec.subject_id.code ) for rec in self]
 
+    def action_sync_moodle(self):
+        '''Método para crear el usuario en Moodle si no existe y matricularlo en su curso'''
+        for record in self:
+            moodle_url = "http://localhost/webservice/rest/server.php"
+            moodle_token = "cdc9a60328cfcf7464f44a3e027fcbeb" # Inserta tu token válido de Moodle
 
+            # Validar que exista información del estudiante
+            partner = record.student_partner_id 
+            if not partner:
+                raise UserError(_("No se encontró el Partner o usuario asociado al estudiante."))
+
+            email = partner.email or f"student_{record.student_id.id}@prueba.local"
+            username = email.split('@')[0]
+            
+            # Formatear nombres
+            full_name = partner.name or record.student_id.student_name or "Estudiante"
+            name_parts = full_name.split(' ')
+            firstname = partner.name.split(' ')[0] if partner.name else "Estudiante"
+            lastname = ' '.join(partner.name.split(' ')[1:]) if partner.name and len(partner.name.split(' ')) > 1 else "Apellido"
+
+            # Mapeo del ID de curso de Moodle (puedes tomarlo dinámicamente de standard_id o subject_id)
+            # Para la prueba, si no hay campo asignado, usaremos el ID 2
+            moodle_course_id = getattr(record.standard_id, 'moodle_course_id', 2) or 2
+
+            # -------------------------------------------------------------
+            # PASO 1: Obtener o Crear Usuario en Moodle
+            # -------------------------------------------------------------
+            moodle_user_id = False
+
+            # Búsqueda por correo para ver si ya existe en Moodle
+            get_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=email&values[0]={urllib.parse.quote(email)}"
+            try:
+                res_search = requests.get(get_user_url, timeout=10).json()
+                if isinstance(res_search, list) and len(res_search) > 0:
+                    moodle_user_id = res_search[0].get('id')
+            except Exception as e:
+                raise UserError(_(f"Error al conectar con Moodle para consultar usuario: {str(e)}"))
+
+            # Si no existe, lo creamos
+            if not moodle_user_id:
+                create_user_data = {
+                    'users[0][username]': username.lower(),
+                    'users[0][firstname]': firstname,
+                    'users[0][lastname]': lastname,
+                    'users[0][email]': email,
+                    'users[0][auth]': 'manual',
+                    'users[0][password]': 'Estudiante123!', # Contraseña temporal
+                }
+                create_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_create_users&moodlewsrestformat=json"
+                try:
+                    res_create = requests.post(create_user_url, data=create_user_data, timeout=10).json()
+                    if isinstance(res_create, list) and len(res_create) > 0:
+                        moodle_user_id = res_create[0].get('id')
+                    elif isinstance(res_create, dict) and res_create.get('exception'):
+                        raise UserError(_(f"Excepción en Moodle al crear usuario: {res_create.get('message')}"))
+                except Exception as e:
+                    raise UserError(_(f"Error al conectar con Moodle para crear usuario: {str(e)}"))
+
+            if not moodle_user_id:
+                raise UserError(_("No se pudo obtener ni generar el ID del usuario en Moodle."))
+
+            # -------------------------------------------------------------
+            # PASO 2: Matricular Usuario en el Curso de Moodle
+            # -------------------------------------------------------------
+            enrol_data = {
+                'enrolments[0][roleid]': 5, # Rol de Estudiante
+                'enrolments[0][userid]': moodle_user_id,
+                'enrolments[0][courseid]': moodle_course_id,
+            }
+            enrol_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=enrol_manual_enrol_users&moodlewsrestformat=json"
+            
+            try:
+                enrol_res = requests.post(enrol_url, data=enrol_data, timeout=10)
+                # Si Moodle responde 200 y body vacío (o null en JSON), la matrícula fue un éxito
+                if enrol_res.status_code == 200 and (not enrol_res.text or enrol_res.text == 'null'):
+                    record.moodle_enrolled = True
+                else:
+                    res_json = enrol_res.json()
+                    if isinstance(res_json, dict) and res_json.get('exception'):
+                        raise UserError(_(f"Error Moodle: {res_json.get('message')}"))
+            except Exception as e:
+                raise UserError(_(f"Error al matricular en Moodle: {str(e)}"))
+
+        return True
 
       

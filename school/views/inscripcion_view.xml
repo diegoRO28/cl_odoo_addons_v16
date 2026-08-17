@@ -43,7 +43,14 @@
                             string="CONFIRMAR INSCRIPCIÒN" states="draft" groups="school.group_school_administration" /> 
                     <!-- <button class="btn-danger" icon="fa-ban" name="cancel_admission" type="object" confirm="Está seguro de Cancelar la Inscripción ?"
                             string="CANCELAR INSCRIPCIÒN" states="done" groups="school.group_school_administration"/> -->
-                    <field name="state" widget="statusbar" statusbar_visible="draft,done,terminate,cancel"/>
+                    <button name="action_sync_moodle" 
+                        string="Inscribir en Moodle" 
+                        type="object" 
+                        class="oe_highlight" 
+                        attrs="{'invisible': ['|', ('state', '!=', 'done'), ('moodle_enrolled', '=', True)]}"/>
+
+                    <field name="moodle_enrolled" invisible="1"/>
+                    <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
                     <widget name="web_ribbon" title="Preinscrito" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
