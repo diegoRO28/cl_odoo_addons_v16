@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="student_inscripcion_form_1_inherit" model="ir.ui.view">
+        <field name="name">student.inscripcion.form.1.inherited</field>
+        <field name="model">student.inscripcion</field>
+        <field name="inherit_id" ref="school.view_student_inscripcion_form"/>
+        <field name="arch" type="xml">
+            <!-- <xpath expr="//button[@name='cancel_admission']" position="before"> -->
+            <xpath expr="//button[@name='admission_done']" position="before">
+                <button class="oe_highlight" name="action_set_draft" type="object" confirm="¿Está seguro(a) de reestablecer a borrador esta inscripción?" string="Reestablecer a borrador" states="done,cancel" groups="school_optimize.group_set_draft_student_inscripcion"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <template id="identity_card_sub">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page" style="height: 1px;">
+                        <div class="oe_structure"/>
+                        <t t-foreach="o" t-as="sub">
+
+                            <table width="100%" style="border: 1px solid white;" align="center">
+                                <tr>
+                                    <td  align="center" style="font-family: 'Helvetica';font-size: 24px;padding-left:5px;">
+                                        <strong>
+                                            FICHA DE CURSO
+                                        </strong>
+                                    </td>
+                                    <td  align="right" style="font-family: 'Helvetica';font-size: 24px;padding-left:5px;">
+                                        <strong>
+                                            <span t-field="sub.name"/>
+                                        </strong>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table CELLPADDING="0" CELLSPACING="0" width="100%" name="encabezado" style="border: 1px solid black; font-size:13px;font-family:Arial;">
+        
+                                            <tr style="margin-top:3px">
+                                                <td colspan="2" align="center" style="font-family: 'Helvetica';font-size: 20px;padding-left:5px;">
+                                                    <strong>
+                                                        <span t-field="sub.code"/> - <span t-field="sub.nombre"/>
+                                                    </strong>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Còdigo</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="sub.code" />
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Nombre</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="sub.nombre" />
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Nº Encuentros</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="sub.nro_encuentros" />
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Nº Evaluaciones</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="sub.nro_evaluaciones" />
+                                                </td>
+                                            </tr>
+  
+                                            <tr>
+                                                <td colspan="2" style="font-family: 'Helvetica';padding-left:5px;" align="center">
+                                                    <strong>Observaciones</strong>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                 <td colspan="2" style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="sub.note"/>
+                                                </td>
+                                            </tr>
+
+
+                                            <t t-set="i" t-value="1"/>
+
+                            </table>
+
+                      </t>
+                   </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

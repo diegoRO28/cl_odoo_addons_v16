@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+        <record id="report_student_student" model="ir.actions.report">
+            <field name="name">Identity Card</field>
+            <field name="model">student.student</field>
+            <field name="binding_model_id" ref="model_student_student"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card</field>
+            <field name="report_file">school.identity_card</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration')),
+                                        (4, ref('school.group_school_teacher')),
+                                        (4, ref('school.group_school_student'))]"/>
+        </record>
+
+        <record id="report_school_school_identity_card" model="ir.actions.report">
+            <field name="name">Identity Card</field>
+            <field name="model">school.teacher</field>
+            <field name="binding_model_id" ref="model_school_teacher"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.teacher_identity_card</field>
+            <field name="report_file">school.teacher_identity_card</field>
+            <field name="binding_type">report</field>
+        </record>
+
+        <record id="report_evalua" model="ir.actions.report">
+            <field name="name">Ficha Evaluación</field>
+            <field name="model">standard.evaluacion</field>
+            <field name="binding_model_id" ref="model_standard_evaluacion"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card_eva</field>
+            <field name="report_file">school.identity_card_eva</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration')),
+                                        (4, ref('school.group_school_teacher')),
+                                        (4, ref('school.group_school_student'))]"/>
+        </record>
+
+        <record id="report_asiste" model="ir.actions.report">
+            <field name="name">Ficha Asistencia</field>
+            <field name="model">subject.asistencia</field>
+            <field name="binding_model_id" ref="model_subject_asistencia"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card_asi</field>
+            <field name="report_file">school.identity_card_asi</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration')),
+                                        (4, ref('school.group_school_teacher')),
+                                        (4, ref('school.group_school_student'))]"/>
+        </record>
+
+        <record id="report_seccion" model="ir.actions.report">
+            <field name="name">Ficha Sección</field>
+            <field name="model">school.standard</field>
+            <field name="binding_model_id" ref="model_school_standard"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card_sec</field>
+            <field name="report_file">school.identity_card_sec</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration')),
+                                        (4, ref('school.group_school_teacher'))]"/>
+        </record>
+
+        <record id="report_incrip" model="ir.actions.report">
+            <field name="name">Ficha Inscripción</field>
+            <field name="model">student.inscripcion</field>
+            <field name="binding_model_id" ref="model_student_inscripcion"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card_inc</field>
+            <field name="report_file">school.identity_card_inc</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration'))]"/>
+        </record>
+
+        <record id="report_retiro" model="ir.actions.report">
+            <field name="name">Ficha Retiro</field>
+            <field name="model">student.retiro</field>
+            <field name="binding_model_id" ref="model_student_retiro"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card_ret</field>
+            <field name="report_file">school.identity_card_ret</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration'))]"/>
+        </record>
+
+        <record id="report_subject" model="ir.actions.report">
+            <field name="name">Ficha Curso</field>
+            <field name="model">subject.subject</field>
+            <field name="binding_model_id" ref="model_subject_subject"/>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">school.identity_card_sub</field>
+            <field name="report_file">school.identity_card_sub</field>
+            <field name="binding_type">report</field>
+            <field name="groups_id" eval="[(4, ref('school.group_school_administration'))]"/>
+        </record>
+        
+</odoo>

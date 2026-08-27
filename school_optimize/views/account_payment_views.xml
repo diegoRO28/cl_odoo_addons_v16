@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_payment_form_school_optimize_inherit" model="ir.ui.view">
+        <field name="name">account.payment.form.school.optimize.inherit</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='ref']" position="after">
+                <field 
+                    name="image_1920" 
+                    widget="image" 
+                    class="oe_avatar" 
+                    options="{'preview_image': 'image_128'}"
+                />
+            </xpath>
+
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <!-- 
+                <field 
+                    name="concepto_pago" 
+                    attrs="{'invisible': [('inscripcion_id', '=', False)]}" 
+                    readonly="1"
+                /> 
+                -->
+                <field 
+                    name="account_payment_concept_id" 
+                    attrs="{'invisible': [('inscripcion_id', '=', False)]}" 
+                    readonly="1"
+                    options="{'no_create': True, 'no_quick_create': True, 'no_create_edit': True}"
+                />                
+                <field  
+                    name="inscripcion_id" 
+                    attrs="{'invisible': [('inscripcion_id', '=', False)]}"
+                    readonly="1" 
+                />
+                <field 
+                    name="standard_id" 
+                    attrs="{'invisible': [('standard_id', '=', False)]}"
+                    readonly="1" 
+                />
+            </xpath>             
+
+            <xpath expr="//field[@name='partner_bank_id']" position="after">
+                <field 
+                    name="invoice_date_due"
+                    readonly="1" 
+                    attrs="{'invisible': [('invoice_date_due', '=', False)]}" 
+                />            
+            </xpath>             
+        </field>
+    </record>
+
+    <record id="view_account_payment_list_school_optimize_inherit" model="ir.ui.view">
+        <field name="name">account.payment.list.school.optimize.inherit</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount_company_currency_signed']" position="after">
+                <field name="invoice_date_due" />
+                <!-- <field name="concepto_pago" /> -->
+                <field name="account_payment_concept_id" />
+            </xpath>   
+        </field>
+    </record>    
+</odoo>

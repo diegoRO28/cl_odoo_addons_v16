@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>    
+<odoo>    
+
+    <!-- Form View Of School Information -->
+    <record id="view_school_tiporetiro_form" model="ir.ui.view">
+        <field name="name">school.tiporetiro.form</field>
+        <field name="model">school.tiporetiro</field>
+        <field name="arch" type="xml">
+            <form string="Information">
+                <sheet>
+                    <separator string="Información del tiporetiro" />
+                    <group col="4" colspan="4">
+                        
+                        <field name="code" placeholder="Código" />
+                        <field name="name" string="Nombre" placeholder="tiporetiro" /> 
+                        
+                    </group>
+                    
+                    
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View Of School Information -->
+    <record id="view_school_school_tree" model="ir.ui.view">
+        <field name="name">school.tiporetiro.tree</field>
+        <field name="model">school.tiporetiro</field>
+        <field name="arch" type="xml">
+            <tree string="tiporetiro Information">
+                <!-- <field name="company_id" /> -->
+                <field name="code" />
+                <field name="name" string="Nombre" />
+                
+
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of School Information -->
+    <record id="action_school_tiporetiro_form" model="ir.actions.act_window">
+        <field name="name">Tipos de Retiro</field>
+        <field name="res_model">school.tiporetiro</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- MENU Of School Information -->
+       <menuitem id="menu_school_tiporetiro_sub_form" 
+               name="Tipo Retiro" 
+             parent="menu_school_config_retiro" 
+             action="action_school_tiporetiro_form" /> 
+
+</odoo>

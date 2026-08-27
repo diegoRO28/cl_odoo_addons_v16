@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Definición del wizard_fi -->
+    <record id="report_wizard_fi_view_form" model="ir.ui.view">
+        <field name="name">report.wizard_fi.view.form</field>
+        <field name="model">report.wizard_fi</field>
+        <field name="arch" type="xml">
+            <form string="Constancia de Finalización">
+                <sheet> 
+
+                   <separator string="SELECCIONE EL ESTUDIANTE" colspan="2" />
+                   <group>
+                        <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
+                   </group>
+                   
+
+                   <!-- <separator string="SELECCIONE LA SECCIÓN" colspan="2" />
+                   <group>
+                        <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection" />
+                   </group> -->
+
+                   <separator string="SELECCIONE EL FIRMANTE" colspan="2" />
+                   <group>
+                        <field name="signer_id" required="1" options="{'no_edit': True, 'no_create': True, 'no_quick_create': True, 'no_create_edit': True, 'no_open': True}" />
+                   </group>       
+
+                   <footer>
+                        <button name="action_search_salida" type="object" string="Generar Constancia" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                   </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Definición de la acción -->
+    <record id="report_wizard_fi_action" model="ir.actions.act_window">
+        <field name="name">Generar Constancia de Finalización</field>
+        <field name="res_model">report.wizard_fi</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_fi_view_form" />
+        <field name="target">new</field>
+    </record>
+	
+	<!-- Definición del menú -->
+
+        
+
+        <menuitem
+                  id="constancia_finaliza"
+                name="Aprobación"
+              action="report_wizard_fi_action"
+              parent="menu_constancia"
+            sequence="2" />
+
+</odoo>

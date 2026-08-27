@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Definición del Wizard -->
+    <record id="report_wizard_in_view_form" model="ir.ui.view">
+        <field name="name">report.wizard_in.view.form</field>
+        <field name="model">report.wizard_in</field>
+        <field name="arch" type="xml">
+            <form string="Informe de Facturas / Inscripción">
+                <sheet> 
+
+                   <group>
+                        <field name="date_today" invisible="1"/>
+                   </group>
+                   
+                   <separator string="SELECCIONE LA FECHA DE INICIO" colspan="2" />
+                   <group>
+                        <field name="date_start" />
+                   </group>
+
+                   <separator string="SELECCIONE LA FECHA FIN" colspan="2" />
+                   <group>
+                        <field name="date_end"  widget="date" />
+                   </group>
+
+                   <footer>
+                        <button name="action_search_salida" type="object" string="Generar Informe" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                   </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Definición de la acción -->
+    <record id="report_wizard_in_action" model="ir.actions.act_window">
+        <field name="name">Generar Informe de Inscripción</field>
+        <field name="res_model">report.wizard_in</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_in_view_form" />
+        <field name="target">new</field>
+    </record>
+	
+	<!-- Definición del menú -->
+    
+
+        <menuitem id="menu_inscrip" 
+                name='Inscripción'
+              parent="report_menu_info" 
+            sequence="1" />
+
+        <menuitem
+                  id="informe_in_action"
+                name="Listado de Facturas/Inscripción"
+              action="report_wizard_in_action"
+              parent="menu_inscrip"
+            sequence="1" />
+
+</odoo>

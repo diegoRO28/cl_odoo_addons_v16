@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>    
+<odoo>    
+
+    <!-- Form View Of School Information -->
+    <record id="view_school_campus_form" model="ir.ui.view">
+        <field name="name">school.campus.form</field>
+        <field name="model">school.campus</field>
+        <field name="arch" type="xml">
+            <form string="Campus Information">
+                <sheet>
+                    <separator string="Información del Campus" />
+                    <group col="4" colspan="4">
+                        <field name="company_id" options="{'no_create': True}" widget="selection" />
+                        <field name="name" string="Nombre" placeholder="Campus" /> 
+                        <field name="code" placeholder="Código" />
+                    </group>
+                    <!-- <group>
+                        <label for="street" string="Direcciòn" />
+                        <div class="o_address_format">
+                            <field name="street" class="o_address_street" placeholder="Street..." />
+                            <field name="street2" class="o_address_street" placeholder="Street2..." />
+                            <field name="city" class="o_address_city" placeholder="City" required="1" />
+                            <field name="state_id" class="o_address_state" domain="[('country_id','=',country_id)]" required="1" placeholder="State" options="{&quot;no_open&quot;: true}" />
+                            <field name="zip" class="o_address_zip" placeholder="ZIP" />
+                            <field name="country_id" class="o_address_city,oe_no_button" placeholder="Country"  options="{&quot;no_open&quot;: true}" required="1"/>
+                        </div>
+                    </group> -->
+                    <group col="4" colspan="4">
+                        <field name="required_age" required="1"/>
+                    </group>
+                    <notebook colspan="4">
+                        <page string="Secciones">
+                            <field name="standards" nolabel="1" colspan="4" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View Of School Information -->
+    <record id="view_school_school_tree" model="ir.ui.view">
+        <field name="name">school.campus.tree</field>
+        <field name="model">school.campus</field>
+        <field name="arch" type="xml">
+            <tree string="Campus Information">
+                <!-- <field name="company_id" /> -->
+                <field name="name" string="Campus Nombre" />
+                <field name="code" />
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of School Information -->
+    <record id="action_school_campus_form" model="ir.actions.act_window">
+        <field name="name">Campus</field>
+        <field name="res_model">school.campus</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- MENU Of School Information -->
+       <menuitem id="menu_school_campus_sub_form" 
+               name="Campus" 
+             parent="menu_school_config_campus" 
+             action="action_school_campus_form" 
+             sequence="1" /> 
+
+</odoo>

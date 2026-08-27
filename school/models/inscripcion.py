@@ -1,0 +1,581 @@
+# See LICENSE file for full copyright and licensing details.
+
+import requests
+import urllib.parse
+from odoo import api, fields, models
+from odoo.exceptions import UserError, ValidationError
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
+from odoo.tools.translate import _
+
+PAYMENT_STATE_SELECTION = [
+        ('not_paid', 'Not Paid'),
+        ('in_payment', 'In Payment'),
+        ('paid', 'Paid'),
+        ('partial', 'Partially Paid'),
+        ('reversed', 'Reversed'),
+        ('invoicing_legacy', 'Invoicing App Legacy'),
+]
+
+SOLVENCIA_STATE_SELECTION = [
+        ('solvente', 'Solvente'),
+        ('insolvente', 'Insolvente'),
+        ('anulada', 'Anulada'),
+]
+
+class StudentInscripcion(models.Model):
+    '''Defining a student inscripcion.'''
+
+    _name = 'student.inscripcion'
+    _description = 'Student Inscripcion'
+    _order = "inscription_date desc"
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+ 
+    @api.constrains('student_id')
+    def _check_code(self):
+         for record in self:
+             domain = [('id', '!=', record.id), ('student_id', '=' , record.student_id.id), ('standard_id', '=' , record.standard_id.id)]
+             if self.env["student.inscripcion"].search(domain):
+                raise ValidationError("Error: El estudiante ya està inscrito en la SECCIÒN..!")
+    
+    @api.constrains('standard_id')
+    def _check_cupo(self):
+         for record in self:
+            if self.standard_id.remaining_seats<=0:
+                raise ValidationError("Error: La sección no tiene cupos disponibles..! " + " seccion : " + str(self.standard_id.code) + "Seats: " + str(self.standard_id.remaining_seats))           
+    
+    @api.depends('state')
+    def _compute_state(self):
+        '''Method to compute total student.'''
+        for rec in self:
+            rec.state_aux = self.get_estado(rec.state)
+
+    name             = fields.Char(string='RI Nro.', required=True, copy=False, readonly=True, default=lambda self: _('New'))
+    #student_id      = fields.Many2one('school.estudiante', 'Estudiante', help='Select student', required=True)
+    student_id       = fields.Many2one('student.student', 'Estudiante', help='Select student', required=True)
+    student_code     = fields.Char('Código', related='student_id.student_code', help='Enter student code', readonly=True)
+    standard_id      = fields.Many2one('school.standard', 'Sección', help='Select student standard', required=True, tracking=True)
+    school_id        = fields.Many2one('school.campus', 'Campus', help='Select Campus', required=True, tracking=True)
+    subject_id       = fields.Many2one('subject.subject', 'Curso', related='standard_id.subject_id', required=True, help='Curso')
+    inscription_date = fields.Date(string="Fecha", required=True, default=fields.Date.today)
+    move_id          = fields.Many2one("account.move", "Factura Asociada", required=True, help="Link to the automatically generated Journal Items.")
+    partner_id       = fields.Many2one("res.partner",'Partner', related='move_id.partner_id', help='Enter student code', readonly=True)
+    student_partner_id = fields.Many2one("res.partner",'Student Partner', related='student_id.user_id.partner_id', help='Enter student code', readonly=True)
+
+    company_id       = fields.Many2one('res.company', 'Companía', related='standard_id.company_id', store=True, help='Company_id of the school')
+    photo            = fields.Image('Foto', related='student_id.photo', help='Attach student photo')
+    moodle_enrolled = fields.Boolean(
+        string='Inscrito en Moodle', 
+        default=False, 
+        copy=False, 
+        help="Indica si el estudiante ya fue sincronizado con Moodle"
+    )
+
+    move_type = fields.Selection(
+         selection=[
+             ('entry', 'Journal Entry'),
+             ('out_invoice', 'Customer Invoice'),
+             ('out_refund', 'Customer Credit Note'),
+             ('in_invoice', 'Vendor Bill'),
+             ('in_refund', 'Vendor Credit Note'),
+             ('out_receipt', 'Sales Receipt'),
+             ('in_receipt', 'Purchase Receipt'),
+         ],
+         string='Type',
+         related='move_id.move_type',
+         required=True,
+         readonly=True,
+         change_default=True,
+         index=True,
+         default="entry",
+    )
+
+    payment_state = fields.Selection(
+        selection=PAYMENT_STATE_SELECTION,
+        string="Status Pago",
+        related='move_id.payment_state',
+        store=True, 
+        readonly=True,
+        copy=False,
+        tracking=True,
+    )
+
+    state_invoice = fields.Selection(
+         selection=[
+             ('draft', 'Draft'),
+             ('posted', 'Posted'),
+             ('cancel', 'Cancelled'),
+         ],
+         string='Status',
+         related='move_id.state',
+         required=True,
+         readonly=True,
+         copy=False,
+         default='draft',
+    )      
+ 
+    eva_o = fields.Float('Evaluación Oral', help='Escriba la evaluación Oral', default=0)
+    eva_e = fields.Float('Evaluación Escrita', help='Escriba la evaluación Escrita', default=0)
+    eva_t = fields.Float('Promedio', readonly=True, help='Evaluación Promedio', default=0)
+    
+    nota  = fields.Float('Calificación', readonly=True, help='Evaluación Promedio', default=0)
+
+    state            = fields.Selection([('draft', 'Draft'), 
+                                         ('done', 'Done'),
+                                         ('terminate', 'Terminate'), 
+                                         ('cancel', 'Cancel'),
+                                        ], 'Status', readonly=True, default="draft", help='State of the student registration form')
+    
+    state_aux        = fields.Selection([('preinscrito', 'Preinscrito'), 
+                                         ('inscrito', 'Inscrito'),
+                                         ('culminado', 'Culminado'), 
+                                         ('retirado', 'Retirado'),
+                                        ], 'Status', readonly=True, default="por iniciar", help='State of the student registration form'
+                                        , compute="_compute_state")
+    
+    state_eva       = fields.Selection([('borrador', 'Borrador'), 
+                                        ('aprobado', 'Aprobado'),
+                                        ('aplazado', 'Aplazado'), 
+                                        ('inasistente', 'Inasistente'),
+                                       ], 'Valoración', readonly=True, default="borrador", help='State of the student registration form')
+    
+    note = fields.Text('Observaciones', help='Observaciones', states={'terminate,cancel': [('readonly', True)]})
+
+    state_sec        = fields.Selection([('por iniciar', 'Por iniciar'), 
+                                         ('iniciado', 'Iniciado'),
+                                         ('culminado', 'Culminado'), 
+                                        ], 'Status', readonly=True, default="por iniciar", tracking=True, help='State of the student registration form',
+                                        related='standard_id.state_aux'
+                                        )
+    start_date      = fields.Date('Fecha de inicio', related='standard_id.start_date', help='Inicio del Lapso Académico')
+    end_date        = fields.Date('Fecha de finalización', related='standard_id.end_date', help='End date of Lapso Académico')
+
+    solvencia_state = fields.Selection(
+        selection=SOLVENCIA_STATE_SELECTION,
+        string="Status Solvencia",
+        store=True, readonly=True,
+        tracking=True,
+        default='solvente'
+    )
+
+    moodle_course_id = fields.Integer(
+        string='ID del curso en Moodle',
+        store=True,
+        help="ID del curso en Moodle (se llena automáticamente al sincronizar)"
+    )
+    moodle_sync_error = fields.Boolean(
+        string='Error en sincronización',
+        default=False,
+        help='Indica si hubo un error al sincronizar con Moodle'
+    )
+    moodle_error_message = fields.Text(
+        string='Mensaje de error',
+        readonly=True,
+        help='Último error de sincronización con Moodle'
+        )
+    moodle_sync_error = fields.Boolean(string='Error en sincronización', default=False)
+    moodle_error_message = fields.Text(string='Mensaje de error', readonly=True)
+
+    def set_to_draft(self):
+        '''Method to change state to draft'''
+        self.state = 'draft'
+
+    def set_done(self):
+        '''Method to change state to done'''
+        self.state = 'done'
+
+    def admission_draft(self):
+        '''Set the state to draft'''
+        self.state = 'draft'
+
+    def set_terminate(self):
+        '''Set the state to terminate'''
+        self.state = 'terminate'
+
+    def cancel_admission(self):
+        '''Set the state to cancel.'''
+        self.state = 'cancel'
+
+    def admission_done(self):
+        '''Method to confirm admission'''
+        self.state = 'done'
+       #-------------------------------------------------------#
+       #  GENERA LA ASISTENCIA , EVA SI LA SECCIÓN INIO        #
+       #-------------------------------------------------------#
+        if self.standard_id.state == 'done':
+           self.generar_asi()
+           self.generar_eva()
+       #-------------------------------------------------------#
+       #  ASIGNA LA SECCION EL REGISTRO DEL ESTUDIANTE         #
+       #-------------------------------------------------------#
+        self.student_id.state ='done'
+        self.student_id.standard_id    = self.standard_id
+        self.student_id.user_id.partner_id.is_student = True
+        self.student_id.admission_date = self.inscription_date
+       #-------------------------------------------------------#
+       #  ASIGANA EL RI A LA FACTURA                           #
+       #-------------------------------------------------------#
+        self.move_id.inscripcion_id = self.id
+        self.move_id.is_inscripcion = True
+        self.standard_id._compute_total_student()
+
+        try:
+            self.action_sync_moodle()
+        except Exception as e:
+            self.moodle_sync_error = True
+            self.moodle_error_message = str(e)
+            self.message_post(body=f"Error al sincronizar con Moodle: {e}")
+
+#-----------------------------------------------------------------------#
+    def get_estado(self , sta):
+        '''Method to compute la escala minima.'''
+
+        if sta == 'draft':
+           return 'preinscrito'
+        elif sta == 'done':
+           return 'inscrito' 
+        elif sta == 'terminate':
+           return 'culminado'
+        elif sta == 'cancel':
+           return 'retirado'
+        else:
+            return sta
+        
+        return sta           
+#-----------------------------------------------------------------------#
+
+    @api.model
+    def create(self, vals):
+         if vals.get('name', _('New')) == _('New'):
+             vals['name'] = self.env['ir.sequence'].next_by_code('inscripcion.code') or _('New')
+         res = super(StudentInscripcion, self).create(vals)
+         return res
+
+#------------------------------------------------------------------------------------------#
+#  DEBERA LOS REGISTRO DE ASISTENCIAS A LOS STUDENT INSCRITOS UNA VEZ INICIADA LA SECCION  #
+#------------------------------------------------------------------------------------------#
+    def generar_asi(self):
+         for record in self:
+             
+             domain         = [('standard_id', '=' , record.standard_id.id)]
+             asistenciaObj  = self.env["subject.asistencia"].search(domain)
+             asistenciasObj = self.env['subject.asistencias']
+
+             if asistenciaObj:
+                #----------------------------------------------------------------------------#
+                #  CICLO DE LAS EVALUACIONES DE LA SECCION                                   #
+                #----------------------------------------------------------------------------#
+                for eva in asistenciaObj:
+                    #raise ValidationError("Encontro las asistencia de la seccion: ..!" + "Nombre:" + str(eva.encuentro_id.name) + str(eva.state))
+
+                    #----------------------------------------------------------------------------#
+                    #  GENERA REGISTRO DE EVALUACION SI EL STATE ES DIFERENTE DE DRAFT           #
+                    #----------------------------------------------------------------------------#
+                    if eva.state in ['done','terminate']:
+                       #raise ValidationError("Encontro las asistencia de la seccion: ..!" + "Nombre:" + str(eva.name) + "State:" + str(eva.state))
+
+                       asistenciasObj.create({
+                           
+                                                'inscripcion_id': self.id,
+                                                'asistencia_id' : eva.id,
+                                                'student_id'    : self.student_id.id,
+                                                'is_attended'   : False,
+                                                'note'          : " ",
+                            
+                                            })
+
+#------------------------------------------------------------------------------------------#
+#  DEBERA LOS REGISTRO DE EVALUACIONES A LOS STUDENT INSCRITOS UNA VEZ INICIADA LA SECCION #
+#------------------------------------------------------------------------------------------#
+    
+    def generar_eva(self):
+         for record in self:
+             
+             domain          = [('standard_id', '=' , record.standard_id.id)]
+             evaluacionObj   = self.env["standard.evaluacion"].search(domain)
+             evaluacionesObj = self.env['standard.evaluaciones']
+             actividadesObj  = self.env['standard.actividades']
+             stu_id          = self.student_id.id
+             stu_state       = self.student_id.state
+             stu_nombre      = self.student_id.student_name
+             ri_id           = self.id
+
+             if evaluacionObj:
+                #----------------------------------------------------------------------------#
+                #  CICLO DE LAS EVALUACIONES DE LA SECCION                                   #
+                #----------------------------------------------------------------------------#
+                for eva in evaluacionObj:
+                    #----------------------------------------------------------------------------#
+                    #  GENERA REGISTRO DE EVALUACION SI EL STATE ES DIFERENTE DE DRAFT           #
+                    #----------------------------------------------------------------------------#
+                    if eva.state in ['done','terminate']:
+                        evalua_id = evaluacionesObj.create({
+                                                            
+                                                            'inscripcion_id': ri_id,
+                                                            'evaluacion_id' : eva.id,
+                                                            'student_id'    : stu_id,
+                                                            'nota'          : 0,
+                                                                
+                                                            })
+
+                        no_act = len(eva.libroevas_id.actividad_ids)
+                        r      = 1
+
+                        while r <= no_act:
+                            if r==1:
+                               evalua_id.is_act1 = True
+                               evalua_id.actividad1_id = eva.libroevas_id.actividad_ids[r-1].id
+                            elif r==2:
+                               evalua_id.is_act2 = True
+                               evalua_id.actividad2_id = eva.libroevas_id.actividad_ids[r-1].id
+                            elif r==3:
+                               evalua_id.is_act3 = True
+                               evalua_id.actividad3_id = eva.libroevas_id.actividad_ids[r-1].id
+                            elif r==4:
+                               evalua_id.is_act4 = True
+                               evalua_id.actividad4_id = eva.libroevas_id.actividad_ids[r-1].id
+                            elif r==5:
+                               evalua_id.is_act5 = True
+                               evalua_id.actividad5_id = eva.libroevas_id.actividad_ids[r-1].id
+                            elif r==6:
+                               evalua_id.is_act6 = True
+                               evalua_id.actividad6_id = eva.libroevas_id.actividad_ids[r-1].id
+
+                            r +=1
+
+                        if no_act != 0:
+
+                            j = 1
+                            while j <= no_act:
+                                    
+                                act_id   = eva.libroevas_id.actividad_ids[j-1].id
+                                act_name = eva.libroevas_id.actividad_ids[j-1].nombre
+
+                                #-----------------------------------------------------------------------#
+                                # GENERA EL REGISTRO A LOS STUDENT DONE                                  #
+                                #-----------------------------------------------------------------------#
+
+                                #raise ValidationError("Status: " + "estudiante ; " + stu_nombre + " Status: " + stu_state)
+                               
+                                actividadesObj.create({
+                                                        'evaluacion_id' : evalua_id.id,
+                                                        'actividad_id'  : act_id,
+                                                        'student_id'    : stu_id,
+                                                       })
+                                j = j + 1
+
+                    #raise ValidationError("Encontro las evaluaciones de la seccion: ..!" + "Nombre:" + str(eva.evaluacion_id.name) + "State:" + str(eva.state))
+
+#-----------------------------------------------------------------------#    
+    # def name_get(self):
+    #     '''Method to display standard and division'''
+    #     return [(rec.id, rec.name + '/' + rec.standard_id.code + '/' + rec.subject_id.code ) for rec in self]
+
+    def action_sync_moodle(self):
+    '''Método para crear el usuario en Moodle si no existe y matricularlo en su curso'''
+    import logging
+    import json
+    import time
+    from datetime import timedelta
+
+    _logger = logging.getLogger(__name__)
+
+    for record in self:
+        moodle_url = "http://localhost/webservice/rest/server.php"
+        moodle_token = "cdc9a60328cfcf7464f44a3e027fcbeb"
+
+        # ---------- 1. Validar datos del estudiante ----------
+        partner = record.student_partner_id
+        if not partner:
+            raise UserError(_("No se encontró el Partner o usuario asociado al estudiante."))
+
+        student_code = record.student_code or "SIN_CODIGO"
+        username = student_code   # Username = student_code
+
+        # --- Obtener email con prioridad ---
+        email = partner.email
+        if not email:
+            # Intentar obtener del partner del usuario (si existe)
+            user_partner = record.student_id.user_id.partner_id
+            if user_partner and user_partner.email:
+                email = user_partner.email
+        if not email:
+            # Fallback genérico
+            email = f"{student_code}@cursoscleveland.com"
+
+        _logger.info("Email asignado: %s", email)
+
+        # --- Extraer nombre y apellido según cantidad de palabras ---
+        full_partner_name = partner.name or record.student_id.student_name or "Estudiante"
+        name_parts = full_partner_name.strip().split()
+        num_words = len(name_parts)
+
+        if num_words == 2:
+            first_name = name_parts[0]
+            last_name = name_parts[1]
+        elif num_words == 3:
+            first_name = f"{name_parts[0]} {name_parts[1]}"
+            last_name = name_parts[2]
+        else:  # 4 o más palabras
+            first_name = f"{name_parts[0]} {name_parts[1]}"
+            last_name = " ".join(name_parts[2:])
+
+        # --- Nombre en Moodle: solo código + nombre (sin guion) ---
+        firstname = f"{student_code} {first_name}" if first_name else student_code
+        lastname = last_name
+
+        _logger.info("👤 Estudiante: code=%s, firstname=%s, lastname=%s", student_code, firstname, lastname)
+
+        # ---------- 2. Obtener el ID del curso en Moodle ----------
+        code_moodle = record.standard_id.subject_id.code_moodle
+        if not code_moodle:
+            raise UserError(_(
+                "El curso '%s' no tiene asignado un 'Código Moodle'.\n"
+                "Por favor, configure el campo 'Código Moodle' en el curso."
+            ) % record.standard_id.subject_id.name)
+
+        search_course_url = (
+            f"{moodle_url}?wstoken={moodle_token}"
+            f"&wsfunction=core_course_get_courses_by_field"
+            f"&field=shortname&value={urllib.parse.quote(code_moodle)}"
+            f"&moodlewsrestformat=json"
+        )
+
+        _logger.info("🔍 Buscando curso con code_moodle: %s", code_moodle)
+        try:
+            response = requests.get(search_course_url, timeout=10)
+            response.raise_for_status()
+            res_course = json.loads(response.text)
+            courses = res_course.get('courses', [])
+            if courses and len(courses) > 0:
+                moodle_course_id = courses[0].get('id')
+                _logger.info("Curso encontrado con ID: %s", moodle_course_id)
+            else:
+                moodle_course_id = None
+        except Exception as e:
+            raise UserError(_(f"Error al buscar curso en Moodle: {str(e)}"))
+
+        if not moodle_course_id:
+            raise UserError(_(
+                "No se encontró un curso en Moodle con el código '%s'."
+            ) % code_moodle)
+
+        # Guardar el ID en la sección para futuras sincronizaciones
+        record.standard_id.moodle_course_id = moodle_course_id
+
+        # ---------- 3. Obtener o crear el usuario en Moodle ----------
+        moodle_user_id = None
+
+        # Buscar por username (student_code) primero
+        get_user_by_username_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=username&values[0]={urllib.parse.quote(username)}"
+        try:
+            res_search_username = requests.get(get_user_by_username_url, timeout=10).json()
+            if isinstance(res_search_username, list) and len(res_search_username) > 0:
+                moodle_user_id = res_search_username[0].get('id')
+                _logger.info("Usuario encontrado por username (ID: %s)", moodle_user_id)
+        except Exception as e:
+            _logger.warning("Error al buscar usuario por username: %s", e)
+
+        # Si no se encuentra, buscar por email
+        if not moodle_user_id:
+            get_user_by_email_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=email&values[0]={urllib.parse.quote(email)}"
+            try:
+                res_search_email = requests.get(get_user_by_email_url, timeout=10).json()
+                if isinstance(res_search_email, list) and len(res_search_email) > 0:
+                    moodle_user_id = res_search_email[0].get('id')
+                    _logger.info("Usuario encontrado por email (ID: %s)", moodle_user_id)
+            except Exception as e:
+                _logger.warning("Error al buscar usuario por email: %s", e)
+
+        # Si existe, actualizar datos
+        if moodle_user_id:
+            _logger.info("Actualizando datos del usuario existente...")
+            update_user_data = {
+                'users[0][id]': moodle_user_id,
+                'users[0][email]': email,
+                'users[0][firstname]': firstname,
+                'users[0][lastname]': lastname,
+                'users[0][password]': '1234',
+                'users[0][city]': 'Acarigua',
+                'users[0][country]': 'Venezuela (Bolivarian Republic of)',
+            }
+            update_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_update_users&moodlewsrestformat=json"
+            try:
+                update_res = requests.post(update_user_url, data=update_user_data, timeout=10).json()
+                if isinstance(update_res, dict) and update_res.get('exception'):
+                    raise UserError(_(f"Excepción al actualizar usuario en Moodle: {update_res.get('message')}"))
+                _logger.info("Usuario actualizado correctamente.")
+            except Exception as e:
+                raise UserError(_(f"Error al actualizar usuario en Moodle: {str(e)}"))
+
+        # Si no existe, crearlo
+        else:
+            _logger.info("🆕 Creando nuevo usuario en Moodle...")
+            create_user_data = {
+                'users[0][username]': username,
+                'users[0][firstname]': firstname,
+                'users[0][lastname]': lastname,
+                'users[0][email]': email,
+                'users[0][auth]': 'manual',
+                'users[0][password]': '1234',
+                'users[0][city]': 'Acarigua',
+                'users[0][country]': 'Venezuela (Bolivarian Republic of)',
+            }
+            _logger.info("📦 Datos a enviar a Moodle para crear usuario: %s", create_user_data)
+            create_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_create_users&moodlewsrestformat=json"
+            try:
+                res_create = requests.post(create_user_url, data=create_user_data, timeout=10).json()
+                if isinstance(res_create, list) and len(res_create) > 0:
+                    moodle_user_id = res_create[0].get('id')
+                    _logger.info("✅ Usuario creado con ID: %s", moodle_user_id)
+                elif isinstance(res_create, dict) and res_create.get('exception'):
+                    raise UserError(_(f"Excepción en Moodle al crear usuario: {res_create.get('message')}"))
+            except Exception as e:
+                raise UserError(_(f"Error al crear usuario en Moodle: {str(e)}"))
+
+        if not moodle_user_id:
+            raise UserError(_("No se pudo obtener ni generar el ID del usuario en Moodle."))
+
+        # ---------- 4. Matricular al usuario en el curso ----------
+        timestart = int(time.mktime(record.inscription_date.timetuple()))
+
+        invoice_due_date = record.move_id.invoice_date_due
+        if not invoice_due_date:
+            invoice_due_date = fields.Date.today() + timedelta(days=30)
+            _logger.warning("⚠️ La factura no tiene fecha de vencimiento, se usa fecha actual + 30 días")
+
+        moodle_expiry_date = invoice_due_date + timedelta(days=1)
+        timeend = int(time.mktime(moodle_expiry_date.timetuple()))
+
+        _logger.info("📅 Fecha de vencimiento de factura: %s", invoice_due_date)
+        _logger.info("📅 Fecha de vencimiento en Moodle: %s", moodle_expiry_date)
+
+        enrol_data = {
+            'enrolments[0][roleid]': 5,
+            'enrolments[0][userid]': moodle_user_id,
+            'enrolments[0][courseid]': moodle_course_id,
+            'enrolments[0][timestart]': timestart,
+            'enrolments[0][timeend]': timeend,
+        }
+        enrol_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=enrol_manual_enrol_users&moodlewsrestformat=json"
+
+        try:
+            enrol_res = requests.post(enrol_url, data=enrol_data, timeout=10)
+            if enrol_res.status_code == 200 and (not enrol_res.text or enrol_res.text == 'null'):
+                record.moodle_enrolled = True
+                _logger.info("✅ Usuario %s matriculado en el curso %s", username, moodle_course_id)
+                _logger.info("⏰ Acceso desde %s hasta %s", record.inscription_date, moodle_expiry_date)
+            else:
+                res_json = enrol_res.json()
+                if isinstance(res_json, dict) and res_json.get('exception'):
+                    raise UserError(_(f"Error Moodle: {res_json.get('message')}"))
+        except Exception as e:
+            raise UserError(_(f"Error al matricular en Moodle: {str(e)}"))
+
+        record.moodle_enrolled = True
+        record.moodle_sync_error = False
+        record.moodle_error_message = False
+        _logger.info("✅ Proceso completado para usuario %s", username)
+
+    return True
+
+      

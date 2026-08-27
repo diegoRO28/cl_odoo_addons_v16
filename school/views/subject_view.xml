@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    
+    <record id="view_subject_subject_form_v2" model="ir.ui.view">
+        <field name="name">subject.subject.form</field>
+        <field name="model">subject.subject</field>
+        <field name="arch" type="xml">
+            <form string="Cursos" delete="0" duplicate="1">
+                <header>
+
+                    <button class="btn-info" name="set_terminate" string="CERRAR CURSO" type="object" icon="fa-lock" states="draft" 
+                            confirm="Está seguro de CERRAR EL CURSO ?" groups="school.group_school_administration"/>
+                    <button class="btn-warning" name="set_iniciado" string="VOLVER A INICIADO" type="object" icon="fa-search" states="terminate"
+                            confirm="Está seguro de VOLVER A INICIADO EL CURSO ?" groups="school.group_school_administration" />
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,cancel"/>
+                </header>
+                    
+
+                <sheet>
+                    <widget name="web_ribbon" title="Por iniciar" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <widget name="web_ribbon" title="Iniciado"   bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <widget name="web_ribbon" title="Culminado"  bg_color="bg-info"  attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
+                    <widget name="web_ribbon" title="Cancelado"  bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+
+                    <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                    </div>
+                    
+                    <group col="2">
+                    
+                        <group string="INFORMACIÒN DEL CURSO">
+                            <field name="nombre"   placeholder="Nombre del curso" />
+                            <field name="code"     placeholder="Código" />
+                            <field name="programa_id"  placeholder="Programa" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                            <field name="code_moodle"  placeholder="Código Moodle" />
+                            <field name="libro_id" widget="selection" domain="[('state','in',['terminate'])]" placeholder="Libro de evaluación" />
+                        </group>
+
+                        <group string="INFORMACIÒN DE LA PLANIFICACIÒN">
+                            <field name="nro_encuentros" placeholder="Número de encuentros" readonly="1"/>
+                            <field name="nro_evaluaciones" placeholder="Número de evaluaciones" readonly="1"/>
+                        </group>
+                    </group>
+                    
+                    <group string="OBSERVACIONES">
+                         <field name="note" colspan="2" placeholder="Observaciones" nolabel="1" /> 
+                    </group>
+
+                    <notebook colspan="4">
+                        <page string="NIVELES">
+                            <field name="standard_ids" nolabel="1" colspan="4" 
+                                options="{&quot;no_open&quot;: True, &quot;no_create&quot;: True}">
+                                <tree string="Secciones">
+                                    <field name="name" />
+                                    <field name="code" />
+                                </tree>
+                                <form string="Nivel">
+                                    <group col="4" colspan="4">
+                                         <field name="name" placeholder="Standard Nombre"/>
+                                        <field name="code" placeholder="Standard Código"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="PROFESORES">
+                            <field name="teacher_ids" nolabel="1" colspan="4"
+                                 options="{&quot;no_open&quot;: True, &quot;no_create&quot;: True}"/>
+                        </page>
+                        <!-- <page string="Estudiantes" attrs="{'invisible':[('elective_id','!=',True)]}">
+                            <field name="student_ids" nolabel="1" />
+                        </page> -->
+
+                        <!-- DESARROLLO PROPIO: SE AGREGO ESTE PAGE -->
+                        <page string="PLAN DE ENCUENTROS">
+                            <field name="encuentro_ids" nolabel="1" colspan="4">
+                                <tree string="Encuentros">
+                                    <field name="code" />
+                                    <field name="name" />
+                                    <field name="description" />
+                                </tree>
+                                <form string="Encuentros">
+                                    <group col="4" colspan="4">
+                                        <field name="code" placeholder="Código" />
+                                        <field name="name" placeholder="Nombre" />
+                                        
+                                    </group>
+                                    <group col="4" colspan="4">
+                                        
+                                        <field name="description" colspan="4" placeholder="Description"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                        <!-- <page string="PLAN DE EVALUACIONES">
+                            <field name="evaluacion_ids" nolabel="1" colspan="4" >
+                                <tree string="Evaluaciones">
+                                    <field name="code" />
+                                    <field name="name" />
+                                    <field name="description" />
+                                </tree>
+                                <form string="Evaluaciones">
+                                    <group col="4" colspan="4">
+                                        <field name="code" placeholder="Código" />
+                                        <field name="name" placeholder="Nombre" />
+                                    </group>
+                                    <group col="4" colspan="4">
+                                       <field name="description" colspan="4" placeholder="Description"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page> -->
+
+                        
+                      
+
+                        <page string="PLAN DE EVALUACIONES">
+                            <field name="libroevas_ids" nolabel="1" colspan="4" >
+                                <tree string="Evaluaciones" delete="0" create="0">
+                                   
+                                    <field name="code" />
+                                    <field name="nombre" />
+                                    <field name="porc_peso" />
+                                    <field name="note" />
+                                </tree>
+                                <form string="Evaluaciones">
+                                    <group col="4" colspan="4" >
+                                        <field name="name" readonly="1"/>
+                                        <field name="code" readonly="1" placeholder="Código" />
+                                        <field name="nombre" readonly="1" placeholder="Nombre" />
+                                        <field name="porc_peso" readonly="1"/>
+                                    </group>
+                                    <group col="4" colspan="4">
+                                       <field name="note" readonly="1" colspan="4" placeholder="Observación"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Tree View Of Subject's Information -->
+    <record id="view_subject_subject_tree" model="ir.ui.view">
+        <field name="name">subject.subject.tree</field>
+        <field name="model">subject.subject</field>
+        <field name="arch" type="xml">
+            <tree string="Cursos">
+                <field name="name" />
+                <field name="code" decoration-info="1" decoration-bf="1"/>
+                <field name="nombre" />
+                <field name="programa_id" />
+                <field name="state" decoration-warning="state =='draft'" 
+                                        decoration-success="state =='done'"
+                                        decoration-info="state =='terminate'"
+                                        widget="badge" optional="show"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of Subject Information -->
+    <record id="action_subject_subject_form" model="ir.actions.act_window">
+        <field name="name">Cursos</field>
+        <field name="res_model">subject.subject</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_curso" 
+            name="Cursos"        
+          parent="menu_oferta" 
+          action="action_subject_subject_form"/>
+
+</odoo>

@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    
+    <record id="view_school_libroeva_form" model="ir.ui.view">
+        <field name="name">school.libroeva.form</field>
+        <field name="model">school.libroeva</field>
+        <field name="arch" type="xml">
+            <form string="INFORMACIÒN DE LA SECCIÒN" delete="0" duplicate="1">
+                <header>
+                    <!-- <button class="btn-success" name="set_done" string="INICIAR SECCIÒN"  type="object" icon="fa-check" states="draft"
+                            confirm="Está seguro de INICIAR EL CURSO ?" groups="school.group_school_administration" /> -->
+
+                    <button class="btn-info" name="set_terminate" string="CERRAR LIBRO" type="object" icon="fa-lock" states="draft" 
+                            confirm="Está seguro de CERRAR EL LIBRO ?" groups="school.group_school_administration"/>
+                    <button class="btn-warning" name="set_iniciado" string="VOLVER A INICIADO" type="object" icon="fa-search" states="terminate"
+                            confirm="Está seguro de VOLVER A INICIADA LA EVALUACIÓN ?" groups="school.group_school_administration" />
+        
+                    <!--<button class="btn-danger" name="set_cancel" string="CANCELAR SECCIÒN" type="object" icon="fa-ban" states="draft" 
+                            confirm="Está seguro de CANCELAR LA SECCIÒN ?" groups="school.group_school_administration"/>
+                    <button class="btn-warning" name="set_done_corregir" string="VOLVER A INICIADO" type="object" icon="fa-search" states="terminate"
+                            confirm="Está seguro de VOLVER A INICIADA LA EVALUACIÓN ?" groups="school.group_school_administration" />
+                    <button class="btn-primary" name="set_avance" string="AVANCE DE CALIFICACIONES" type="object" icon="fa-calculator" states="done" 
+                            confirm="Está seguro de calcular AVANCE DE CALIFICACIONES ?" groups="school.group_school_administration,school.group_school_teacher"/> -->
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,cancel"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Por iniciar" bg_color="bg-warning" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <widget name="web_ribbon" title="Iniciado"   bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'done')]}"/>
+                    <widget name="web_ribbon" title="Culminado"  bg_color="bg-info"  attrs="{'invisible': [('state', '!=', 'terminate')]}"/>
+                    <widget name="web_ribbon" title="Cancelada"  bg_color="bg-danger"  attrs="{'invisible': [('state', '!=', 'cancel')]}"/>
+                    
+                    <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                    </div>
+                    
+                    <group col="2">
+                      <!-- EXTENSION CODIGO / PROPIO-->
+                        
+                        <group string="INFORMACIÒN DEL LIBRO">
+                         
+                           <field name="code" attrs="{'readonly': [('state', '=', 'terminate')]}"/>
+                           <field name="nombre" attrs="{'readonly': [('state', '=', 'terminate')]}"/>
+                           <field name="grade_id" attrs="{'readonly': [('state', '=', 'terminate')]}" widget="selection" placeholder="Seleccione la escala de evaluación"/>
+                           <field name="company_id" readonly="1" placeholder="Company" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
+                          
+                        </group>
+                        <group string="INFORMACIÒN DE CONFIGURACIÓN">
+                           <!-- <field name="is_recupera" attrs="{'readonly': [('state', '=', 'terminate')]}" widget="boolean_toggle" placeholder="Escriba si acepta recuperación"/> -->
+                           <field name="porc_peso"  attrs="{'readonly': [('state', '=', 'terminate')]}"  widget="integer" placeholder="Escriba la Ponderación"/>
+                           <field name="nro_evas" readonly="1"  placeholder="Nro. de evaluaciones"/>
+                           <field name="porc_plani" readonly="1"  placeholder="% Planificado"/>  
+                        </group>
+                        
+                    </group>
+
+                    <group string="OBSERVACIONES"> 
+                        <group>
+                            <field name="note" colspan="4" attrs="{'readonly': [('state', '=', 'terminate')]}" placeholder="Ejemplo: Libro de evaluación" nolabel="1"/>
+                        </group>    
+                    </group>
+                    
+                    <notebook colspan="4">
+                        
+                        
+                        <page string="PLAN DE EVALUACIONES" name="evaluacion" >
+                            <field name="evaluacion_ids" nolabel="1" colspan="4" editable="0" attrs="{'readonly': [('state', '=', 'terminate')]}">
+                                <tree string="Informaciòn de la Evaluaciòn" create="1" delete = "1" >
+                                     
+                                     <field name="name"/>
+                                     <field name="nombre"/>
+                                     <!-- <field name="code"/> -->
+                                     <field name="porc_peso"/>
+                                     <!-- <field name="porc_aprueba"/> -->
+                                     <!-- <field name="is_recupera" widget="boolean_toggle"/> -->
+                                     <field name="state" invisible="1"/>
+                                    
+                                </tree>
+                                <form string="Información de la Evaluación" write="0">
+                                    <group  col="2" colspan="4">
+                                        <group string="INFORMACIÒN DE LA EVALUACIÓN">
+                                            <field name="name" readonly="1"/>
+                                            <field name="code"/>
+                                            <field name="nombre"/>
+                                        </group>
+
+                                        <group string="INFORMACIÓN DE CONFIGURACIÓN">
+                                            <field name="porc_peso" widget="integer"/>
+                                            <!-- <field name="porc_aprueba" widget="integer"/> -->
+                                            <!-- <field name="is_recupera" widget="boolean_toggle"/> -->
+                                            <field name="nro_acts" readonly="1"  placeholder="Nro. de actividades"/>
+                                            <field name="porc_plani" readonly="1"  placeholder="% Planificado"/>  
+                                         </group>
+                                    </group>
+                                    <group string="OBSERVACIONES"> 
+                                        <group>
+                                            <field name="note" colspan="4" placeholder="Ejemplo. Evaluación" nolabel="1"/>
+                                        </group>    
+                                    </group>
+
+                                    <notebook colspan="4">
+                                      <page string="PLAN DE ACTIVIDADES" name="actividad" >
+
+                                      <field name="actividad_ids" nolabel="1" colspan="4" editable="0">
+                                   
+                                        <tree string="Informaciòn de la actividad" create="1" delete = "1">
+                                      
+                                            <field name="nombre"/>
+                                            
+                                            <field name="tipo_id"/>
+                                            <field name="porc_peso"/>
+                                            <!-- <field name="is_recupera"/> -->
+                                            
+                                        </tree>
+
+                                        <form string="Información de la ACTIVIDAD" write="0">
+                                            <group  col="2" colspan="4">
+                                                <group string="INFORMACIÓN DE LA ACTIVIDAD">
+            
+                                                    <field name="code"/>
+                                                    <field name="nombre"/>
+                                                    <field name="tipo_id"     widget="selection" placeholder="Seleccione el tipo de actividad"/>
+                                                </group>
+
+                                                <group string="INFORMACIÓN DE CONFIGURACIÓN">
+                                                    <field name="porc_peso" widget="integer"/>
+                                                    <!-- <field name="porc_aprueba" widget="integer"/> -->
+                                                    <field name="is_recupera" readonly="1" widget="boolean_toggle"/>
+                                                </group>
+                                            </group>
+                                            <group string="OBSERVACIONES"> 
+                                                <group>
+                                                    <field name="note" colspan="4" placeholder="Ejemplo. Actividad" nolabel="1"/>
+                                                </group>    
+                                            </group>
+                                        </form>
+                                      
+                                    </field>
+                                    </page>
+                                   </notebook>
+                                </form>
+                            </field>
+                        </page>
+                       
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div> 
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View Of School libroeva Information -->
+    <record id="view_school_libroeva_tree" model="ir.ui.view">
+        <field name="name">school.libroeva.tree</field>
+        <field name="model">school.libroeva</field>
+        <field name="arch" type="xml">
+            <tree string="Información de Grupo" >
+                <field name="name"/>
+                <field name="nombre"/>
+                <field name="code"/>
+                <field name="company_id"/>
+   
+            </tree>
+        </field>
+    </record>
+
+    <!-- Kanban View Of School libroeva Information -->
+  
+
+    <!-- Search View Of School libroeva Information -->
+    <record id="view_student_student_search" model="ir.ui.view">
+        <field name="name">school.libroeva.search</field>
+        <field name="model">school.libroeva</field>
+        <field name="arch" type="xml">
+            <search string="Información de Grupo">
+                <group col="10" colspan="4">
+                    <field name="code" />
+                    <field name="name" />
+
+                </group>
+                <newline />
+                
+            </search>
+        </field>
+    </record>  
+
+    <record id="action_school_libroeva_form" model="ir.actions.act_window">
+            <field name="name">Libros de Evaluación</field>
+            <field name="res_model">school.libroeva</field>
+            <field name="view_mode">tree,form</field>
+    </record>
+
+<!-- MENU Of School Information -->
+    <menuitem id="menu_school_libroeva_sub_form" 
+               name="Libro Evaluación" 
+             parent="menu_school_config_eva" 
+             action="action_school_libroeva_form" /> 
+
+</odoo>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <!-- Tree View Of Registro de Asistencia -->
+    <record id="view_subject_actividad_tree" model="ir.ui.view">
+        <field name="name">standard.actividades.tree</field>
+        <field name="model">standard.actividades</field>
+        <field name="arch" type="xml">
+            <tree string="Información del Registro de Actividades" create="0" delete="0">
+               
+                <field name="evaluacion_id"/>
+                <field name="student_id"/>
+                <field name="actividad_id"/>
+                <field name="nombre"/>
+                <field name="nota"/>
+                
+                <field name="state" decoration-warning="state =='por iniciar'" 
+                                    decoration-success="state =='iniciado'"
+                                    decoration-info="state =='culminado'"
+                                    widget="badge" optional="show"/>
+
+            </tree>
+        </field>
+    </record>
+
+ 
+
+    <!-- Search View Of School Standard Information -->
+    <record id="view_evaluacion_search" model="ir.ui.view">
+        <field name="name">standard.actividades.search</field>
+        <field name="model">standard.actividades</field>
+        <field name="arch" type="xml">
+            <search string="Información de Grupo">
+                <group col="10" colspan="4">
+                    <field name="evaluacion_id"/>
+                    <field name="student_id"/>
+                    <field name="actividad_id"/>
+                    <field name="nombre"/>
+                    <field name="nota"/>
+                    <field name="state"/>
+                </group>
+                <newline />
+                <group expand="0" string="Group By..." colspan="12" col="10">
+                    <filter name="evaluacion" string="Evaluacion"  help="By Seccion" context="{'group_by':'evaluacion_id'}" />
+                    <filter name="actividad" string="Actividad"    help="By Subject" context="{'group_by':'actividad_id'}" />
+                    <filter name="studiante" string="Estudiante"  help="By Seccion" context="{'group_by':'student_id'}" />
+
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action Of Form & Tree Views Of Registro de Asistencias -->
+    <record id="action_standard_actividad_form" model="ir.actions.act_window">
+        <field name="name">Registro de Actividades</field>
+        <field name="res_model">standard.actividades</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_standard_actividad_form" name="Registro Actividades" parent="menu_evaluacion" action="action_standard_actividad_form" />
+
+
+</odoo>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+
+    <template id="identity_card_ret">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page" style="height: 1px;">
+                        <div class="oe_structure"/>
+                        <t t-foreach="o" t-as="inc">
+
+                            <table CELLPADDING="0" CELLSPACING="0" width="100%" name="encabezado" class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th colspan='4' style="font-family: 'Helvetica';font-size: 24px;padding-left:5px;">FICHA DE RETIRO</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>REGISTRO DE RETIRO Nro.</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="inc.name"/>
+                                            </td>
+
+                                        </tr>
+                                            
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Estudiante</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="inc.student_id" />
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Campus</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="inc.school_id" />
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Curso</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="inc.subject_id" />
+                                                </td>
+                                            </tr>
+                                            
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Fecha</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="inc.retiro_date"/>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Tipo</strong>
+                                                </td>
+                                                
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="inc.tiporetiro_id"/>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Estado</strong>
+                                                </td>
+
+                                                <t t-if="inc.state_aux == 'draft'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;padding-left:5px;" align="left">
+                                                            <span>PREINSCRITO</span>
+                                                        </td>
+                                                </t>
+                                                <t t-elif="inc.state_aux == 'done'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                                <span>INSCRITO</span>
+                                                            </td>
+                                                </t>
+                                                <t t-elif="inc.state_aux == 'terminate'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                                <span>CULMINADO</span>
+                                                            </td>
+                                                </t>
+                                                <t t-elif="inc.state_aux == 'retirado'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                                <span>RETIRADO</span>
+                                                            </td>
+                                                </t>
+                                                
+                                            </tr>
+
+                                            <tr>
+                                                <td colspan="2" style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <strong>Observaciones</strong>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td colspan="2" style="font-family: 'Helvetica';padding-left:5px;">
+                                                    <span t-field="inc.note"/>
+                                                </td>
+                                            </tr>
+
+                            </table>
+
+                      </t>
+                   </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

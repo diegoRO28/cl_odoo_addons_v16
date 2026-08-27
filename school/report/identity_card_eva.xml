@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <template id="identity_card_eva">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page" style="height: 1px;">
+                        <div class="oe_structure"/>
+                        <t t-foreach="o" t-as="eva">
+
+                            
+                        <table CELLPADDING="0" CELLSPACING="0" width="100%" name="encabezado" class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th colspan='4' style="font-family: 'Helvetica';font-size: 20px;padding-left:5px;">FICHA DE EVALUACIÓN</th>
+                                            </tr>
+                                        </thead>
+                                        <thead width="100%">
+                                            <tr style="background-color: #e0e0e0;" class="text-center">
+                                                <th width="50%" colspan='2' style="font-family: 'Helvetica';font-size: 18px;padding-left:5px;color: black;">SECCIÓN</th>
+                                                <th width="50%" colspan='2' style="font-family: 'Helvetica';font-size: 18px;padding-left:5px;color: black;">EVALUACIÓN</th>
+                                            </tr>
+                                        </thead>
+                            
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>SECCIÓN</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="eva.standard_id"/>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>EVALUACIÓN</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                <span t-field="eva.nombre"  />
+                                            </td>
+                                        </tr>
+                                                                                <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>CAMPUS</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="eva.school_id" />
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>FECHA</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                <span t-field="eva.date_start" />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>CURSO</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="eva.subject_id" />
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>% PONDERACIÓN</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                <span t-field="eva.porc_peso" />
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>PROFESOR</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="eva.teacher_id" />
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>STATUS</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                <span t-field="eva.state_aux" />
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>STATUS</strong>
+                                            </td>
+
+                                            <t t-if="eva.state_sta == 'draft'">
+                                                    <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;padding-left:5px;" align="left">
+                                                        <span>POR INICIAR</span>
+                                                    </td>
+                                            </t>
+                                            <t t-elif="eva.state_sta == 'done'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                            <span>INICIADO</span>
+                                                        </td>
+                                            </t>
+                                            <t t-elif="eva.state_sta == 'terminate'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                            <span>CULMINADO</span>
+                                                        </td>
+                                            </t>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>PROMEDIO</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="center">
+                                                <span t-field="eva.average" t-options='{"widget": "float", "precision": 2}'/>
+                                            </td>
+
+                                            
+                                        </tr>
+                                        <tr>
+                                            <td  style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>OBSERVACIÓN</strong>
+                                            </td>
+                                            
+                                            <td colspan="3" style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="eva.note"/>
+                                            </td>
+                                        </tr>
+                                        
+
+                        </table>
+
+                            <table CELLPADDING="0" CELLSPACING="0" width="100%" name="listado" style="border: 1px solid black; font-size:13px;font-family:Arial;">
+                                            
+                                          <thead>
+                                            <tr>
+                                                <th colspan='5' style="font-family: 'Helvetica';font-size: 20px;padding-left:5px;">LISTADO DE CLASES</th>
+                                            </tr>
+                                        </thead>  
+                                            
+                                            
+                                            
+                                            <tr>
+                                                
+                                                <td  align="center">
+                                                    <strong>Nª</strong>
+                                                </td>
+                                                <td  align="center">
+                                                    <strong>FOTO</strong>
+                                                </td>
+                                                <td align="center">
+                                                    <strong>NOMBRE</strong>
+                                                </td>
+                                                <td  align="center">
+                                                    <strong>CALIFICACIÓN</strong>
+                                                </td>
+                                                <td  align="center">
+                                                    <strong>VALORACIÓN</strong>
+                                                </td>
+                                                
+                                               
+                                                
+                                                
+                                            </tr>
+
+                                            <t t-set="i" t-value="1"/>
+                                            
+
+                                            
+    
+                                            
+
+
+                                            <t t-foreach="eva.evaluacion_ids" t-as="line">
+
+                                                <tr>
+                                                    <td  align="right" style="font-family: 'Helvetica';padding-right:5px;">
+                                                        <span t-esc="i"/>
+                                                    </td>
+                                                    <td  style="font-family: 'Helvetica';padding-left:5px;" align="center">
+                                                        <img t-if="line.photo" t-att-src="image_data_uri(line.photo)" align="center" style="max-width: 50px; max-height:50px; margin-top: 5px;margin-bottom: 5px;" alt="Logo"/>
+
+                    
+                                                    </td>
+
+                                                                                                <td  style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                        <span t-field="line.student_id" />
+                                                    </td>
+       
+                                                   
+                                                    <td  style="font-family: 'Helvetica';padding-right:5px;" align="right">
+                                                        <span t-field="line.nota" t-options='{"widget": "float", "precision": 2}'/>
+                                                    </td>
+
+                                                    <t t-if="line.state == 'aprobado'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;" align="center">
+                                                            <span t-field="line.state"/>
+                                                        </td>
+                                                    </t>
+
+                                                    <t t-elif="line.state == 'aplazado'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;" align="center">
+                                                                <span t-field="line.state"/>
+                                                            </td>
+                                                    </t>
+                                                    
+                                                   
+                                                   
+                                                </tr>
+                                                <t t-set="i" t-value="i+1"/>
+
+                                            </t> 
+
+                                              <tr style="font-family: 'Helvetica';font-size: 20px;padding-left:5px;">
+                                                
+                                                
+                                                <td  colspan="3" align="center">
+                                                    <strong>PROMEDIO EVALUACIÓN</strong>
+                                                </td>
+                                                
+                                                <td  colspan="2" align="center" style="font-family: 'Helvetica';padding-right:5px;">
+                                                    <strong t-field="eva.average" t-options='{"widget": "float", "precision": 2}'/>
+                                                </td>
+
+                                                
+                                            </tr>
+                            </table>
+                        
+                      </t>
+                   </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

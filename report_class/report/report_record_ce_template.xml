@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="report_record_ce_template">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="oe_structure" />
+                <div class="page">
+                     
+
+                    <div style="color:black;" class="text-center"><h2>CONSTANCIA</h2></div>
+
+					<table width="100%"  style="padding-left:5px; padding-right:5px; border: 0px solid white; color: black;" height="30" align="justify">
+                        <thead >
+                        
+                            <tr  height="20px" align="justify">
+                                <td colstrong='4' style="padding-left:5px;padding-right:5px;border: 0px solid white;color: black;"  align="justify" >
+                                    <br/>
+                                    <br/>
+                                    La Coordinación Académica de <strong t-esc="est[0]['empresa']"/>, certifica que la alumno(a)
+                                    <strong t-esc="est[0]['nombre']"/> titular de la cédula de identidad N° <strong t-esc="est[0]['cedula']"/> 
+                                    
+                                    registrado(a) bajo el código: <strong t-esc="est[0]['codigo']"/> se encuentra cursando el nivel <strong t-esc="est[0]['curso']"/>
+                                    de nuestro programa de <strong t-esc="est[0]['programa']"/>
+                                    asistiendo en el horario: <strong t-esc="est[0]['schedule']"/>. Nuestro método de aprendizaje en el idioma Inglés consta de 6 niveles:
+                                    Beginner, Elementary, Pre-Inmediate, Advanced y avanced Plus.
+                                    <br/>
+                                    <br/>
+                                    Constancia que se expide en la ciudad de Acarigua <strong t-esc="est[0]['date']" />. 
+                                    <br/> 
+                                    Atentamente,
+                                    <br/>
+                                    <br/>
+                                    <br/>
+                                </td>
+                            </tr>
+                            <tr align="center">
+                                <td>
+                                    <br/>
+                                    <br/>
+                                    <br/>
+                                    <br/>
+                                    <br/>
+                                    <br/>
+                                    <t t-set="signer_id" t-value="env['cei.signer'].sudo().search([('id', '=', signer)])"/>
+                                    <img t-if="signer_id.sign_signature" t-att-src="image_data_uri(signer_id.sign_signature)" align="center" style="max-width: 250px; max-height: 200px; display: block; position: relative; top: 30px;" alt="Logo"/>
+                                    ---------------------------------------
+                                    <br/>
+                                    <strong t-esc="signer_id.name"/> <span t-if="signer_id.job_title">-</span> <strong t-if="signer_id.job_title" t-esc="signer_id.job_title"/> 
+                                    <br/>
+                                    <br/>
+                                </td>
+                            </tr>
+                        </thead>
+                            
+
+                           
+
+                            
+
+                            
+                        
+                    </table> 
+                    
+                    
+    
+
+
+                  
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_record_ce" model="ir.actions.report">
+        <field name="name">Constancia de Estudios</field>
+        <field name="model">school.student</field>
+        <field name="report_type">qweb-html</field>
+        <field name="report_name">report_class.report_record_ce_template</field>
+        <field name="report_file">report_class.report_record_ce_template</field>
+        <field name="binding_type">report</field>
+    </record>
+    
+</odoo>
