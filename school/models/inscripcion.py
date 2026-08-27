@@ -157,6 +157,24 @@ class StudentInscripcion(models.Model):
         default='solvente'
     )
 
+    moodle_course_id = fields.Integer(
+        string='ID del curso en Moodle',
+        store=True,
+        help="ID del curso en Moodle (se llena automáticamente al sincronizar)"
+    )
+    moodle_sync_error = fields.Boolean(
+        string='Error en sincronización',
+        default=False,
+        help='Indica si hubo un error al sincronizar con Moodle'
+    )
+    moodle_error_message = fields.Text(
+        string='Mensaje de error',
+        readonly=True,
+        help='Último error de sincronización con Moodle'
+        )
+    moodle_sync_error = fields.Boolean(string='Error en sincronización', default=False)
+    moodle_error_message = fields.Text(string='Mensaje de error', readonly=True)
+
     def set_to_draft(self):
         '''Method to change state to draft'''
         self.state = 'draft'
@@ -199,6 +217,13 @@ class StudentInscripcion(models.Model):
         self.move_id.inscripcion_id = self.id
         self.move_id.is_inscripcion = True
         self.standard_id._compute_total_student()
+
+        try:
+            self.action_sync_moodle()
+        except Exception as e:
+            self.moodle_sync_error = True
+            self.moodle_error_message = str(e)
+            self.message_post(body=f"Error al sincronizar con Moodle: {e}")
 
 #-----------------------------------------------------------------------#
     def get_estado(self , sta):
@@ -346,88 +371,211 @@ class StudentInscripcion(models.Model):
     #     return [(rec.id, rec.name + '/' + rec.standard_id.code + '/' + rec.subject_id.code ) for rec in self]
 
     def action_sync_moodle(self):
-        '''Método para crear el usuario en Moodle si no existe y matricularlo en su curso'''
-        for record in self:
-            moodle_url = "http://localhost/webservice/rest/server.php"
-            moodle_token = "cdc9a60328cfcf7464f44a3e027fcbeb" # Inserta tu token válido de Moodle
+    '''Método para crear el usuario en Moodle si no existe y matricularlo en su curso'''
+    import logging
+    import json
+    import time
+    from datetime import timedelta
 
-            # Validar que exista información del estudiante
-            partner = record.student_partner_id 
-            if not partner:
-                raise UserError(_("No se encontró el Partner o usuario asociado al estudiante."))
+    _logger = logging.getLogger(__name__)
 
-            email = partner.email or f"student_{record.student_id.id}@prueba.local"
-            username = email.split('@')[0]
-            
-            # Formatear nombres
-            full_name = partner.name or record.student_id.student_name or "Estudiante"
-            name_parts = full_name.split(' ')
-            firstname = partner.name.split(' ')[0] if partner.name else "Estudiante"
-            lastname = ' '.join(partner.name.split(' ')[1:]) if partner.name and len(partner.name.split(' ')) > 1 else "Apellido"
+    for record in self:
+        moodle_url = "http://localhost/webservice/rest/server.php"
+        moodle_token = "cdc9a60328cfcf7464f44a3e027fcbeb"
 
-            # Mapeo del ID de curso de Moodle (puedes tomarlo dinámicamente de standard_id o subject_id)
-            # Para la prueba, si no hay campo asignado, usaremos el ID 2
-            moodle_course_id = getattr(record.standard_id, 'moodle_course_id', 2) or 2
+        # ---------- 1. Validar datos del estudiante ----------
+        partner = record.student_partner_id
+        if not partner:
+            raise UserError(_("No se encontró el Partner o usuario asociado al estudiante."))
 
-            # -------------------------------------------------------------
-            # PASO 1: Obtener o Crear Usuario en Moodle
-            # -------------------------------------------------------------
-            moodle_user_id = False
+        student_code = record.student_code or "SIN_CODIGO"
+        username = student_code   # Username = student_code
 
-            # Búsqueda por correo para ver si ya existe en Moodle
-            get_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=email&values[0]={urllib.parse.quote(email)}"
+        # --- Obtener email con prioridad ---
+        email = partner.email
+        if not email:
+            # Intentar obtener del partner del usuario (si existe)
+            user_partner = record.student_id.user_id.partner_id
+            if user_partner and user_partner.email:
+                email = user_partner.email
+        if not email:
+            # Fallback genérico
+            email = f"{student_code}@cursoscleveland.com"
+
+        _logger.info("Email asignado: %s", email)
+
+        # --- Extraer nombre y apellido según cantidad de palabras ---
+        full_partner_name = partner.name or record.student_id.student_name or "Estudiante"
+        name_parts = full_partner_name.strip().split()
+        num_words = len(name_parts)
+
+        if num_words == 2:
+            first_name = name_parts[0]
+            last_name = name_parts[1]
+        elif num_words == 3:
+            first_name = f"{name_parts[0]} {name_parts[1]}"
+            last_name = name_parts[2]
+        else:  # 4 o más palabras
+            first_name = f"{name_parts[0]} {name_parts[1]}"
+            last_name = " ".join(name_parts[2:])
+
+        # --- Nombre en Moodle: solo código + nombre (sin guion) ---
+        firstname = f"{student_code} {first_name}" if first_name else student_code
+        lastname = last_name
+
+        _logger.info("👤 Estudiante: code=%s, firstname=%s, lastname=%s", student_code, firstname, lastname)
+
+        # ---------- 2. Obtener el ID del curso en Moodle ----------
+        code_moodle = record.standard_id.subject_id.code_moodle
+        if not code_moodle:
+            raise UserError(_(
+                "El curso '%s' no tiene asignado un 'Código Moodle'.\n"
+                "Por favor, configure el campo 'Código Moodle' en el curso."
+            ) % record.standard_id.subject_id.name)
+
+        search_course_url = (
+            f"{moodle_url}?wstoken={moodle_token}"
+            f"&wsfunction=core_course_get_courses_by_field"
+            f"&field=shortname&value={urllib.parse.quote(code_moodle)}"
+            f"&moodlewsrestformat=json"
+        )
+
+        _logger.info("🔍 Buscando curso con code_moodle: %s", code_moodle)
+        try:
+            response = requests.get(search_course_url, timeout=10)
+            response.raise_for_status()
+            res_course = json.loads(response.text)
+            courses = res_course.get('courses', [])
+            if courses and len(courses) > 0:
+                moodle_course_id = courses[0].get('id')
+                _logger.info("Curso encontrado con ID: %s", moodle_course_id)
+            else:
+                moodle_course_id = None
+        except Exception as e:
+            raise UserError(_(f"Error al buscar curso en Moodle: {str(e)}"))
+
+        if not moodle_course_id:
+            raise UserError(_(
+                "No se encontró un curso en Moodle con el código '%s'."
+            ) % code_moodle)
+
+        # Guardar el ID en la sección para futuras sincronizaciones
+        record.standard_id.moodle_course_id = moodle_course_id
+
+        # ---------- 3. Obtener o crear el usuario en Moodle ----------
+        moodle_user_id = None
+
+        # Buscar por username (student_code) primero
+        get_user_by_username_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=username&values[0]={urllib.parse.quote(username)}"
+        try:
+            res_search_username = requests.get(get_user_by_username_url, timeout=10).json()
+            if isinstance(res_search_username, list) and len(res_search_username) > 0:
+                moodle_user_id = res_search_username[0].get('id')
+                _logger.info("Usuario encontrado por username (ID: %s)", moodle_user_id)
+        except Exception as e:
+            _logger.warning("Error al buscar usuario por username: %s", e)
+
+        # Si no se encuentra, buscar por email
+        if not moodle_user_id:
+            get_user_by_email_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_get_users_by_field&moodlewsrestformat=json&field=email&values[0]={urllib.parse.quote(email)}"
             try:
-                res_search = requests.get(get_user_url, timeout=10).json()
-                if isinstance(res_search, list) and len(res_search) > 0:
-                    moodle_user_id = res_search[0].get('id')
+                res_search_email = requests.get(get_user_by_email_url, timeout=10).json()
+                if isinstance(res_search_email, list) and len(res_search_email) > 0:
+                    moodle_user_id = res_search_email[0].get('id')
+                    _logger.info("Usuario encontrado por email (ID: %s)", moodle_user_id)
             except Exception as e:
-                raise UserError(_(f"Error al conectar con Moodle para consultar usuario: {str(e)}"))
+                _logger.warning("Error al buscar usuario por email: %s", e)
 
-            # Si no existe, lo creamos
-            if not moodle_user_id:
-                create_user_data = {
-                    'users[0][username]': username.lower(),
-                    'users[0][firstname]': firstname,
-                    'users[0][lastname]': lastname,
-                    'users[0][email]': email,
-                    'users[0][auth]': 'manual',
-                    'users[0][password]': 'Estudiante123!', # Contraseña temporal
-                }
-                create_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_create_users&moodlewsrestformat=json"
-                try:
-                    res_create = requests.post(create_user_url, data=create_user_data, timeout=10).json()
-                    if isinstance(res_create, list) and len(res_create) > 0:
-                        moodle_user_id = res_create[0].get('id')
-                    elif isinstance(res_create, dict) and res_create.get('exception'):
-                        raise UserError(_(f"Excepción en Moodle al crear usuario: {res_create.get('message')}"))
-                except Exception as e:
-                    raise UserError(_(f"Error al conectar con Moodle para crear usuario: {str(e)}"))
-
-            if not moodle_user_id:
-                raise UserError(_("No se pudo obtener ni generar el ID del usuario en Moodle."))
-
-            # -------------------------------------------------------------
-            # PASO 2: Matricular Usuario en el Curso de Moodle
-            # -------------------------------------------------------------
-            enrol_data = {
-                'enrolments[0][roleid]': 5, # Rol de Estudiante
-                'enrolments[0][userid]': moodle_user_id,
-                'enrolments[0][courseid]': moodle_course_id,
+        # Si existe, actualizar datos
+        if moodle_user_id:
+            _logger.info("Actualizando datos del usuario existente...")
+            update_user_data = {
+                'users[0][id]': moodle_user_id,
+                'users[0][email]': email,
+                'users[0][firstname]': firstname,
+                'users[0][lastname]': lastname,
+                'users[0][password]': '1234',
+                'users[0][city]': 'Acarigua',
+                'users[0][country]': 'Venezuela (Bolivarian Republic of)',
             }
-            enrol_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=enrol_manual_enrol_users&moodlewsrestformat=json"
-            
+            update_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_update_users&moodlewsrestformat=json"
             try:
-                enrol_res = requests.post(enrol_url, data=enrol_data, timeout=10)
-                # Si Moodle responde 200 y body vacío (o null en JSON), la matrícula fue un éxito
-                if enrol_res.status_code == 200 and (not enrol_res.text or enrol_res.text == 'null'):
-                    record.moodle_enrolled = True
-                else:
-                    res_json = enrol_res.json()
-                    if isinstance(res_json, dict) and res_json.get('exception'):
-                        raise UserError(_(f"Error Moodle: {res_json.get('message')}"))
+                update_res = requests.post(update_user_url, data=update_user_data, timeout=10).json()
+                if isinstance(update_res, dict) and update_res.get('exception'):
+                    raise UserError(_(f"Excepción al actualizar usuario en Moodle: {update_res.get('message')}"))
+                _logger.info("Usuario actualizado correctamente.")
             except Exception as e:
-                raise UserError(_(f"Error al matricular en Moodle: {str(e)}"))
+                raise UserError(_(f"Error al actualizar usuario en Moodle: {str(e)}"))
 
-        return True
+        # Si no existe, crearlo
+        else:
+            _logger.info("🆕 Creando nuevo usuario en Moodle...")
+            create_user_data = {
+                'users[0][username]': username,
+                'users[0][firstname]': firstname,
+                'users[0][lastname]': lastname,
+                'users[0][email]': email,
+                'users[0][auth]': 'manual',
+                'users[0][password]': '1234',
+                'users[0][city]': 'Acarigua',
+                'users[0][country]': 'Venezuela (Bolivarian Republic of)',
+            }
+            _logger.info("📦 Datos a enviar a Moodle para crear usuario: %s", create_user_data)
+            create_user_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=core_user_create_users&moodlewsrestformat=json"
+            try:
+                res_create = requests.post(create_user_url, data=create_user_data, timeout=10).json()
+                if isinstance(res_create, list) and len(res_create) > 0:
+                    moodle_user_id = res_create[0].get('id')
+                    _logger.info("✅ Usuario creado con ID: %s", moodle_user_id)
+                elif isinstance(res_create, dict) and res_create.get('exception'):
+                    raise UserError(_(f"Excepción en Moodle al crear usuario: {res_create.get('message')}"))
+            except Exception as e:
+                raise UserError(_(f"Error al crear usuario en Moodle: {str(e)}"))
+
+        if not moodle_user_id:
+            raise UserError(_("No se pudo obtener ni generar el ID del usuario en Moodle."))
+
+        # ---------- 4. Matricular al usuario en el curso ----------
+        timestart = int(time.mktime(record.inscription_date.timetuple()))
+
+        invoice_due_date = record.move_id.invoice_date_due
+        if not invoice_due_date:
+            invoice_due_date = fields.Date.today() + timedelta(days=30)
+            _logger.warning("⚠️ La factura no tiene fecha de vencimiento, se usa fecha actual + 30 días")
+
+        moodle_expiry_date = invoice_due_date + timedelta(days=1)
+        timeend = int(time.mktime(moodle_expiry_date.timetuple()))
+
+        _logger.info("📅 Fecha de vencimiento de factura: %s", invoice_due_date)
+        _logger.info("📅 Fecha de vencimiento en Moodle: %s", moodle_expiry_date)
+
+        enrol_data = {
+            'enrolments[0][roleid]': 5,
+            'enrolments[0][userid]': moodle_user_id,
+            'enrolments[0][courseid]': moodle_course_id,
+            'enrolments[0][timestart]': timestart,
+            'enrolments[0][timeend]': timeend,
+        }
+        enrol_url = f"{moodle_url}?wstoken={moodle_token}&wsfunction=enrol_manual_enrol_users&moodlewsrestformat=json"
+
+        try:
+            enrol_res = requests.post(enrol_url, data=enrol_data, timeout=10)
+            if enrol_res.status_code == 200 and (not enrol_res.text or enrol_res.text == 'null'):
+                record.moodle_enrolled = True
+                _logger.info("✅ Usuario %s matriculado en el curso %s", username, moodle_course_id)
+                _logger.info("⏰ Acceso desde %s hasta %s", record.inscription_date, moodle_expiry_date)
+            else:
+                res_json = enrol_res.json()
+                if isinstance(res_json, dict) and res_json.get('exception'):
+                    raise UserError(_(f"Error Moodle: {res_json.get('message')}"))
+        except Exception as e:
+            raise UserError(_(f"Error al matricular en Moodle: {str(e)}"))
+
+        record.moodle_enrolled = True
+        record.moodle_sync_error = False
+        record.moodle_error_message = False
+        _logger.info("✅ Proceso completado para usuario %s", username)
+
+    return True
 
       

@@ -2,7 +2,7 @@
 
 <odoo>
     
-    <record id="view_subject_subject_form" model="ir.ui.view">
+    <record id="view_subject_subject_form_v2" model="ir.ui.view">
         <field name="name">subject.subject.form</field>
         <field name="model">subject.subject</field>
         <field name="arch" type="xml">
@@ -36,7 +36,7 @@
                             <field name="nombre"   placeholder="Nombre del curso" />
                             <field name="code"     placeholder="Código" />
                             <field name="programa_id"  placeholder="Programa" options="{'no_edit': True, 'no_create': True, 'no_open': True}"/>
-                            <!-- <field name="code_moodle"  placeholder="Código Moodle" /> -->
+                            <field name="code_moodle"  placeholder="Código Moodle" />
                             <field name="libro_id" widget="selection" domain="[('state','in',['terminate'])]" placeholder="Libro de evaluación" />
                         </group>
 

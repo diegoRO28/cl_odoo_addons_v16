@@ -47,7 +47,7 @@
                         string="Inscribir en Moodle" 
                         type="object" 
                         class="oe_highlight" 
-                        attrs="{'invisible': ['|', ('state', '!=', 'done'), ('moodle_enrolled', '=', True)]}"/>
+                        attrs="{'invisible': ['|', ('moodle_enrolled', '=', True), ('state', '!=', 'done')]}"/>
 
                     <field name="moodle_enrolled" invisible="1"/>
                     <field name="state" widget="statusbar"/>

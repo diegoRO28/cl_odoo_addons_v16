@@ -177,6 +177,7 @@ class SchoolStandard(models.Model):
     end_date        = fields.Date('Fecha de finalización', required=True, states={'terminate': [('readonly', True)]}, help='End date of Lapso Académico')
     code_moodle     = fields.Char(string='Código Moodle', required=True, store=True)
     cmp_id          = fields.Many2one('res.company', 'Company cmp',  related='school_id.company_id')
+    moodle_course_id = fields.Integer(string='ID Moodle', help='ID numérico del curso en Moodle')
 
     @api.model
     def create(self, vals):
