@@ -34,6 +34,8 @@ Arquitectura (conector activo por herencia):
         'views/moodle_config_views.xml',
         'views/sync_log_views.xml',
         'views/inscripcion_views.xml',
+        'views/retiro_views.xml',
+        'views/cambio_views.xml',
     ],
     'installable': True,
     'application': False,

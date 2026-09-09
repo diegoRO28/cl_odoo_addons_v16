@@ -14,6 +14,12 @@ class MoodleSyncLog(models.Model):
     inscripcion_id = fields.Many2one(
         'student.inscripcion', 'Inscripción', ondelete='set null'
     )
+    retiro_id = fields.Many2one(
+        'student.retiro', 'Retiro', ondelete='set null'
+    )
+    cambio_id = fields.Many2one(
+        'student.cambio', 'Cambio de Sección', ondelete='set null'
+    )
     student_code = fields.Char('Código estudiante')
     status = fields.Selection(
         [('success', 'Éxito'), ('error', 'Error')],

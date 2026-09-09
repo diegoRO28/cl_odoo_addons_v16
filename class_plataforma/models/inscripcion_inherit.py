@@ -124,7 +124,7 @@ class StudentInscripcionMoodle(models.Model):
                 ) % record.standard_id.subject_id.name)
 
             course = client.search_course_by_shortname(
-                code_moodle, config=config, inscripcion=record
+                code_moodle, config=config, related_record=record
             )
             if not course:
                 raise UserError(_(
@@ -137,11 +137,11 @@ class StudentInscripcionMoodle(models.Model):
 
             # ---------- 2. Usuario en Moodle (buscar por username o email) ----------
             user = client.get_user_by_field(
-                'username', username, config=config, inscripcion=record
+                'username', username, config=config, related_record=record
             )
             if not user:
                 user = client.get_user_by_field(
-                    'email', email, config=config, inscripcion=record
+                    'email', email, config=config, related_record=record
                 )
 
             user_vals = {
@@ -157,12 +157,12 @@ class StudentInscripcionMoodle(models.Model):
                 moodle_user_id = user.get('id')
                 client.update_user(
                     {**user_vals, 'id': moodle_user_id},
-                    config=config, inscripcion=record,
+                    config=config, related_record=record,
                 )
             else:
                 user_vals.update({'username': username, 'auth': 'manual'})
                 moodle_user_id = client.create_user(
-                    user_vals, config=config, inscripcion=record
+                    user_vals, config=config, related_record=record
                 )
 
             if not moodle_user_id:
@@ -181,8 +181,26 @@ class StudentInscripcionMoodle(models.Model):
 
             client.enrol_user(
                 moodle_user_id, moodle_course_id, timestart, timeend,
-                role_id=config.enrol_role_id, config=config, inscripcion=record,
+                role_id=config.enrol_role_id, config=config, related_record=record,
             )
+
+            # ---------- 4. Grupo (sección dentro del curso) ----------
+            group_code = record.standard_id.code
+            if group_code:
+                group_id = client.get_or_create_group(
+                    moodle_course_id, group_code,
+                    config=config, related_record=record,
+                )
+                client.add_group_members(
+                    group_id, moodle_user_id,
+                    config=config, related_record=record,
+                )
+            else:
+                record.message_post(body=_(
+                    "Aviso: la sección '%s' no tiene configurado un "
+                    "'Código de grupo Moodle'; el estudiante quedó "
+                    "matriculado en el curso pero no se le asignó grupo."
+                ) % record.standard_id.display_name)
 
             record.moodle_enrolled = True
             record.moodle_sync_error = False
