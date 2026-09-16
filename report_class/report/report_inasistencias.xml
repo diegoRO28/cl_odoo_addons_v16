@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- <record id="inasistencias_xlsx" model="ir.actions.report">
+            <field name="name">Reporte de Inasistencias (XLSX)</field>
+            <field name="model">school.student</field>
+            <field name="report_type">xlsx</field>
+            <field name="report_name">report_class.inasistencias_xlsx</field>
+            <field name="report_file">report_class.inasistencias_xlsx</field>
+            <field name="binding_type">report</field>
+            </record> -->
+        <!-- <report 
+            id="inasistencias_xlsx"
+            model="school.student"
+            string="Reporte de Inasistencias XLSX"
+            report_type="xlsx"
+            name="report_class.inasistencias_xlsx"
+            file="report_class.inasistencias_xlsx"
+            attachment_use="False"
+        /> -->
+
+    </data>    
+</odoo>

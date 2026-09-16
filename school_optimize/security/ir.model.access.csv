@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_account_move_basic_accounting_user,account.move basic accounting user,account.model_account_move,school_optimize.group_basic_accounting_user,1,0,1,0
+access_account_move_line_basic_accounting_user,account.move.line basic accounting user,account.model_account_move_line,school_optimize.group_basic_accounting_user,1,1,1,0
+access_account_payment_concept_account_manager,account.payment.concept.accounting.manager,school_optimize.model_account_payment_concept,account.group_account_manager,1,1,1,1
+access_account_move_fee_line_account_manager,account.move.fee.line.accounting.manager,school_optimize.model_account_move_fee_line,,1,1,1,1
+access_account_custom_payment_terms_account_manager,account.custom.payment.terms.accounting.manager,school_optimize.model_account_custom_payment_terms,,1,1,1,1

@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+    <template id="identity_card_sec">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout"> 
+                    <div class="page" style="height: 1px;">
+                        <div class="oe_structure"/>
+                        <t t-foreach="o" t-as="sec">
+
+                        
+ 
+
+                        <table CELLPADDING="0" CELLSPACING="0" width="100%" name="encabezado" class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th colspan='4' style="font-family: 'Helvetica';font-size: 24px;padding-left:5px;">FICHA DE SECCIÓN</th>
+                                            </tr>
+                                        </thead>
+                            
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>CÓDIGO</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="sec.name"/>-<span t-field="sec.code"/>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>TOTAL EVALUACIONES</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="right">
+                                                <span t-field="sec.total_evas" t-options='{"widget": "float", "precision": 0}' />
+                                            </td>
+                                        </tr>
+                                                                                <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>CAMPUS</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="sec.school_id" />
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>TOTAL EVALUACIONES EJECUTADAS</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="right">
+                                                <span t-field="sec.total_evas_terminate" t-options='{"widget": "float", "precision": 0}'/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>CURSO</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="sec.subject_id" />
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>% EVALUADO</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="right">
+                                                <span t-field="sec.porc_evas_terminate" t-options='{"widget": "float", "precision": 0}'/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>PROFESOR</strong>
+                                            </td>
+                                            
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="sec.user_id" />
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>PROMEDIO</strong>
+                                            </td>
+
+                                            <td style="font-family: 'Helvetica';padding-left:5px;" align="right">
+                                                <span t-field="sec.average" t-options='{"widget": "float", "precision": 2}'/>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr>
+                                            <td style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>STATUS</strong>
+                                            </td>
+
+                                            <t t-if="sec.state == 'draft'">
+                                                    <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;padding-left:5px;" align="left">
+                                                        <span>POR INICIAR</span>
+                                                    </td>
+                                            </t>
+                                            <t t-elif="sec.state == 'done'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                            <span>INICIADO</span>
+                                                        </td>
+                                            </t>
+                                            <t t-elif="sec.state == 'terminate'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="left">
+                                                            <span>CULMINADO</span>
+                                                        </td>
+                                            </t>
+                                            <td colspan='2' style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong></strong>
+                                            </td>
+                                            
+                                        </tr>
+                                        <tr>
+                                            <td  style="font-family: 'Helvetica';padding-left:5px;">
+                                                <strong>HORARIO</strong>
+                                            </td>
+                                            
+                                            <td colspan="3" style="font-family: 'Helvetica';padding-left:5px;">
+                                                <span t-field="sec.note"/>
+                                            </td>
+                                        </tr>
+                                        
+
+                                         <t t-set="i" t-value="1"/>
+
+                        </table>
+
+                        <table CELLPADDING="0" CELLSPACING="0" width="100%" name="encuentro" style="border: 1px solid black; font-size:13px;font-family:Arial;" >
+                                         
+                                         
+                                        <thead>
+                                            <tr>
+                                                <th colspan='5' style="font-family: 'Helvetica';font-size: 24px;padding-left:5px;">PLAN DE ESCUENTROS</th>
+                                            </tr>
+                                        </thead>
+                                         
+                                         
+                                         <tr>
+                                            
+                                            <td  colspan="1" align="center">
+                                                <strong>Nª</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>ENCUENTRO</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>FECHA</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>ESTADO</strong>
+                                            </td>
+                                            
+                                            <td  colspan="1" align="center">
+                                                <strong>OBSERVACIÒN</strong>
+                                            </td>
+                                            
+                                         </tr>
+
+                                         <t t-set="i" t-value="1"/>
+                                         
+
+                                         <t t-foreach="sec.asistencia_ids" t-as="line">
+
+                                            <tr>
+                                                <td  align="right" style="font-family: 'Helvetica';padding-right:5px;">
+                                                    <span t-esc="i"/>
+                                                </td>
+
+                                                <td  style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                    <span t-field="line.encuentro_id" />
+                                                </td>
+
+                                                <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;" align="center">
+                                                            <span t-field="line.date_start"/>
+                                                </td>
+
+                                                <t t-if="line.state == 'draft'">
+                                                    <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;padding-left:5px;" align="center">
+                                                        <span>POR INICIAR</span>
+                                                    </td>
+                                                </t>
+                                                <t t-elif="line.state == 'done'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="center">
+                                                                <span>INICIADO</span>
+                                                            </td>
+                                                </t>
+                                                <t t-elif="line.state == 'terminate'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="center">
+                                                                <span>CULMINADO</span>
+                                                            </td>
+                                                </t>
+                                                
+                                                <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;" align="left">
+                                                            <span t-field="line.note"/>
+                                                </td>
+                                                 
+                                            </tr>
+                                            <t t-set="i" t-value="i+1"/>
+
+                                         </t> 
+
+                                         <t t-set="i" t-value="i-1"/>
+                                         
+                        </table>
+
+                        <table CELLPADDING="0" CELLSPACING="0" width="100%" name="evalua" style="border: 1px solid black; font-size:13px;font-family:Arial;">
+                                         <tr>
+                                            
+                                            <td colspan="6" align="center" style="font-family: 'Helvetica';font-size: 18px;padding-left:5px;">
+                                                <strong>PLAN DE EVALUACIONES</strong>
+                                            </td>
+                                            
+                                         </tr>
+                                         <tr>
+                                            
+                                            <td  colspan="1" align="center">
+                                                <strong>Nª</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>EVALUACIÒN</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>% PONDERACIÓN</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>FECHA</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>STATUS</strong>
+                                            </td>
+                                            
+                                            <td  colspan="1" align="center">
+                                                <strong>OBSERVACIÓN</strong>
+                                            </td>
+                                            
+                                         </tr>
+
+                                         <t t-set="i" t-value="1"/>
+                                         
+
+                                         <t t-foreach="sec.registroeva_ids" t-as="line">
+
+                                            <tr>
+                                                <td  align="right" style="font-family: 'Helvetica';padding-right:5px;">
+                                                    <span t-esc="i"/>
+                                                </td>
+
+                                                <td  style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                    <span t-field="line.nombre" />
+                                                </td>
+
+                                                <td  style="font-family: 'Helvetica';padding-left:5px;" align="center">
+                                                    <span t-field="line.porc_peso" />
+                                                </td>
+
+                                                <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;" align="center">
+                                                            <span t-field="line.date_start"/>
+                                                </td>
+
+                                                <t t-if="line.state == 'draft'">
+                                                    <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;padding-left:5px;" align="center">
+                                                        <span>POR INICIAR</span>
+                                                    </td>
+                                                </t>
+                                                <t t-elif="line.state == 'done'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="center">
+                                                                <span>INICIADO</span>
+                                                            </td>
+                                                </t>
+                                                <t t-elif="line.state == 'terminate'">
+                                                            <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;padding-left:5px;" align="center">
+                                                                <span>CULMINADO</span>
+                                                            </td>
+                                                </t>
+                                                
+                                                <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;" align="left">
+                                                            <span t-field="line.note"/>
+                                                </td>
+                                                 
+                                            </tr>
+                                            <t t-set="i" t-value="i+1"/>
+
+                                         </t> 
+
+                                         <t t-set="i" t-value="i-1"/>
+                                         
+
+                        </table>
+
+                        <table CELLPADDING="0" CELLSPACING="0" width="100%" name="listado" style="border: 1px solid black; font-size:13px;font-family:Arial;">
+                                          <tr>
+                                            
+                                            <td colspan="7" align="center" style="font-family: 'Helvetica';font-size: 18px;padding-left:5px;">
+                                                <strong>LISTADO DE CLASES</strong>
+                                            </td>
+                                            
+                                         </tr>
+                                         <tr>
+                                            
+                                            <td  colspan="1" align="center">
+                                                <strong>Nª</strong>
+                                            </td>
+                                            <td  align="center">
+                                                    <strong>FOTO</strong>
+                                                </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>NOMBRE</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>CALIFICACIÓN</strong>
+                                            </td>
+                                            <td  colspan="1" align="center">
+                                                <strong>VALORACIÓN</strong>
+                                            </td>
+                                             <td  colspan="1" align="center">
+                                                <strong>OBSERVACIÒN</strong>
+                                            </td>
+                                            
+                                         </tr>
+
+                                         <t t-set="i" t-value="1"/>
+                                         <t t-set="acumEo" t-value="0"/>
+                                         <t t-set="acumEe" t-value="0"/>
+                                         <t t-set="acumEt" t-value="0"/>
+
+                                         <t t-set="promeO" t-value="0"/>
+                                         <t t-set="promeE" t-value="0"/>
+                                         <t t-set="promeT" t-value="0"/>
+                                         <t t-set="promeRo" t-value="0"/>
+                                         <t t-set="promeRe" t-value="0"/>
+
+                                         <t t-foreach="sec.student_ids" t-as="line">
+
+                                            <tr>
+                                                <td  align="right" style="font-family: 'Helvetica';padding-right:5px;">
+                                                    <span t-esc="i"/>
+                                                </td>
+                                                <td  style="font-family: 'Helvetica';padding-left:5px;" align="center">
+                                                        <img t-if="line.photo" t-att-src="image_data_uri(line.photo)" align="center" style="max-width: 50px; max-height:50px; margin-top: 5px;margin-bottom: 5px;" alt="Logo"/>
+                                                </td>
+                                                <td  style="font-family: 'Helvetica';padding-left:5px;" align="left">
+                                                    <span t-field="line.student_id" />
+                                                </td>
+                                                <td  style="font-family: 'Helvetica';padding-right:5px;" align="right">
+                                                    <span t-field="line.nota" t-options='{"widget": "float", "precision": 0}'/>
+                                                </td>
+                                                
+
+                                                <t t-if="line.state_eva == 'aprobado'">
+                                                    <td  style="font-family: 'Helvetica';padding-right:5px;font-color:green;" align="center">
+                                                        <span t-field="line.state_eva"/>
+                                                    </td>
+                                                </t>
+
+                                                <t t-elif="line.state_eva == 'aplazado'">
+                                                        <td  style="font-family: 'Helvetica';padding-right:5px;font-color:red;" align="center">
+                                                            <span t-field="line.state_eva"/>
+                                                        </td>
+                                                </t>
+                                                
+                                                <td  style="font-family: 'Helvetica';padding-right:5px;" align="left">
+                                                    <span t-field="line.note"/>
+                                                </td>
+                                                <t t-set="acumEo" t-value="acumEo + line.eva_o"/>
+                                                <t t-set="acumEe" t-value="acumEe + line.eva_e"/>
+                                                <t t-set="acumEt" t-value="acumEt + line.eva_t"/>
+                                            </tr>
+                                            <t t-set="i" t-value="i+1"/>
+
+                                         </t> 
+
+                                         <t t-set="i" t-value="i-1"/>
+                                         <t t-if="i > 0">
+                                            <t t-set="promeO" t-value="acumEo/i" t-options='{"widget": "float", "precision": 0}'/>
+                                            <t t-set="promeE" t-value="acumEe/i" t-options='{"widget": "float", "precision": 0}'/>
+                                            <t t-set="promeT" t-value="acumEt/i" t-options='{"widget": "float", "precision": 0}'/>
+                                         </t>
+
+                            
+                        </table>
+
+
+                                    
+                               
+                            
+                       
+                      </t>
+                   </div>
+                </t> 
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_student_cambio_form_moodle" model="ir.ui.view">
+        <field name="name">student.cambio.form.plataforma</field>
+        <field name="model">student.cambio</field>
+        <field name="inherit_id" ref="school.view_student_cambio_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle"
+                        string="Sincronizar grupo Moodle"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': ['|', ('moodle_group_synced', '=', True), ('state', '!=', 'terminate')]}"/>
+                <field name="moodle_group_synced" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

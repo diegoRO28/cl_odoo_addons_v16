@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_student_retiro_form_moodle" model="ir.ui.view">
+        <field name="name">student.retiro.form.plataforma</field>
+        <field name="model">student.retiro</field>
+        <field name="inherit_id" ref="school.view_student_retiro_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle"
+                        string="Suspender en Moodle"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': ['|', ('moodle_suspended', '=', True), ('state', '!=', 'terminate')]}"/>
+                <field name="moodle_suspended" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_move_form_school_optimize_inherit" model="ir.ui.view">
+        <field name="name">account.move.form.school.optimize.inherit</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_invoice_sent']" position="attributes">
+                <attribute name="class"/>
+            </xpath>  
+            <xpath expr="//button[@name='button_draft']" position="after">
+                <xpath expr="//button[@name='action_invoice_sent']" position="move"/>
+            </xpath>
+            <xpath expr="//field[@name='invoice_date']" position="attributes">
+                <attribute name="required">1</attribute>
+            </xpath>                                 
+            <xpath expr="//field[@name='invoice_date']" position="after">
+                <field name="course_start_date" required="1" />
+                <field name="next_payment_date" invisible="1"/>
+            </xpath>                       
+            <xpath expr="//field[@name='partner_bank_id']" position="after">
+                <field name="custom_payment_terms_id" required="1" options="{'no_create': True, 'no_quick_create': True, 'no_create_edit': True}"/>
+            </xpath>            
+            <xpath expr="//div[@name='journal_div']" position="after">
+                <xpath expr="//field[@name='payment_reference']" position="move"/>
+            </xpath>        
+            
+            <!-- ======= Ocultando el campo nativo de Plazos de Pago ======= -->
+            <xpath expr='//span[@class="o_form_label mx-3 oe_edit_only"]' position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='invoice_payment_term_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>                                                      
+
+            <xpath expr="//notebook" position="inside">
+                <page id="fee_tab" name="fee_tab" string="Historial de cuotas" attrs="{'invisible': [('move_type', '=', 'entry')]}">
+                    <field name="fee_line_ids" widget="section_and_note_one2many" mode="tree">
+                        <tree create="0" delete="0" editable="bottom" string="Historial de cuotas" default_order="id">
+                            <field name="payment_date" readonly="1" />
+                            <field name="amount" readonly="1"/>
+                            <!-- <field name="next_payment_date" /> -->
+                            <field name="currency_id" invisible="1"/>
+                        </tree>
+                        <form>
+                            <sheet>
+                                <group>
+                                    <field name="payment_date"/>
+                                    <field name="amount"/>
+                                    <field name="next_payment_date"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </group>
+                            </sheet>
+                        </form>
+                    </field>
+                </page>
+            </xpath>            
+        </field>
+    </record>
+
+    <record id="view_invoice_tree_school_optimize_inherit" model="ir.ui.view">
+        <field name="name">view.invoice.tree.school.optimize.inherited</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_partner_display_name']" position="after">
+                <field name="standard_id"/>
+            </xpath> 
+        </field>
+    </record>    
+
+    <record id="res_am_view_school_contact_optimize_inherit" model="ir.ui.view">
+        <field name="name">res.am.view.school.contact.optimize.inherited</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="school_contact.res_occount_move_view_form_inh"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='student_code']" position="after">
+                <field name="standard_id" attrs="{'invisible': [('standard_id', '=', False)]}" />
+            </xpath> 
+        </field>
+    </record>        
+
+    <record id="view_account_invoice_filter_school_optimize_inherit" model="ir.ui.view">
+        <field name="name">view.account.invoice.filter.school.optimize.inherited</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='activities_upcoming_all']" position="after">
+                <separator/>
+                <filter name="with_standard_id" string="Con sección" domain="[('standard_id', '!=', False)]"/>
+                <filter name="without_standard_id" string="Sin sección" domain="[('standard_id', '=', False)]"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_by_sequence_prefix']" position="after">
+                <separator/>
+                <filter string="Sección" name="group_by_standard_id" context="{'group_by': 'standard_id'}"/>
+            </xpath> 
+        </field>
+    </record>        
+
+    <!-- Agregando el grupo 'school_optimize.group_basic_accounting_user' al menú account.menu_finance -->
+    <record id="account.menu_finance" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('school_optimize.group_basic_accounting_user'))]"/>
+    </record>
+</odoo>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_moodle_config_form" model="ir.ui.view">
+        <field name="name">moodle.config.form</field>
+        <field name="model">moodle.config</field>
+        <field name="arch" type="xml">
+            <form string="Configuración Moodle">
+                <header>
+                    <button name="action_test_connection" type="object"
+                            string="Probar conexión" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="url"/>
+                            <field name="token" password="True"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="default_password" password="True"/>
+                            <field name="default_city"/>
+                            <field name="default_country"/>
+                            <field name="enrol_role_id"/>
+                            <field name="timeout"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_moodle_config_tree" model="ir.ui.view">
+        <field name="name">moodle.config.tree</field>
+        <field name="model">moodle.config</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="url"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_moodle_config" model="ir.actions.act_window">
+        <field name="name">Configuración Moodle</field>
+        <field name="res_model">moodle.config</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_plataforma_root" name="Plataforma"
+              parent="school.menu_ems" sequence="15"
+              groups="school.group_school_administration"/>
+    <menuitem id="menu_moodle_config" name="Configuración"
+              parent="menu_plataforma_root"
+              action="action_moodle_config" sequence="10"
+              groups="school.group_school_administration"/>
+
+</odoo>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_student_inscripcion_form_moodle" model="ir.ui.view">
+        <field name="name">student.inscripcion.form.plataforma</field>
+        <field name="model">student.inscripcion</field>
+        <field name="inherit_id" ref="school.view_student_inscripcion_form"/>
+        <field name="arch" type="xml">
+            <!-- Se inserta justo antes del statusbar, patrón estándar de Odoo -->
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle"
+                        string="Inscribir en Moodle"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': ['|', ('moodle_enrolled', '=', True), ('state', '!=', 'done')]}"/>
+                <field name="moodle_enrolled" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

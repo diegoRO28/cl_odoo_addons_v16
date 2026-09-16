@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Definición del Wizard -->
+    <record id="report_wizard_ca_view_form" model="ir.ui.view">
+        <field name="name">report.wizard_ca.view.form</field>
+        <field name="model">report.wizard_ca</field>
+        <field name="arch" type="xml">
+            <form string="Informe de Cambios">
+                <sheet> 
+
+                   <group>
+                        <field name="date_today" invisible="1"/>
+                   </group>
+                   
+                   <separator string="SELECCIONE LA FECHA DE INICIO" colspan="2" />
+                   <group>
+                        <field name="date_start" />
+                   </group>
+
+                   <separator string="SELECCIONE LA FECHA FIN" colspan="2" />
+                   <group>
+                        <field name="date_end"  widget="date" />
+                   </group>
+
+                   <footer>
+                        <button name="action_search_salida" type="object" string="Generar Informe" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                   </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Definición de la acción -->
+    <record id="report_wizard_ca_action" model="ir.actions.act_window">
+        <field name="name">Generar Informe de Cambios</field>
+        <field name="res_model">report.wizard_ca</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_ca_view_form" />
+        <field name="target">new</field>
+    </record>
+	
+	<!-- Definición del menú -->
+    <menuitem
+        id="report_menu_info"
+        name="Informes"
+        groups="school.group_school_administration"
+        parent="school.menu_ems"
+        sequence="117" />
+
+        <menuitem id="menu_cambio" 
+                name='Cambios'
+              parent="report_menu_info" 
+            sequence="1" />
+
+        <menuitem
+                  id="informe_cambio_action"
+                name="Listado de Cambios"
+              action="report_wizard_ca_action"
+              parent="menu_cambio"
+            sequence="1" />
+
+</odoo>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Definición del Wizard -->
+    <record id="report_wizard_view_form" model="ir.ui.view">
+        <field name="name">report.wizard.view.form</field>
+        <field name="model">report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Record Académico">
+                <sheet> 
+                    <group col="2">
+                        <!-- <separator string="SELECCIONE EL ESTUDIANTE" colspan="2" /> -->
+                        <group string="SELECCIONE EL ESTUDIANTE">
+                              <field name="student_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
+                        </group>
+                        
+                        <!-- <separator string="SELECCIONE LA SECCIÓN" colspan="2" /> -->
+                        <group string="SELECCIONE LA SECCIÓN">
+                              <field name="inscripcion_id" domain="[('student_id','=', student_id)]" widget="selection" />
+                        </group>
+                    </group>
+
+                   <separator string="INFORMACIÓN DE LA SECCIÓN" colspan="2" />
+                   <group col="2">
+                      <group>
+                          <field name="standard_id" options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
+                          <field name="school_id"   options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
+                          <field name="subject_id"  options="{'no_edit': True, 'no_create': True, 'no_open': True}" />
+                      </group>
+                      <group>
+                          <field name="start_date" />
+                          <field name="start_date" />
+                          <field name="state_sec" decoration-warning="state_sec =='por iniciar'" 
+                                                  decoration-success="state_sec =='iniciado'"
+                                                  decoration-info="state_sec =='culminado'"
+                                                  widget="badge"/>
+                      </group>
+                   </group>
+                   <footer>
+                        <button name="action_search_salida" type="object" string="Generar Record" class="btn-primary" />
+                        <button string="Cancelar" class="btn-secondary" special="cancel" />
+                   </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Definición de la acción -->
+    <record id="report_wizard_action" model="ir.actions.act_window">
+        <field name="name">Generar Record Académico</field>
+        <field name="res_model">report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="report_wizard_view_form" />
+        <field name="target">new</field>
+    </record>
+	
+	<!-- Definición del menú -->
+    <menuitem
+              id="report_menu_docu"
+            name="Documentos"
+          groups="school.group_school_administration,school.group_school_teacher"
+          parent="school.menu_ems"
+        sequence="113" />
+
+        <menuitem id="menu_boletin" 
+                name='Records'
+              parent="report_menu_docu" 
+            sequence="1" />
+
+        <menuitem
+                  id="boletin"
+                name="Académico"
+              action="report_wizard_action"
+              parent="menu_boletin"
+            sequence="1" />
+
+</odoo>

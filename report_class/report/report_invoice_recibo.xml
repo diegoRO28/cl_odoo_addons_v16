@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="customer_invoice_report_temp_formate">
+            <td t-call="web.html_container">
+                <td t-foreach="docs" t-as="o">
+                    <div class="pos-receipt">
+                        <table width="100%" style="" >
+                                <tr width="100%" align="center">
+                                    <td width="50%" align="center">
+                                        <img t-if="res_company.logo" t-att-src="image_data_uri(res_company.logo)" align="center" style="max-width: 250px; max-height:200px; margin-top: 2px;margin-bottom: 5px;" alt="Logo"/>
+                                    </td>
+                                </tr>
+                                <tr align="center">
+                                    <th style="font-size:15px;">
+                                        <span t-esc="res_company.name"/><br/>
+                                        <span t-esc="res_company.street"/><span t-esc="res_company.street2"/><br/>
+                                        <b>Telf :</b>&#160;<span t-esc="res_company.phone"/>&#160;&#160;<b>Fax :</b><br/>
+                                        <b>R.I.F : 20546882455</b>&#160;
+                                    </th>
+                                </tr>
+                            </table>
+                        
+                    
+                        
+
+                            <!-- <img t-if="res_company.logo" t-att-src="image_data_uri(res_company.logo)" align="center" style="max-width: 250px; max-height:200px; margin-top: 2px;margin-bottom: 5px;" alt="Logo"/><br/>
+                            <span t-esc="res_company.name" align="center"/><br/>
+                            <span t-esc="res_company.street"/><span t-esc="res_company.street2" align="center"/><br/>
+                            <b>Telf :</b>&#160;<span t-esc="res_company.phone" align="center"/>&#160;&#160;<b></b><br/>
+ -->
+                        
+                        <div class="pos-receipt-contact">
+
+                            <span>Estudiante:</span><br/>
+                            <span t-esc="o.partner_id.name"/><br/>
+                            <span t-esc="o.student_code"/><br/>
+                            <span>Representante:</span><br/>
+                            <span t-esc="o.partner_id.parent_name"/><br/>
+                            <span t-esc="o.partner_id.parent_phone"/><br/><br/>
+                            <span>Fecha de emisión:</span> <span t-esc="o.invoice_date" t-options='{"widget": "date","format": "dd-MM-yyyy"}' /><br/>
+                            <span>Fecha de vencimiento:</span> <span t-esc="o.invoice_date_due" t-options='{"widget": "date","format": "dd-MM-yyyy"}' /><br/>
+
+                        </div>
+                        <div class="orderlines">
+                            <table CELLPADDING="0" CELLSPACING="0" width="50%" name="encabezado" class="table table-sm">
+                                <tr  height="10px" align="center">
+                                    <th width="50%" style="">Producto</th>
+                                    <th width="20%" style="">Precio/U</th>
+                                    <th width="10%" style="">Cantidad</th>
+                                    <th width="20%" style="">Sub Total</th>
+                                </tr>
+
+                                <t t-foreach="o.invoice_line_ids" t-as="line">
+                                    <tr height="10px" styl="border: 1px solid #C9CACA;">
+                                        <td width="50%" style=""><span t-esc="line.name"/></td>
+                                        <td width="20%" style="" align="right"><span t-esc="line.price_unit" t-options='{"widget": "float", "precision": 2}'/></td>
+                                        <td width="10%" style="" align="center"><span t-esc="line.quantity" t-options='{"widget": "float", "precision": 0}'/></td>
+                                        <td width="20%" style="padding-right:4px;" align="right"><span t-esc="line.price_total" t-options='{"widget": "float", "precision": 2}'/></td>
+                                    </tr>
+                                </t>
+                                <tr height="10px" styl="border: 1px solid #C9CACA;">
+                                         <td colspan='3' width="20%" style="padding-right:4px;" align="right"> <span>Total :</span>  </td>
+                                         <td width="20%" style="padding-right:4px;" align="right"><span t-esc="o.amount_total" t-options='{"widget": "float", "precision": 2}'/></td>
+                                </tr>
+                               
+                                <t t-set="payments_vals" t-value="o.sudo().invoice_payments_widget and o.sudo().invoice_payments_widget['content'] or []"/>
+                                <t t-foreach="payments_vals" t-as="payment_vals">
+                                                <tr t-if="payment_vals['is_exchange'] == 0">
+                                                    <td colspan='3' align="right">
+                                                        <i class="oe_form_field text-end oe_payment_label">Pagado en  <t t-esc="payment_vals['date']" t-options="{&quot;widget&quot;: &quot;date&quot;}"/></i>
+                                                    </td>
+                                                    <td align="right">
+                                                        <span t-esc="payment_vals['amount']" t-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: o.currency_id}"/>
+                                                    </td>
+                                                </tr>
+                                </t>
+                                 <tr height="10px" styl="border: 1px solid #C9CACA;">
+                                        <td colspan='3' width="20%" style="padding-right:4px;" align="right"> <span>Importe adeudado: </span>  </td>
+                                        
+                                        <td width="20%" style="padding-right:4px;" align="right"><span t-esc="o.amount_residual" t-options='{"widget": "float", "precision": 2}'/></td>
+                                </tr>
+
+
+
+
+                            </table>
+                            <br/>
+                        </div>
+                        
+                    </div>
+                    
+
+ 
+                    <div class="footer">
+                    <table width="100%" style="margin-top:15px;">
+                        <tr width="100%">
+                            <td width="100%" align="center">
+                                <!-- <img t-if="res_company.invoice_footer" t-att-src="image_data_uri(res_company.invoice_footer)" style="width: 100%; height:100px" alt="Logo"/> -->
+                            </td>
+                        </tr>
+                    </table>
+                    </div>
+                </td>
+            </td>
+        </template>
+    </data>
+</odoo>
