@@ -10,7 +10,7 @@ class MoodleSyncLog(models.Model):
     _description = 'Log de sincronización con Moodle'
     _order = 'create_date desc'
 
-    name = fields.Char('Función Moodle (wsfunction)', required=True)
+    name = fields.Char('Operación (wsfunction)', required=True)
     inscripcion_id = fields.Many2one(
         'student.inscripcion', 'Inscripción', ondelete='set null'
     )
@@ -19,6 +19,12 @@ class MoodleSyncLog(models.Model):
     )
     cambio_id = fields.Many2one(
         'student.cambio', 'Cambio de Sección', ondelete='set null'
+    )
+    student_id = fields.Many2one(
+        'student.student', 'Estudiante', ondelete='set null'
+    )
+    standard_id = fields.Many2one(
+        'school.standard', 'Sección', ondelete='set null'
     )
     student_code = fields.Char('Código estudiante')
     status = fields.Selection(

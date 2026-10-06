@@ -9,11 +9,33 @@
             <!-- Se inserta justo antes del statusbar, patrón estándar de Odoo -->
             <xpath expr="//header/field[@name='state']" position="before">
                 <button name="action_retry_sync_moodle"
-                        string="Inscribir en Moodle"
+                        string="Inscribir en Plataforma"
                         type="object"
                         class="oe_highlight"
                         attrs="{'invisible': ['|', ('moodle_enrolled', '=', True), ('state', '!=', 'done')]}"/>
                 <field name="moodle_enrolled" invisible="1"/>
+            </xpath>
+
+            <!-- Sección "Plataforma": va como hermana, justo debajo del
+                 grupo de 3 columnas (factura / sede / sección). Se ancla
+                 por un campo, no por el texto del título (los 'string' no
+                 se pueden usar en xpath de vistas heredadas): inscription_date
+                 está dentro de "INFORMACIÓN DE LA SECCIÓN" (ancestor::group[1]),
+                 cuyo padre es el grupo de 3 columnas (ancestor::group[2]).
+                 Solo se muestra cuando la inscripción ya fue sincronizada. -->
+            <xpath expr="//field[@name='inscription_date']/ancestor::group[2]" position="after">
+                <group string="INFORMACIÓN DE LA PLATAFORMA"
+                       attrs="{'invisible': [('moodle_enrolled', '=', False)]}">
+                    <group>
+                        <field name="plataforma_usuario"/>
+                        <field name="plataforma_curso"/>
+                        <field name="plataforma_estado" widget="badge"
+                               decoration-success="plataforma_estado == 'activo'"
+                               decoration-danger="plataforma_estado == 'suspendido'"/>
+                        <field name="plataforma_url" widget="url"
+                               text="Ver perfil en la Plataforma"/>
+                    </group>
+                </group>
             </xpath>
         </field>
     </record>

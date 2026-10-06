@@ -13,15 +13,3 @@ class SubjectSubjectMoodle(models.Model):
         help="Shortname del curso en Moodle. Debe coincidir exactamente "
              "con el 'Nombre corto del curso' configurado en Moodle.",
     )
-
-
-class SchoolStandardMoodle(models.Model):
-    """Cache del ID de curso en Moodle por sección."""
-
-    _inherit = 'school.standard'
-
-    moodle_course_id = fields.Integer(
-        string='ID de curso en Moodle',
-        help="Cache del ID de curso en Moodle, obtenido en la última "
-             "sincronización de una inscripción de esta sección.",
-    )

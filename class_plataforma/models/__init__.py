@@ -5,3 +5,5 @@ from . import school_extra_fields
 from . import inscripcion_inherit
 from . import retiro_inherit
 from . import cambio_inherit
+from . import student_inherit
+from . import standard_inherit

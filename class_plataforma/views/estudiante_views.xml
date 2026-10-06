@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Herencia de la vista formulario principal del estudiante (school.view_student_student_form_1) -->
+    <record id="view_student_student_form_plataforma" model="ir.ui.view">
+        <field name="name">student.student.form.plataforma</field>
+        <field name="model">student.student</field>
+        <field name="inherit_id" ref="school.view_student_student_form_1"/>
+        <field name="arch" type="xml">
+            <!-- Botones en el header, antes del statusbar -->
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle"
+                        string="Sincronizar en Moodle"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': [('state', '!=', 'done')]}"
+                        help="Crea o actualiza el usuario del estudiante en Moodle (nombre, apellido, usuario, correo)."/>
+                <button name="action_check_moodle_status"
+                        string="Verificar Estado en Moodle"
+                        type="object"
+                        class="oe_stat_button"
+                        attrs="{'invisible': [('state', '!=', 'done')]}"
+                        help="Consulta en tiempo real el estado de la cuenta en Moodle y sus cursos matriculados."/>
+                <field name="moodle_synced" invisible="1"/>
+                <field name="moodle_sync_error" invisible="1"/>
+            </xpath>
+
+            <!-- Pestaña "Plataforma (Moodle)" al final del notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Plataforma (Moodle)" name="plataforma_moodle"
+                      attrs="{'invisible': [('state', '=', 'draft')]}">
+                    <group string="Estado de sincronización">
+                        <field name="moodle_synced" readonly="1"
+                               widget="boolean_toggle"
+                               string="Sincronizado con Moodle"/>
+                        <field name="moodle_user_id" readonly="1"
+                               string="ID usuario Moodle"/>
+                        <field name="moodle_sync_error" readonly="1"
+                               widget="boolean_toggle"
+                               string="Error en última sincronización"/>
+                        <field name="moodle_error_message" readonly="1"
+                               string="Mensaje de error"
+                               attrs="{'invisible': [('moodle_sync_error', '=', False)]}"/>
+                    </group>
+
+                    <group string="Última verificación de estado (bajo demanda)">
+                        <field name="moodle_status_snapshot" readonly="1"
+                               widget="text"
+                               string="Resultado de 'Verificar Estado en Moodle'"
+                               placeholder="Pulse el botón 'Verificar Estado en Moodle' para consultar..."
+                               nolabel="1"/>
+                    </group>
+
+                    <group string="Log de sincronización (auditoría)">
+                        <field name="moodle_sync_log_ids" nolabel="1"
+                               readonly="1"
+                               mode="tree"
+                               help="Historial de llamadas a la API de Moodle relacionadas con este estudiante.">
+                            <tree string="Log de sincronización" create="false" delete="false" editable="bottom">
+                                <field name="create_date" readonly="1"/>
+                                <field name="name" readonly="1" string="Función Moodle"/>
+                                <field name="status" readonly="1"
+                                       decoration-danger="status == 'error'"
+                                       decoration-success="status == 'success'"/>
+                                <field name="message" readonly="1"/>
+                                <field name="request_data" readonly="1" optional="hide"/>
+                                <field name="response_data" readonly="1" optional="hide"/>
+                            </tree>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- También heredamos la vista de admisión (form_2) si se usa en ese contexto -->
+    <record id="view_student_student_form2_plataforma" model="ir.ui.view">
+        <field name="name">student.student.form2.plataforma</field>
+        <field name="model">student.student</field>
+        <field name="inherit_id" ref="school.view_student_student_form_2"/>
+        <field name="arch" type="xml">
+            <!-- Botones en el header, antes del statusbar -->
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle"
+                        string="Sincronizar en Moodle"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': [('state', '!=', 'done')]}"
+                        help="Crea o actualiza el usuario del estudiante en Moodle (nombre, apellido, usuario, correo)."/>
+                <button name="action_check_moodle_status"
+                        string="Verificar Estado en Moodle"
+                        type="object"
+                        class="oe_stat_button"
+                        attrs="{'invisible': [('state', '!=', 'done')]}"
+                        help="Consulta en tiempo real el estado de la cuenta en Moodle y sus cursos matriculados."/>
+                <field name="moodle_synced" invisible="1"/>
+                <field name="moodle_sync_error" invisible="1"/>
+            </xpath>
+
+            <!-- Pestaña "Plataforma (Moodle)" al final del notebook -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Plataforma (Moodle)" name="plataforma_moodle"
+                      attrs="{'invisible': [('state', '=', 'draft')]}">
+                    <group string="Estado de sincronización">
+                        <field name="moodle_synced" readonly="1"
+                               widget="boolean_toggle"
+                               string="Sincronizado con Moodle"/>
+                        <field name="moodle_user_id" readonly="1"
+                               string="ID usuario Moodle"/>
+                        <field name="moodle_sync_error" readonly="1"
+                               widget="boolean_toggle"
+                               string="Error en última sincronización"/>
+                        <field name="moodle_error_message" readonly="1"
+                               string="Mensaje de error"
+                               attrs="{'invisible': [('moodle_sync_error', '=', False)]}"/>
+                    </group>
+
+                    <group string="Última verificación de estado (bajo demanda)">
+                        <field name="moodle_status_snapshot" readonly="1"
+                               widget="text"
+                               string="Resultado de 'Verificar Estado en Moodle'"
+                               placeholder="Pulse el botón 'Verificar Estado en Moodle' para consultar..."
+                               nolabel="1"/>
+                    </group>
+
+                    <group string="Log de sincronización (auditoría)">
+                        <field name="moodle_sync_log_ids" nolabel="1"
+                               readonly="1"
+                               mode="tree"
+                               help="Historial de llamadas a la API de Moodle relacionadas con este estudiante.">
+                            <tree string="Log de sincronización" create="false" delete="false" editable="bottom">
+                                <field name="create_date" readonly="1"/>
+                                <field name="name" readonly="1" string="Función Moodle"/>
+                                <field name="status" readonly="1"
+                                       decoration-danger="status == 'error'"
+                                       decoration-success="status == 'success'"/>
+                                <field name="message" readonly="1"/>
+                                <field name="request_data" readonly="1" optional="hide"/>
+                                <field name="response_data" readonly="1" optional="hide"/>
+                            </tree>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

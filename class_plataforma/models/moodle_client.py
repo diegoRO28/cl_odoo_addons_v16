@@ -28,11 +28,12 @@ class MoodleClient(models.AbstractModel):
     # Helpers internos
     # ------------------------------------------------------------------
     def _log(self, name, status, message='', request_data=None,
-              response_data=None, related_record=None):
-        """related_record puede ser un student.inscripcion, student.retiro
-        o student.cambio (o None). Se enlaza al campo Many2one correcto
-        según su modelo real, para no escribir un ID en el campo
-        equivocado (los tres modelos tienen ids independientes)."""
+              response_data=None, related_record=None, student_code=None):
+        """related_record puede ser un student.inscripcion, student.retiro,
+        student.cambio, student.student o school.standard (o None). Se enlaza
+        al campo Many2one correcto según su modelo real, para no escribir un ID
+        en el campo equivocado."""
+        code = student_code or getattr(related_record, 'student_code', False)
         vals = {
             'name': name,
             'status': status,
@@ -41,7 +42,7 @@ class MoodleClient(models.AbstractModel):
             if request_data else False,
             'response_data': json.dumps(response_data, ensure_ascii=False, default=str)
             if response_data else False,
-            'student_code': getattr(related_record, 'student_code', False),
+            'student_code': code,
         }
         if related_record:
             model = related_record._name
@@ -51,10 +52,14 @@ class MoodleClient(models.AbstractModel):
                 vals['retiro_id'] = related_record.id
             elif model == 'student.cambio':
                 vals['cambio_id'] = related_record.id
+            elif model == 'student.student':
+                vals['student_id'] = related_record.id
+            elif model == 'school.standard':
+                vals['standard_id'] = related_record.id
         self.env['moodle.sync.log'].sudo().create(vals)
 
     def _request(self, config, wsfunction, params=None, data=None,
-                 method='GET', related_record=None):
+                 method='GET', related_record=None, student_code=None):
         params = params or {}
         base_params = {
             'wstoken': config.token,
@@ -72,13 +77,13 @@ class MoodleClient(models.AbstractModel):
             response.raise_for_status()
         except requests.RequestException as e:
             self._log(wsfunction, 'error', str(e), request_data=data or params,
-                       related_record=related_record)
+                       related_record=related_record, student_code=student_code)
             raise UserError(_("Error de conexión con Moodle (%s): %s") % (wsfunction, e))
 
         text = response.text
         if not text or text.strip() == 'null':
             self._log(wsfunction, 'success', request_data=data or params,
-                       related_record=related_record)
+                       related_record=related_record, student_code=student_code)
             return None
 
         try:
@@ -86,17 +91,18 @@ class MoodleClient(models.AbstractModel):
         except ValueError:
             self._log(wsfunction, 'error', 'Respuesta no-JSON de Moodle',
                        request_data=data or params, response_data=text,
-                       related_record=related_record)
+                       related_record=related_record, student_code=student_code)
             raise UserError(_("Moodle devolvió una respuesta inesperada para %s.") % wsfunction)
 
         if isinstance(result, dict) and result.get('exception'):
             self._log(wsfunction, 'error', result.get('message'),
                        request_data=data or params, response_data=result,
-                       related_record=related_record)
+                       related_record=related_record, student_code=student_code)
             raise UserError(_("Moodle (%s): %s") % (wsfunction, result.get('message')))
 
         self._log(wsfunction, 'success', request_data=data or params,
-                   response_data=result, related_record=related_record)
+                   response_data=result, related_record=related_record,
+                   student_code=student_code)
         return result
 
     # ------------------------------------------------------------------
@@ -116,12 +122,13 @@ class MoodleClient(models.AbstractModel):
         courses = (result or {}).get('courses', [])
         return courses[0] if courses else None
 
-    def get_user_by_field(self, field, value, config=None, related_record=None):
+    def get_user_by_field(self, field, value, config=None, related_record=None, student_code=None):
         config = config or self.env['moodle.config'].get_active_config()
         result = self._request(
             config, 'core_user_get_users_by_field',
             params={'field': field, 'values[0]': value},
             related_record=related_record,
+            student_code=student_code,
         )
         if isinstance(result, list) and result:
             return result[0]
@@ -176,7 +183,7 @@ class MoodleClient(models.AbstractModel):
         return True
 
     def enrol_user(self, user_id, course_id, timestart, timeend, role_id=None,
-                    config=None, related_record=None):
+                    config=None, related_record=None, student_code=None):
         config = config or self.env['moodle.config'].get_active_config()
         data = {
             'enrolments[0][roleid]': role_id or config.enrol_role_id,
@@ -186,8 +193,24 @@ class MoodleClient(models.AbstractModel):
             'enrolments[0][timeend]': timeend,
         }
         self._request(config, 'enrol_manual_enrol_users', data=data,
-                       method='POST', related_record=related_record)
+                       method='POST', related_record=related_record,
+                       student_code=student_code)
         return True
+
+    def get_site_base_url(self, config=None):
+        """URL base del sitio Moodle, derivada de la URL del webservice
+        (config.url apunta a .../webservice/rest/server.php)."""
+        config = config or self.env['moodle.config'].get_active_config()
+        url = (config.url or '').strip()
+        marker = '/webservice/'
+        base = url.split(marker)[0] if marker in url else url
+        return base.rstrip('/')
+
+    def get_profile_url(self, user_id, config=None):
+        """Enlace al perfil de un usuario en Moodle (o False si no hay ID)."""
+        if not user_id:
+            return False
+        return "%s/user/profile.php?id=%s" % (self.get_site_base_url(config), user_id)
 
     def get_user_courses(self, user_id, config=None, related_record=None):
         """Cursos en los que el usuario está matriculado (verificación)."""
@@ -227,14 +250,15 @@ class MoodleClient(models.AbstractModel):
             return result.get('groups', [])
         return result or []
 
-    def add_group_members(self, group_id, user_id, config=None, related_record=None):
+    def add_group_members(self, group_id, user_id, config=None, related_record=None, student_code=None):
         config = config or self.env['moodle.config'].get_active_config()
         data = {
             'members[0][groupid]': group_id,
             'members[0][userid]': user_id,
         }
         self._request(config, 'core_group_add_group_members', data=data,
-                       method='POST', related_record=related_record)
+                       method='POST', related_record=related_record,
+                       student_code=student_code)
         return True
 
     def remove_group_members(self, group_id, user_id, config=None, related_record=None):

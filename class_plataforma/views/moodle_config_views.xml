@@ -52,8 +52,22 @@
     <menuitem id="menu_plataforma_root" name="Plataforma"
               parent="school.menu_ems" sequence="15"
               groups="school.group_school_administration"/>
-    <menuitem id="menu_moodle_config" name="Configuración"
-              parent="menu_plataforma_root"
+    <!-- "Configuración" es ahora un contenedor (sin acción propia): en
+         Odoo 16 un menú con hijos se despliega y su acción no se alcanza.
+         El formulario de conexión pasa a su hijo "Conexión"; los logs
+         (sync_log_menus.xml) cuelgan de este mismo contenedor.
+         Se define como <record> (y no <menuitem>) para poder limpiar
+         explícitamente la acción que el menú ya tenía guardada en la base
+         de datos: un <menuitem> sin 'action' no la borra. -->
+    <record id="menu_moodle_config" model="ir.ui.menu">
+        <field name="name">Configuración</field>
+        <field name="parent_id" ref="menu_plataforma_root"/>
+        <field name="sequence">10</field>
+        <field name="action" eval="False"/>
+        <field name="groups_id" eval="[(6, 0, [ref('school.group_school_administration')])]"/>
+    </record>
+    <menuitem id="menu_moodle_config_conexion" name="Conexión"
+              parent="menu_moodle_config"
               action="action_moodle_config" sequence="10"
               groups="school.group_school_administration"/>
 

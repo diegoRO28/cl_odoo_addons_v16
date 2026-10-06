@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Menús de los logs de sincronización.
+
+         Cuelgan de Plataforma > Configuración (uso técnico/administrativo,
+         no es para el usuario final). Las acciones y vistas están en
+         sync_log_views.xml, que debe cargarse ANTES que este archivo; el
+         menú padre (menu_moodle_config) viene de moodle_config_views.xml.
+         Se conservan los mismos IDs de menú que tenían antes: Odoo solo
+         actualiza su padre, no los borra ni los recrea.
+    ================================================================= -->
+
+    <menuitem id="menu_moodle_sync_log_administracion" name="Log (Administración)"
+              parent="menu_moodle_config"
+              action="action_moodle_sync_log_administracion" sequence="20"
+              groups="school.group_school_administration"/>
+
+    <menuitem id="menu_moodle_sync_log_estudiante" name="Log (Estudiante)"
+              parent="menu_moodle_config"
+              action="action_moodle_sync_log_estudiante" sequence="21"
+              groups="school.group_school_administration"/>
+
+    <menuitem id="menu_moodle_sync_log_secciones" name="Log (Secciones)"
+              parent="menu_moodle_config"
+              action="action_moodle_sync_log_secciones" sequence="22"
+              groups="school.group_school_administration"/>
+
+    <!-- Carga Académica — RESERVADO: se activa junto con su acción en
+         sync_log_views.xml cuando se implemente Evaluaciones.
+    <menuitem id="menu_moodle_sync_log_carga_academica" name="Log (Carga Académica)"
+              parent="menu_moodle_config"
+              action="action_moodle_sync_log_carga_academica" sequence="23"
+              groups="school.group_school_administration"/>
+    -->
+
+</odoo>

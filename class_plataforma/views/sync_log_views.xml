@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- ================================================================
+         Vistas genéricas (tree/form), reutilizadas por los 4 logs.
+         Todas comparten el mismo modelo moodle.sync.log; lo que cambia
+         es el dominio de cada acción, según qué campo Many2one tenga
+         valor (inscripcion_id/retiro_id/cambio_id -> Administración,
+         student_id -> Estudiante, standard_id -> Secciones; el de
+         Carga Académica sigue reservado).
+
+         Los MENÚS de estos logs viven en sync_log_menus.xml (bajo
+         Plataforma > Configuración): aquí solo van vistas y acciones.
+    ================================================================= -->
+
     <record id="view_moodle_sync_log_tree" model="ir.ui.view">
         <field name="name">moodle.sync.log.tree</field>
         <field name="model">moodle.sync.log</field>
@@ -8,9 +20,13 @@
             <tree decoration-danger="status == 'error'"
                   decoration-success="status == 'success'" create="false">
                 <field name="create_date"/>
-                <field name="name"/>
+                <field name="name" string="Operación"/>
                 <field name="student_code"/>
                 <field name="inscripcion_id"/>
+                <field name="retiro_id"/>
+                <field name="cambio_id"/>
+                <field name="student_id"/>
+                <field name="standard_id"/>
                 <field name="status"/>
             </tree>
         </field>
@@ -23,11 +39,15 @@
             <form create="false" edit="false">
                 <sheet>
                     <group>
-                        <field name="name"/>
+                        <field name="name" string="Operación"/>
                         <field name="status"/>
-                        <field name="inscripcion_id"/>
-                        <field name="student_code"/>
                         <field name="create_date"/>
+                        <field name="student_code"/>
+                        <field name="inscripcion_id"/>
+                        <field name="retiro_id"/>
+                        <field name="cambio_id"/>
+                        <field name="student_id"/>
+                        <field name="standard_id"/>
                     </group>
                     <group>
                         <field name="message"/>
@@ -39,15 +59,86 @@
         </field>
     </record>
 
-    <record id="action_moodle_sync_log" model="ir.actions.act_window">
-        <field name="name">Log de Sincronización</field>
-        <field name="res_model">moodle.sync.log</field>
-        <field name="view_mode">tree,form</field>
+    <!-- ================================================================
+         Búsqueda y agrupación (compartida por los logs). Cada acción abre
+         con una agrupación por defecto distinta (ver su 'context'); el
+         usuario puede cambiarla o combinarla desde "Agrupar por".
+    ================================================================= -->
+    <record id="view_moodle_sync_log_search" model="ir.ui.view">
+        <field name="name">moodle.sync.log.search</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="student_code" string="Estudiante (código)"/>
+                <field name="student_id" string="Estudiante (nombre)"/>
+                <field name="standard_id" string="Sección"/>
+                <field name="name" string="Operación"/>
+                <separator/>
+                <filter name="filter_error" string="Con error"
+                        domain="[('status', '=', 'error')]"/>
+                <filter name="filter_success" string="Exitosos"
+                        domain="[('status', '=', 'success')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_estudiante_codigo" string="Estudiante (código)"
+                            context="{'group_by': 'student_code'}"/>
+                    <filter name="group_estudiante_nombre" string="Estudiante (nombre)"
+                            context="{'group_by': 'student_id'}"/>
+                    <filter name="group_seccion" string="Sección"
+                            context="{'group_by': 'standard_id'}"/>
+                    <filter name="group_operacion" string="Operación"
+                            context="{'group_by': 'name'}"/>
+                    <filter name="group_estado" string="Estado"
+                            context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
     </record>
 
-    <menuitem id="menu_moodle_sync_log" name="Log de Sincronización"
-              parent="menu_plataforma_root"
-              action="action_moodle_sync_log" sequence="20"
-              groups="school.group_school_administration"/>
+    <!-- ================================================================
+         Log 1 de 4: Administración (Inscripciones, Cambios y Retiros)
+    ================================================================= -->
+    <record id="action_moodle_sync_log_administracion" model="ir.actions.act_window">
+        <field name="name">Log (Administración)</field>
+        <field name="res_model">moodle.sync.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">['|', '|', ('inscripcion_id', '!=', False), ('retiro_id', '!=', False), ('cambio_id', '!=', False)]</field>
+        <field name="context">{'search_default_group_estudiante_codigo': 1}</field>
+    </record>
+
+    <!-- ================================================================
+         Log 2 de 4: Estudiante (sincronización de cuenta)
+    ================================================================= -->
+    <record id="action_moodle_sync_log_estudiante" model="ir.actions.act_window">
+        <field name="name">Log (Estudiante)</field>
+        <field name="res_model">moodle.sync.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('student_id', '!=', False)]</field>
+        <field name="context">{'search_default_group_estudiante_nombre': 1}</field>
+    </record>
+
+    <!-- ================================================================
+         Log 3 de 4: Secciones (sincronización de grupo y miembros)
+    ================================================================= -->
+    <record id="action_moodle_sync_log_secciones" model="ir.actions.act_window">
+        <field name="name">Log (Secciones)</field>
+        <field name="res_model">moodle.sync.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('standard_id', '!=', False)]</field>
+        <field name="context">{'search_default_group_seccion': 1}</field>
+    </record>
+
+    <!-- ================================================================
+         Log 4 de 4: Carga Académica — RESERVADO, se activa cuando se
+         implemente Evaluaciones / el dashboard de progreso académico.
+    ================================================================= -->
+    <!--
+    <record id="action_moodle_sync_log_carga_academica" model="ir.actions.act_window">
+        <field name="name">Log (Carga Académica)</field>
+        <field name="res_model">moodle.sync.log</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('evaluacion_id', '!=', False)]</field>
+    </record>
+    (su menú reservado está en sync_log_menus.xml)
+    -->
 
 </odoo>

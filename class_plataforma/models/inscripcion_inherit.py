@@ -2,9 +2,9 @@
 
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
@@ -36,6 +36,72 @@ class StudentInscripcionMoodle(models.Model):
     moodle_error_message = fields.Text(
         string='Mensaje de error Moodle', readonly=True, copy=False,
     )
+    moodle_timeend = fields.Datetime(
+        string='Vencimiento en la Plataforma', readonly=True, copy=False,
+        help="Fecha de vencimiento que Odoo envió a la Plataforma en la "
+             "última sincronización de esta inscripción (UTC).",
+    )
+    moodle_user_id = fields.Integer(
+        string='ID de usuario en la Plataforma', readonly=True, copy=False,
+        help="ID del usuario del estudiante en la Plataforma, obtenido en "
+             "la última sincronización de esta inscripción.",
+    )
+
+    # ---- Campos visibles en la sección "Plataforma" del formulario ----
+    plataforma_usuario = fields.Char(
+        string='Usuario', related='student_code', readonly=True,
+        help="Usuario con el que el estudiante accede a la Plataforma "
+             "(es el mismo Código del estudiante).",
+    )
+    plataforma_curso = fields.Char(
+        string='Curso', readonly=True, copy=False,
+        help="Curso de la Plataforma en el que quedó matriculado el "
+             "estudiante en la última sincronización.",
+    )
+    moodle_suspended = fields.Boolean(
+        string='Matrícula suspendida', readonly=True, copy=False,
+        help="La matrícula fue suspendida de forma explícita (por ejemplo, "
+             "por un Retiro), sin esperar a su fecha de vencimiento. Se "
+             "limpia al volver a matricular.",
+    )
+    plataforma_estado = fields.Selection(
+        [('activo', 'Activo'), ('suspendido', 'Suspendido')],
+        string='Estado de la matrícula', compute='_compute_plataforma_estado',
+        help="Estado de la matrícula en el curso de la Plataforma. Pasa a "
+             "Suspendido cuando llega su fecha de vencimiento (o si fue "
+             "suspendida explícitamente). Se calcula desde Odoo con la "
+             "fecha que se envió a la Plataforma.",
+    )
+
+    @api.depends('moodle_enrolled', 'moodle_timeend', 'moodle_suspended')
+    def _compute_plataforma_estado(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            if not rec.moodle_enrolled:
+                rec.plataforma_estado = False
+            elif rec.moodle_suspended or (
+                rec.moodle_timeend and rec.moodle_timeend <= now
+            ):
+                rec.plataforma_estado = 'suspendido'
+            else:
+                rec.plataforma_estado = 'activo'
+    plataforma_url = fields.Char(
+        string='Perfil en la Plataforma', compute='_compute_plataforma_url',
+        help="Enlace al perfil del estudiante en la Plataforma.",
+    )
+
+    @api.depends('moodle_user_id')
+    def _compute_plataforma_url(self):
+        client = self.env['moodle.client']
+        try:
+            config = self.env['moodle.config'].get_active_config()
+        except UserError:
+            config = False
+        for rec in self:
+            rec.plataforma_url = (
+                client.get_profile_url(rec.moodle_user_id, config=config)
+                if config and rec.moodle_user_id else False
+            )
 
     # ------------------------------------------------------------------
     # Hook: se dispara automáticamente al confirmar la inscripción
@@ -95,6 +161,25 @@ class StudentInscripcionMoodle(models.Model):
             email = f"{student_code}@cursoscleveland.com"
         return email
 
+    def _get_moodle_enrol_dates(self):
+        """Devuelve (timestart, timeend) como timestamps para Moodle.
+
+        Única fuente de la fórmula de vencimiento: fecha de vencimiento de
+        la factura + 1 día (o hoy + 30 días si no hay factura).
+        """
+        self.ensure_one()
+        timestart = (
+            int(time.mktime(self.inscription_date.timetuple()))
+            if self.inscription_date else int(time.time())
+        )
+        invoice_due_date = (
+            self.move_id.invoice_date_due
+            or (fields.Date.today() + timedelta(days=30))
+        )
+        expiry = invoice_due_date + timedelta(days=1)
+        timeend = int(time.mktime(expiry.timetuple()))
+        return timestart, timeend
+
     # ------------------------------------------------------------------
     # Orquestación principal (equivalente al action_sync_moodle original,
     # pero delegando el HTTP a moodle.client y la config a moodle.config)
@@ -132,6 +217,7 @@ class StudentInscripcionMoodle(models.Model):
                 ) % code_moodle)
 
             moodle_course_id = course.get('id')
+            course_name = course.get('fullname') or course.get('shortname') or code_moodle
             record.moodle_course_id = moodle_course_id
             record.standard_id.moodle_course_id = moodle_course_id
 
@@ -148,7 +234,6 @@ class StudentInscripcionMoodle(models.Model):
                 'email': email,
                 'firstname': firstname,
                 'lastname': lastname,
-                'password': config.default_password,
                 'city': config.default_city,
                 'country': config.default_country,
             }
@@ -160,7 +245,13 @@ class StudentInscripcionMoodle(models.Model):
                     config=config, related_record=record,
                 )
             else:
-                user_vals.update({'username': username, 'auth': 'manual'})
+                # La contraseña por defecto solo se envía al CREAR: al
+                # actualizar se pisaría la clave real del estudiante.
+                user_vals.update({
+                    'username': username,
+                    'auth': 'manual',
+                    'password': config.default_password,
+                })
                 moodle_user_id = client.create_user(
                     user_vals, config=config, related_record=record
                 )
@@ -171,18 +262,15 @@ class StudentInscripcionMoodle(models.Model):
                 ))
 
             # ---------- 3. Matrícula ----------
-            timestart = int(time.mktime(record.inscription_date.timetuple()))
-            invoice_due_date = (
-                record.move_id.invoice_date_due
-                or (fields.Date.today() + timedelta(days=30))
-            )
-            moodle_expiry_date = invoice_due_date + timedelta(days=1)
-            timeend = int(time.mktime(moodle_expiry_date.timetuple()))
+            timestart, timeend = record._get_moodle_enrol_dates()
 
             client.enrol_user(
                 moodle_user_id, moodle_course_id, timestart, timeend,
                 role_id=config.enrol_role_id, config=config, related_record=record,
             )
+            # Solo se guarda si Moodle aceptó la matrícula (si falla,
+            # enrol_user lanza excepción y no se llega aquí).
+            record.moodle_timeend = datetime.utcfromtimestamp(timeend)
 
             # ---------- 4. Grupo (sección dentro del curso) ----------
             group_code = record.standard_id.code
@@ -202,9 +290,15 @@ class StudentInscripcionMoodle(models.Model):
                     "matriculado en el curso pero no se le asignó grupo."
                 ) % record.standard_id.display_name)
 
-            record.moodle_enrolled = True
-            record.moodle_sync_error = False
-            record.moodle_error_message = False
+            record.write({
+                'moodle_enrolled': True,
+                'moodle_user_id': moodle_user_id,
+                'plataforma_curso': course_name,
+                # enrol_user envía la matrícula sin 'suspend': la reactiva.
+                'moodle_suspended': False,
+                'moodle_sync_error': False,
+                'moodle_error_message': False,
+            })
             _logger.info(
                 "Sincronización Moodle completada para %s (usuario %s)",
                 record.name, username,

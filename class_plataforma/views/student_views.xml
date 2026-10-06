@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Se aplica a las DOS vistas de formulario de Estudiante
+         (form_1 y form_2) porque no sabemos cuál usa cada menú/contexto.
+         El log de auditoría NO va embebido aquí: vive en su propia
+         vista, "Class > Plataforma > Log (Estudiante)".
+
+         NOTA: student_code no aparece en ninguna página de ninguno de
+         los dos formularios (vive en el header, fuera del notebook), así
+         que la pestaña "Plataforma" se ancla a la PRIMERA página de cada
+         notebook en vez de buscar ese campo:
+           - Ninguna de las dos usa selectores por atributo: 'string' no
+             está permitido en vistas heredadas (es texto traducible), y
+             'name="general"' de form_1 dejó de encontrarse al combinar
+             la vista completa (probable choque con otra herencia de
+             school_optimize u otro módulo). Las dos usan la misma ruta
+             posicional: //notebook/page[1] (primera página del notebook,
+             sin importar cómo se llame).
+    ================================================================= -->
+
+    <record id="view_student_student_form_1_plataforma" model="ir.ui.view">
+        <field name="name">student.student.form.1.plataforma</field>
+        <field name="model">student.student</field>
+        <field name="inherit_id" ref="school.view_student_student_form_1"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_check_moodle_status"
+                        string="Verificar estado en Plataforma"
+                        type="object"
+                        attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                <button name="action_retry_sync_moodle"
+                        string="Sincronizar con Plataforma"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': ['|', ('moodle_synced', '=', True), ('state', '=', 'draft')]}"/>
+                <field name="moodle_synced" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//field[@name='contact_mobile']/ancestor::group[1]" position="after">
+                <newline/>
+                <separator string="PLATAFORMA" colspan="4"
+                        attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                <newline/>
+                <group attrs="{'invisible': [('state', '=', 'draft')]}">
+                    <field name="plataforma_usuario"/>
+                    <field name="plataforma_estado"/>
+                    <field name="plataforma_fecha_vencimiento" string="Vencimiento"/>
+                    <field name="plataforma_curso" string="Curso(s) inscrito(s)"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_student_student_form_2_plataforma" model="ir.ui.view">
+        <field name="name">student.student.form.2.plataforma</field>
+        <field name="model">student.student</field>
+        <field name="inherit_id" ref="school.view_student_student_form_2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_check_moodle_status"
+                        string="Verificar estado en Plataforma"
+                        type="object"
+                        attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                <button name="action_retry_sync_moodle"
+                        string="Sincronizar con Plataforma"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': ['|', ('moodle_synced', '=', True), ('state', '=', 'draft')]}"/>
+                <field name="moodle_synced" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//field[@name='contact_mobile']/ancestor::group[1]" position="after">
+                <newline/>
+                <separator string="PLATAFORMA" colspan="4"
+                        attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                <newline/>
+                <group attrs="{'invisible': [('state', '=', 'draft')]}">
+                    <field name="plataforma_usuario"/>
+                    <field name="plataforma_estado"/>
+                    <field name="plataforma_fecha_vencimiento" string="Vencimiento"/>
+                    <field name="plataforma_curso" string="Curso(s) inscrito(s)"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

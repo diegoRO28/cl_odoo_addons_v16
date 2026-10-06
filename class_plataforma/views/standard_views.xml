@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Extensión de la vista formulario de Sección (school.standard)
+         ================================================================ -->
+    <record id="view_school_standard_form_moodle" model="ir.ui.view">
+        <field name="name">school.standard.form.plataforma</field>
+        <field name="model">school.standard</field>
+        <field name="inherit_id" ref="school.view_school_standard_form"/>
+        <field name="arch" type="xml">
+            <!-- Botón en el header -->
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle"
+                        string="Sincronizar grupo en Plataforma"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': [('state', 'in', ['cancel'])]}"
+                        groups="school.group_school_administration"/>
+            </xpath>
+
+            <!-- Indicador en la lista de estudiantes inscritos -->
+            <xpath expr="//notebook/page[@name='students']/field[@name='student_ids']/tree/field[@name='state_aux']" position="after">
+                <field name="moodle_enrolled" string="En Plataforma" widget="boolean_toggle" readonly="1" optional="show" groups="school.group_school_administration"/>
+            </xpath>
+
+            <!-- Pestaña Plataforma con estado, métricas y log de sincronización -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Plataforma" name="plataforma" groups="school.group_school_administration">
+                    <group>
+                        <group string="Grupo en Plataforma">
+                            <field name="moodle_group_id"/>
+                            <field name="moodle_course_id"/>
+                            <field name="moodle_group_synced" widget="boolean_toggle" readonly="1"/>
+                            <field name="moodle_members_count"/>
+                            <field name="moodle_last_sync"/>
+                        </group>
+                        <group string="Diagnóstico y Estado">
+                            <field name="moodle_sync_error" widget="boolean_toggle" readonly="1"/>
+                            <field name="moodle_error_message" attrs="{'invisible': [('moodle_sync_error', '=', False)]}"/>
+                            <field name="moodle_sync_status"/>
+                        </group>
+                    </group>
+                    <separator string="Log de sincronización de esta sección"/>
+                    <field name="moodle_sync_log_ids" readonly="1">
+                        <tree string="Log de Sincronización" decoration-danger="status == 'error'" decoration-success="status == 'success'">
+                            <field name="create_date"/>
+                            <field name="name" string="Operación"/>
+                            <field name="student_code"/>
+                            <field name="status"/>
+                            <field name="message"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Extensión de la vista lista (tree) de Secciones
+         ================================================================ -->
+    <record id="view_school_standard_tree_moodle" model="ir.ui.view">
+        <field name="name">school.standard.tree.plataforma</field>
+        <field name="model">school.standard</field>
+        <field name="inherit_id" ref="school.view_school_standard_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='state_aux']" position="before">
+                <field name="moodle_group_synced" string="Grupo Plataforma" widget="boolean_toggle" optional="show"/>
+                <field name="moodle_members_count" string="Miembros Plataforma" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
