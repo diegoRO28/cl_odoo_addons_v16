@@ -39,6 +39,7 @@ Arquitectura (conector activo por herencia):
         'views/cambio_views.xml',
         'views/student_views.xml',
         'views/standard_views.xml',
+        'views/evaluacion_views.xml',
     ],
     'installable': True,
     'application': False,

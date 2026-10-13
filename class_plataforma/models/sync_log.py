@@ -26,6 +26,9 @@ class MoodleSyncLog(models.Model):
     standard_id = fields.Many2one(
         'school.standard', 'Sección', ondelete='set null'
     )
+    evaluacion_id = fields.Many2one(
+        'standard.evaluacion', 'Evaluación', ondelete='set null'
+    )
     student_code = fields.Char('Código estudiante')
     status = fields.Selection(
         [('success', 'Éxito'), ('error', 'Error')],

@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_moodle_config_admin,moodle.config.admin,model_moodle_config,school.group_school_administration,1,1,1,1
 access_moodle_sync_log_admin,moodle.sync.log.admin,model_moodle_sync_log,school.group_school_administration,1,1,1,0
+access_moodle_actividad_plataforma_admin,moodle.actividad.plataforma.admin,model_moodle_actividad_plataforma,school.group_school_administration,1,1,1,1
+access_moodle_actividad_plataforma_teacher,moodle.actividad.plataforma.teacher,model_moodle_actividad_plataforma,school.group_school_teacher,1,1,1,0

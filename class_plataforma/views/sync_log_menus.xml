@@ -27,12 +27,9 @@
               action="action_moodle_sync_log_secciones" sequence="22"
               groups="school.group_school_administration"/>
 
-    <!-- Carga Académica — RESERVADO: se activa junto con su acción en
-         sync_log_views.xml cuando se implemente Evaluaciones.
-    <menuitem id="menu_moodle_sync_log_carga_academica" name="Log (Carga Académica)"
+    <menuitem id="menu_moodle_sync_log_evaluaciones" name="Log (Evaluaciones)"
               parent="menu_moodle_config"
-              action="action_moodle_sync_log_carga_academica" sequence="23"
+              action="action_moodle_sync_log_evaluaciones" sequence="23"
               groups="school.group_school_administration"/>
-    -->
 
 </odoo>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Extensión de la vista formulario de Registro de Evaluaciones
+         (standard.evaluacion): pestaña "Plataforma" con el avance de
+         'activity completion' por unidad y por estudiante.
+         ================================================================ -->
+    <record id="view_standard_evaluacion_form_moodle" model="ir.ui.view">
+        <field name="name">standard.evaluacion.form.plataforma</field>
+        <field name="model">standard.evaluacion</field>
+        <field name="inherit_id" ref="school.view_standard_evaluacion_form"/>
+        <field name="arch" type="xml">
+            <!-- Botón en el header -->
+            <xpath expr="//header/field[@name='state']" position="before">
+                <button name="action_retry_sync_moodle_actividades"
+                        string="Sincronizar actividades en Plataforma"
+                        type="object"
+                        class="oe_highlight"
+                        attrs="{'invisible': [('state', 'in', ['draft', 'cancel'])]}"
+                        groups="school.group_school_administration,school.group_school_teacher"/>
+            </xpath>
+
+            <!-- Pestaña Plataforma -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Plataforma" name="plataforma" groups="school.group_school_administration,school.group_school_teacher">
+                    <group>
+                        <group string="Unidad relacionada">
+                            <field name="moodle_unidad_nombre" readonly="1"/>
+                        </group>
+                        <group string="Diagnóstico y Estado">
+                            <field name="moodle_actividades_last_sync"/>
+                            <field name="moodle_actividades_sync_error" widget="boolean_toggle" readonly="1"/>
+                            <field name="moodle_actividades_error_message" attrs="{'invisible': [('moodle_actividades_sync_error', '=', False)]}"/>
+                        </group>
+                    </group>
+                    <separator string="Avance de actividades por unidad (activity completion)"/>
+                    <field name="moodle_actividad_ids" nolabel="1" colspan="4">
+                        <tree string="Avance por unidad" create="0" delete="0" edit="0"
+                              decoration-success="porcentaje_completado &gt;= 100"
+                              decoration-warning="porcentaje_completado &gt; 0 and porcentaje_completado &lt; 100"
+                              decoration-danger="porcentaje_completado == 0">
+                            <field name="unidad_nombre" string="Unidad"/>
+                            <field name="student_id"/>
+                            <field name="total_actividades" string="Actividades de la unidad"/>
+                            <field name="actividades_completadas" string="Completadas por el estudiante"/>
+                            <field name="porcentaje_completado" string="% Completado" digits="[16,1]"/>
+                        </tree>
+                    </field>
+                    <separator string="Log de sincronización de esta evaluación"/>
+                    <field name="moodle_sync_log_ids" nolabel="1" colspan="4" readonly="1">
+                        <tree string="Log de Sincronización" decoration-danger="status == 'error'" decoration-success="status == 'success'">
+                            <field name="create_date"/>
+                            <field name="name" string="Operación"/>
+                            <field name="student_code"/>
+                            <field name="status"/>
+                            <field name="message"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

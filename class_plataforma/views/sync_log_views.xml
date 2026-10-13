@@ -6,8 +6,8 @@
          Todas comparten el mismo modelo moodle.sync.log; lo que cambia
          es el dominio de cada acción, según qué campo Many2one tenga
          valor (inscripcion_id/retiro_id/cambio_id -> Administración,
-         student_id -> Estudiante, standard_id -> Secciones; el de
-         Carga Académica sigue reservado).
+         student_id -> Estudiante, standard_id -> Secciones,
+         evaluacion_id -> Evaluaciones).
 
          Los MENÚS de estos logs viven en sync_log_menus.xml (bajo
          Plataforma > Configuración): aquí solo van vistas y acciones.
@@ -27,6 +27,7 @@
                 <field name="cambio_id"/>
                 <field name="student_id"/>
                 <field name="standard_id"/>
+                <field name="evaluacion_id"/>
                 <field name="status"/>
             </tree>
         </field>
@@ -48,6 +49,7 @@
                         <field name="cambio_id"/>
                         <field name="student_id"/>
                         <field name="standard_id"/>
+                        <field name="evaluacion_id"/>
                     </group>
                     <group>
                         <field name="message"/>
@@ -72,6 +74,7 @@
                 <field name="student_code" string="Estudiante (código)"/>
                 <field name="student_id" string="Estudiante (nombre)"/>
                 <field name="standard_id" string="Sección"/>
+                <field name="evaluacion_id" string="Evaluación"/>
                 <field name="name" string="Operación"/>
                 <separator/>
                 <filter name="filter_error" string="Con error"
@@ -85,6 +88,8 @@
                             context="{'group_by': 'student_id'}"/>
                     <filter name="group_seccion" string="Sección"
                             context="{'group_by': 'standard_id'}"/>
+                    <filter name="group_evaluacion" string="Evaluación"
+                            context="{'group_by': 'evaluacion_id'}"/>
                     <filter name="group_operacion" string="Operación"
                             context="{'group_by': 'name'}"/>
                     <filter name="group_estado" string="Estado"
@@ -128,17 +133,15 @@
     </record>
 
     <!-- ================================================================
-         Log 4 de 4: Carga Académica — RESERVADO, se activa cuando se
-         implemente Evaluaciones / el dashboard de progreso académico.
+         Log 4 de 4: Evaluaciones (sincronización de actividades /
+         activity completion por unidad)
     ================================================================= -->
-    <!--
-    <record id="action_moodle_sync_log_carga_academica" model="ir.actions.act_window">
-        <field name="name">Log (Carga Académica)</field>
+    <record id="action_moodle_sync_log_evaluaciones" model="ir.actions.act_window">
+        <field name="name">Log (Evaluaciones)</field>
         <field name="res_model">moodle.sync.log</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('evaluacion_id', '!=', False)]</field>
+        <field name="context">{'search_default_group_evaluacion': 1}</field>
     </record>
-    (su menú reservado está en sync_log_menus.xml)
-    -->
 
 </odoo>

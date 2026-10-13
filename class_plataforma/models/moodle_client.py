@@ -56,6 +56,8 @@ class MoodleClient(models.AbstractModel):
                 vals['student_id'] = related_record.id
             elif model == 'school.standard':
                 vals['standard_id'] = related_record.id
+            elif model == 'standard.evaluacion':
+                vals['evaluacion_id'] = related_record.id
         self.env['moodle.sync.log'].sudo().create(vals)
 
     def _request(self, config, wsfunction, params=None, data=None,
@@ -134,6 +136,23 @@ class MoodleClient(models.AbstractModel):
             return result[0]
         return None
 
+    def get_users_by_field(self, field, values, config=None, related_record=None):
+        """Busca VARIOS usuarios en UNA sola petición (la función de Moodle
+        acepta una lista de valores). Devuelve la lista de usuarios hallados;
+        los valores que no existen simplemente no aparecen. Va por POST para
+        no chocar con el largo máximo de la URL cuando hay muchos valores."""
+        config = config or self.env['moodle.config'].get_active_config()
+        values = [v for v in values if v]
+        if not values:
+            return []
+        data = {'field': field}
+        data.update({f'values[{i}]': v for i, v in enumerate(values)})
+        result = self._request(
+            config, 'core_user_get_users_by_field', data=data,
+            method='POST', related_record=related_record,
+        )
+        return result if isinstance(result, list) else []
+
     def create_user(self, vals, config=None, related_record=None):
         config = config or self.env['moodle.config'].get_active_config()
         data = {f'users[0][{k}]': v for k, v in vals.items()}
@@ -197,6 +216,23 @@ class MoodleClient(models.AbstractModel):
                        student_code=student_code)
         return True
 
+    def enrol_users(self, enrolments, config=None, related_record=None):
+        """Matricula VARIOS usuarios en UNA sola petición. 'enrolments' es
+        una lista de dicts con user_id, course_id, timestart, timeend (y
+        opcionalmente role_id). Moodle lo procesa de forma atómica: si uno
+        falla, ninguno se matricula."""
+        config = config or self.env['moodle.config'].get_active_config()
+        data = {}
+        for i, e in enumerate(enrolments):
+            data[f'enrolments[{i}][roleid]'] = e.get('role_id') or config.enrol_role_id
+            data[f'enrolments[{i}][userid]'] = e['user_id']
+            data[f'enrolments[{i}][courseid]'] = e['course_id']
+            data[f'enrolments[{i}][timestart]'] = e['timestart']
+            data[f'enrolments[{i}][timeend]'] = e['timeend']
+        self._request(config, 'enrol_manual_enrol_users', data=data,
+                       method='POST', related_record=related_record)
+        return True
+
     def get_site_base_url(self, config=None):
         """URL base del sitio Moodle, derivada de la URL del webservice
         (config.url apunta a .../webservice/rest/server.php)."""
@@ -250,12 +286,30 @@ class MoodleClient(models.AbstractModel):
             return result.get('groups', [])
         return result or []
 
-    def add_group_members(self, group_id, user_id, config=None, related_record=None, student_code=None):
+    def get_group_members(self, group_id, config=None, related_record=None):
+        """IDs de usuario de los integrantes de un grupo (conjunto de
+        enteros), en UNA sola petición sin importar cuántos sean."""
         config = config or self.env['moodle.config'].get_active_config()
-        data = {
-            'members[0][groupid]': group_id,
-            'members[0][userid]': user_id,
-        }
+        result = self._request(
+            config, 'core_group_get_group_members',
+            params={'groupids[0]': group_id},
+            related_record=related_record,
+        )
+        ids = set()
+        for group in (result or []):
+            if isinstance(group, dict):
+                ids.update(group.get('userids') or [])
+        return ids
+
+    def add_group_members(self, group_id, user_id, config=None, related_record=None, student_code=None):
+        """Agrega uno o varios usuarios a un grupo en UNA sola petición.
+        'user_id' puede ser un ID suelto o una lista de IDs."""
+        config = config or self.env['moodle.config'].get_active_config()
+        ids = list(user_id) if isinstance(user_id, (list, tuple, set)) else [user_id]
+        data = {}
+        for i, uid in enumerate(ids):
+            data[f'members[{i}][groupid]'] = group_id
+            data[f'members[{i}][userid]'] = uid
         self._request(config, 'core_group_add_group_members', data=data,
                        method='POST', related_record=related_record,
                        student_code=student_code)
@@ -303,3 +357,37 @@ class MoodleClient(models.AbstractModel):
             course_id, group_name,
             config=config, related_record=related_record,
         )
+
+    # ------------------------------------------------------------------
+    # Actividades / Activity Completion (Fase 4 — Evaluaciones)
+    # ------------------------------------------------------------------
+    def get_course_contents(self, course_id, config=None, related_record=None):
+        """Estructura del curso: secciones ('unidades' en Moodle) y sus
+        actividades (módulos). Se usa SOLO para saber a qué unidad
+        pertenece cada actividad (cmid -> sección) — la finalización en sí
+        no se toma de aquí, porque 'completiondata' en esta función
+        refleja el avance del usuario propietario del token, no el de un
+        estudiante arbitrario. Para eso está get_activities_completion."""
+        config = config or self.env['moodle.config'].get_active_config()
+        result = self._request(
+            config, 'core_course_get_contents',
+            params={'courseid': course_id},
+            related_record=related_record,
+        )
+        return result or []
+
+    def get_activities_completion(self, course_id, user_id, config=None,
+                                    related_record=None, student_code=None):
+        """Estado de 'activity completion' de UN estudiante en el curso.
+        Moodle solo incluye en la respuesta las actividades que tienen
+        el seguimiento de finalización activado: por eso esta misma
+        llamada permite, a la vez, contar el total de actividades con
+        seguimiento (len de la lista) y cuántas completó el estudiante
+        (state 1 = completa, 2 = completa con calificación aprobatoria)."""
+        config = config or self.env['moodle.config'].get_active_config()
+        result = self._request(
+            config, 'core_completion_get_activities_completion_status',
+            params={'courseid': course_id, 'userid': user_id},
+            related_record=related_record, student_code=student_code,
+        )
+        return (result or {}).get('statuses', [])

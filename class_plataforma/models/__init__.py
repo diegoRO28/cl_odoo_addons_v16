@@ -7,3 +7,5 @@ from . import retiro_inherit
 from . import cambio_inherit
 from . import student_inherit
 from . import standard_inherit
+from . import moodle_actividad
+from . import evaluacion_inherit

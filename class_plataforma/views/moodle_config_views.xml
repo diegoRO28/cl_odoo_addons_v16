@@ -13,6 +13,7 @@
                 <sheet>
                     <group>
                         <group>
+                            <field name="company_id" options="{'no_create': True, 'no_open': True}"/>
                             <field name="name"/>
                             <field name="url"/>
                             <field name="token" password="True"/>
@@ -37,6 +38,7 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="name"/>
+                <field name="company_id"/>
                 <field name="url"/>
                 <field name="active"/>
             </tree>
@@ -47,6 +49,16 @@
         <field name="name">Configuración Moodle</field>
         <field name="res_model">moodle.config</field>
         <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Regla multiempresa: cada usuario ve solo las configuraciones de las
+         empresas que tiene seleccionadas en el selector de empresas. Así el
+         token de un aula virtual no queda a la vista al trabajar con otra
+         empresa. (company_ids lo provee Odoo en el contexto de la regla.) -->
+    <record id="moodle_config_company_rule" model="ir.rule">
+        <field name="name">Configuración de Plataforma: por empresa</field>
+        <field name="model_id" ref="model_moodle_config"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
 
     <menuitem id="menu_plataforma_root" name="Plataforma"
