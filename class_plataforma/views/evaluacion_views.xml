@@ -21,9 +21,11 @@
                         groups="school.group_school_administration,school.group_school_teacher"/>
             </xpath>
 
-            <!-- Indicador "¿Realizó Plataforma?" en la lista de estudiantes
-                 inscritos de esta evaluación -->
-            <xpath expr="//page[@string='ESTUDIANTES INSCRITOS']//field[@name='state']" position="after">
+            <!-- Indicador "¿Realizó PLATAFORMA?" en la lista de estudiantes
+                 inscritos de esta evaluación. Se ancla en el One2many
+                 evaluacion_ids (la página no tiene 'name' y Odoo 16 no
+                 permite @string como selector). -->
+            <xpath expr="//field[@name='evaluacion_ids']/tree/field[@name='state']" position="after">
                 <field name="moodle_realizado" string="¿Realizó PLATAFORMA?" widget="boolean_toggle" readonly="1" optional="show"/>
             </xpath>
 
