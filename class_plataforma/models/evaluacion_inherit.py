@@ -20,12 +20,19 @@ class StandardEvaluacionMoodle(models.Model):
     cuántas actividades tiene SU unidad correspondiente y cuántas completó.
 
     Cada 'standard.evaluacion' es UNA evaluación (una de las N que tiene
-    el libro de evaluación de la sección). Se relaciona con UNA unidad
-    de Moodle (una de las M secciones del curso, sin contar la sección 0
-    'General') por POSICIÓN: si N == M, la evaluación que ocupa el lugar
-    i-ésimo del libro se relaciona con la unidad que ocupa el lugar
-    i-ésimo del curso. Si las cantidades no coinciden, no hay forma
-    confiable de adivinar la relación y se avisa en vez de inventarla.
+    el libro de evaluación de la sección). Se relaciona con UNA O MÁS
+    unidades de Moodle (de las M secciones del curso, sin contar la
+    sección 0 'General') por POSICIÓN y AGRUPACIÓN: si M es múltiplo de
+    N, cada evaluación se relaciona con un bloque de M/N unidades
+    consecutivas (si M == N, el bloque es de 1 unidad: el caso de
+    siempre). Si M no es múltiplo de N, no hay forma confiable de
+    agrupar y se avisa en vez de inventar la relación.
+
+    La estructura de unidades del curso ('core_course_get_contents') se
+    cachea por MATERIA (subject.subject), no por sección ni por
+    evaluación: todas las secciones de una misma materia comparten el
+    mismo curso en la Plataforma, así que sincronizar varias evaluaciones
+    cuesta como máximo una sola llamada a esa función en total.
     """
 
     _inherit = 'standard.evaluacion'
@@ -95,15 +102,18 @@ class StandardEvaluacionMoodle(models.Model):
     # por cantidad y posición.
     # ------------------------------------------------------------------
     def _moodle_resolve_unidad(self, client, config, course_id):
-        """Devuelve (orden, section_id, section_name, cmids) de la unidad
-        de Moodle que le corresponde a esta evaluación.
+        """Devuelve (orden, section_id, section_name, cmids) del bloque de
+        unidades de Moodle que le corresponde a esta evaluación. 'cmids'
+        es la UNIÓN de las actividades de todas las unidades del bloque
+        (normalmente una sola, salvo que la evaluación abarque varias).
 
         Cuenta las evaluaciones del libro (N) y las unidades reales del
-        curso en la Plataforma (M, excluyendo la sección 0 'General').
-        Si N == M, usa la posición de esta evaluación dentro del libro
-        para ubicar la unidad que le toca. Si no coinciden, no se puede
-        relacionar de forma confiable: se informa el detalle en vez de
-        adivinar.
+        curso en la Plataforma (M, excluyendo la sección 0 'General',
+        usando la caché por materia). Si M es múltiplo de N, agrupa
+        unidades consecutivas en bloques de M/N y usa la posición de esta
+        evaluación dentro del libro para ubicar el bloque que le toca. Si
+        no es múltiplo, no se puede agrupar de forma confiable: se
+        informa el detalle en vez de inventar la relación.
         """
         self.ensure_one()
 
@@ -117,31 +127,49 @@ class StandardEvaluacionMoodle(models.Model):
         indice = evaluaciones.ids.index(self.libroevas_id.id)
         total_evaluaciones = len(evaluaciones)
 
-        contents = client.get_course_contents(
-            course_id, config=config, related_record=self
-        ) or []
-        unidades = sorted(
-            (s for s in contents if (s.get('section') or 0) != 0),
-            key=lambda s: s.get('section') or 0,
+        unidades = self.subject_id._moodle_get_unidades(
+            client, config, course_id, related_record=self
         )
         total_unidades = len(unidades)
 
-        if total_evaluaciones != total_unidades:
+        if not total_evaluaciones or not total_unidades:
             raise UserError(_(
                 "No se puede relacionar automáticamente la evaluación con "
                 "una unidad de la Plataforma: el libro de evaluación '%s' "
-                "tiene %s evaluación(es), pero el curso en la Plataforma "
-                "tiene %s unidad(es) (sin contar 'General'). Ajuste "
-                "cualquiera de las dos cantidades para que coincidan y "
-                "vuelva a sincronizar."
+                "tiene %s evaluación(es) y el curso en la Plataforma tiene "
+                "%s unidad(es) (sin contar 'General')."
             ) % (libro.nombre, total_evaluaciones, total_unidades))
 
-        unidad = unidades[indice]
-        section_name = unidad.get('name') or _('Unidad %s') % (indice + 1)
-        section_id = unidad.get('id') or 0
-        cmids = {
-            m.get('id') for m in (unidad.get('modules') or []) if m.get('id')
-        }
+        if total_unidades % total_evaluaciones != 0:
+            # La caché por materia puede estar desactualizada (se habrán
+            # agregado o quitado unidades en la Plataforma desde la última
+            # lectura): se relee una sola vez antes de rendirse.
+            unidades = self.subject_id._moodle_get_unidades(
+                client, config, course_id, related_record=self, force=True
+            )
+            total_unidades = len(unidades)
+
+        if total_unidades % total_evaluaciones != 0:
+            raise UserError(_(
+                "No se puede relacionar automáticamente la evaluación con "
+                "una o más unidades de la Plataforma: el libro de "
+                "evaluación '%s' tiene %s evaluación(es), pero el curso en "
+                "la Plataforma tiene %s unidad(es) (sin contar 'General'), "
+                "que no es múltiplo de la cantidad de evaluaciones. Ajuste "
+                "cualquiera de las dos cantidades para que una sea múltiplo "
+                "exacto de la otra y vuelva a sincronizar."
+            ) % (libro.nombre, total_evaluaciones, total_unidades))
+
+        tamano_bloque = total_unidades // total_evaluaciones
+        inicio = indice * tamano_bloque
+        bloque = unidades[inicio:inicio + tamano_bloque]
+
+        nombres = [u['name'] for u in bloque]
+        section_name = nombres[0] if len(nombres) == 1 else ' + '.join(nombres)
+        section_id = bloque[0]['id'] if bloque else 0
+        cmids = set()
+        for u in bloque:
+            cmids |= u['cmids']
         return indice, section_id, section_name, cmids
 
     # ------------------------------------------------------------------
@@ -169,6 +197,7 @@ class StandardEvaluacionMoodle(models.Model):
                 errores.append(_(
                     "%s: no tiene usuario vinculado en la Plataforma todavía."
                 ) % student.display_name)
+                registro.moodle_realizado = False
                 continue
 
             try:
@@ -178,6 +207,7 @@ class StandardEvaluacionMoodle(models.Model):
                 )
             except UserError as e:
                 errores.append(_("%s: %s") % (student.display_name, e))
+                registro.moodle_realizado = False
                 continue
 
             de_la_unidad = [s for s in statuses if s.get('cmid') in cmids]
@@ -193,6 +223,9 @@ class StandardEvaluacionMoodle(models.Model):
                 'total_actividades': total,
                 'actividades_completadas': completadas,
             })
+            # "¿Realizó Plataforma?": solo si completó TODAS las
+            # actividades trackeadas del bloque de unidades relacionado.
+            registro.moodle_realizado = bool(total) and completadas == total
 
         # Reemplaza el detalle anterior por el recién consultado.
         self.moodle_actividad_ids.unlink()
@@ -259,3 +292,19 @@ class StandardEvaluacionMoodle(models.Model):
                 'sticky': False,
             },
         }
+
+
+class StandardEvaluacionesMoodle(models.Model):
+    """Integración con Moodle sobre standard.evaluaciones (la fila de
+    detalle por estudiante dentro de una evaluación)."""
+
+    _inherit = 'standard.evaluaciones'
+
+    moodle_realizado = fields.Boolean(
+        string='¿Realizó Plataforma?',
+        default=False, copy=False, readonly=True,
+        help="Se marca automáticamente, en cada sincronización de "
+             "actividades, cuando el estudiante completó TODAS las "
+             "actividades de la Plataforma (con seguimiento de "
+             "finalización activado) correspondientes a esta evaluación.",
+    )

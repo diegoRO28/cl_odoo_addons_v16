@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Acciones masivas hacia la Plataforma.
+
+         Aparecen en el menú "Acción" de las listas, al seleccionar uno o
+         más registros. Solo para el grupo de administración de Class.
+
+         El modelo se resuelve con search por nombre técnico (no por
+         external ID) para no depender de en qué módulo esté definido.
+    ================================================================= -->
+
+    <record id="action_server_inscripcion_bulk_plataforma" model="ir.actions.server">
+        <field name="name">Inscribir en Plataforma</field>
+        <field name="model_id" model="ir.model"
+               search="[('model', '=', 'student.inscripcion')]"/>
+        <field name="binding_model_id" model="ir.model"
+               search="[('model', '=', 'student.inscripcion')]"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_bulk_sync_plataforma()</field>
+        <field name="groups_id" eval="[(4, ref('school.group_school_administration'))]"/>
+    </record>
+
+    <record id="action_server_student_bulk_plataforma" model="ir.actions.server">
+        <field name="name">Sincronizar con Plataforma</field>
+        <field name="model_id" model="ir.model"
+               search="[('model', '=', 'student.student')]"/>
+        <field name="binding_model_id" model="ir.model"
+               search="[('model', '=', 'student.student')]"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_bulk_sync_plataforma()</field>
+        <field name="groups_id" eval="[(4, ref('school.group_school_administration'))]"/>
+    </record>
+
+</odoo>

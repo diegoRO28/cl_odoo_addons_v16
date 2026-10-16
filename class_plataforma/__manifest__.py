@@ -7,17 +7,30 @@
     'description': """
 Plataforma - Integración Class <-> Moodle (TEG)
 =================================================
-Alcance de esta versión (Fase 0/1 del plan de arquitectura completo):
-    * Al confirmar una inscripción (student.inscripcion -> admission_done):
-      busca o crea el usuario del estudiante en Moodle y lo matricula en el
-      curso correspondiente (por 'Código Moodle').
-    * Pantalla de configuración de conexión (URL, token, timeout, etc.).
-    * Log de auditoría de cada llamada a la API de Moodle.
+Alcance de esta versión:
+    * Inscripciones: crea/actualiza el usuario del estudiante en Moodle,
+      lo matricula en el curso ('Código Moodle') y lo agrega al grupo de
+      su sección, con cálculo de vencimiento desde Odoo.
+    * Retiros: suspende la matrícula del estudiante en el curso (no su
+      cuenta ni su acceso a otros cursos).
+    * Cambios de sección: mueve al estudiante del grupo de la sección
+      origen al de la sección destino.
+    * Estudiantes: alta/actualización reactiva de la cuenta y verificación
+      en vivo del estado y los cursos matriculados.
+    * Secciones: sincronización diferencial por lotes del grupo y sus
+      integrantes, con caché de IDs y métricas en la interfaz.
+    * Evaluaciones: relaciona cada evaluación del libro con su(s)
+      unidad(es) en Moodle (agrupación automática cuando la cantidad de
+      unidades es múltiplo de la de evaluaciones) y trae, por estudiante,
+      el avance de 'activity completion' de esa unidad.
+    * Pantalla de configuración de conexión (URL, token, timeout, etc.)
+      y log de auditoría de cada llamada a la API de Moodle, segmentado
+      por Administración, Estudiante, Secciones y Evaluaciones.
 
-El resto del alcance (Retiros, Cambios, Estudiantes, Secciones,
-Evaluaciones, dashboards de Gestión, reactivación por pago) está
-documentado en el plan de arquitectura y se irá agregando en fases
-posteriores sobre esta misma base.
+Fuera del alcance de esta versión (documentado como trabajo futuro, no
+incluido en esta entrega): sincronización de Docentes, reactivación
+automática de matrículas por pago, y una tarea programada de supervisión
+periódica.
 
 Arquitectura (conector activo por herencia):
     * No modifica el módulo "school" directamente.
@@ -39,7 +52,9 @@ Arquitectura (conector activo por herencia):
         'views/cambio_views.xml',
         'views/student_views.xml',
         'views/standard_views.xml',
+        'views/subject_views.xml',
         'views/evaluacion_views.xml',
+        'views/bulk_actions_views.xml',
     ],
     'installable': True,
     'application': False,

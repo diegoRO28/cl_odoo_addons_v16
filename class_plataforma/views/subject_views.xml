@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Extensión de la vista formulario de Curso/Materia (subject.subject):
+         expone el "Código Moodle" (en school.view_subject_subject_form
+         está comentado y no se mostraba en ningún lado) y agrega una
+         pestaña "Plataforma" con la caché de unidades usada por la
+         sincronización de Evaluaciones.
+         ================================================================ -->
+    <record id="view_subject_subject_form_moodle" model="ir.ui.view">
+        <field name="name">subject.subject.form.plataforma</field>
+        <field name="model">subject.subject</field>
+        <field name="inherit_id" ref="school.view_subject_subject_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='programa_id']" position="after">
+                <field name="code_moodle" placeholder="Código Moodle" groups="school.group_school_administration"/>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="PLATAFORMA" name="plataforma" groups="school.group_school_administration">
+                    <group>
+                        <group string="Estructura de unidades (caché)">
+                            <field name="moodle_unidades_last_sync" readonly="1"/>
+                        </group>
+                    </group>
+                    <button name="action_refresh_moodle_unidades"
+                            string="Actualizar estructura de unidades desde la PLATAFORMA"
+                            type="object"
+                            help="Fuerza una nueva lectura de las unidades del curso en la PLATAFORMA. Solo es necesario si se agregaron, quitaron o reordenaron unidades en Moodle después de la última sincronización."
+                            groups="school.group_school_administration"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

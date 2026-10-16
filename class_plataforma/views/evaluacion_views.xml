@@ -14,24 +14,33 @@
             <!-- Botón en el header -->
             <xpath expr="//header/field[@name='state']" position="before">
                 <button name="action_retry_sync_moodle_actividades"
-                        string="Sincronizar actividades en Plataforma"
+                        string="Sincronizar actividades en PLATAFORMA"
                         type="object"
                         class="oe_highlight"
                         attrs="{'invisible': [('state', 'in', ['draft', 'cancel'])]}"
                         groups="school.group_school_administration,school.group_school_teacher"/>
             </xpath>
 
-            <!-- Pestaña Plataforma -->
+            <!-- Indicador "¿Realizó Plataforma?" en la lista de estudiantes
+                 inscritos de esta evaluación -->
+            <xpath expr="//page[@string='ESTUDIANTES INSCRITOS']//field[@name='state']" position="after">
+                <field name="moodle_realizado" string="¿Realizó PLATAFORMA?" widget="boolean_toggle" readonly="1" optional="show"/>
+            </xpath>
+
+            <!-- Pestaña Plataforma: lo esencial (unidad relacionada, si hubo
+                 error, y el avance por estudiante, que es el resultado que
+                 interesa). El detalle técnico completo está en
+                 Class > Plataforma > Configuración > Log (Evaluaciones). -->
             <xpath expr="//notebook" position="inside">
-                <page string="Plataforma" name="plataforma" groups="school.group_school_administration,school.group_school_teacher">
+                <page string="PLATAFORMA" name="plataforma" groups="school.group_school_administration,school.group_school_teacher">
                     <group>
                         <group string="Unidad relacionada">
-                            <field name="moodle_unidad_nombre" readonly="1"/>
+                            <field name="moodle_unidad_nombre" string="Unidad" readonly="1"/>
+                            <field name="moodle_actividades_last_sync" string="Última sincronización"/>
                         </group>
-                        <group string="Diagnóstico y Estado">
-                            <field name="moodle_actividades_last_sync"/>
-                            <field name="moodle_actividades_sync_error" widget="boolean_toggle" readonly="1"/>
-                            <field name="moodle_actividades_error_message" attrs="{'invisible': [('moodle_actividades_sync_error', '=', False)]}"/>
+                        <group string="Diagnóstico">
+                            <field name="moodle_actividades_sync_error" string="Con error" widget="boolean_toggle" readonly="1"/>
+                            <field name="moodle_actividades_error_message" string="Detalle del error" attrs="{'invisible': [('moodle_actividades_sync_error', '=', False)]}"/>
                         </group>
                     </group>
                     <separator string="Avance de actividades por unidad (activity completion)"/>
@@ -45,16 +54,6 @@
                             <field name="total_actividades" string="Actividades de la unidad"/>
                             <field name="actividades_completadas" string="Completadas por el estudiante"/>
                             <field name="porcentaje_completado" string="% Completado" digits="[16,1]"/>
-                        </tree>
-                    </field>
-                    <separator string="Log de sincronización de esta evaluación"/>
-                    <field name="moodle_sync_log_ids" nolabel="1" colspan="4" readonly="1">
-                        <tree string="Log de Sincronización" decoration-danger="status == 'error'" decoration-success="status == 'success'">
-                            <field name="create_date"/>
-                            <field name="name" string="Operación"/>
-                            <field name="student_code"/>
-                            <field name="status"/>
-                            <field name="message"/>
                         </tree>
                     </field>
                 </page>

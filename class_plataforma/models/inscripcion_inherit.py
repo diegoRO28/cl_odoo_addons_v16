@@ -181,6 +181,78 @@ class StudentInscripcionMoodle(models.Model):
         return timestart, timeend
 
     # ------------------------------------------------------------------
+    # Resolución con caché: curso (IDs guardados en la Sección) y usuario
+    # (ID ya vinculado al estudiante o a esta misma inscripción). Con todo
+    # cacheado, action_sync_moodle no necesita buscar nada: solo matricula
+    # y agrega al grupo (~2 peticiones en vez de las 6-8 originales).
+    # ------------------------------------------------------------------
+    def _moodle_resolve_course(self, client, config, code_moodle, force=False):
+        self.ensure_one()
+        standard = self.standard_id
+        if not force and standard.moodle_course_id:
+            return standard.moodle_course_id, standard.moodle_course_name or code_moodle, True
+
+        course = client.search_course_by_shortname(
+            code_moodle, config=config, related_record=self
+        )
+        if not course:
+            raise UserError(_(
+                "No se encontró un curso en Moodle con el código '%s'."
+            ) % code_moodle)
+        course_id = course.get('id')
+        course_name = course.get('fullname') or course.get('shortname') or code_moodle
+        standard.write({
+            'moodle_course_id': course_id,
+            'moodle_course_name': course_name,
+        })
+        return course_id, course_name, False
+
+    def _moodle_resolve_user(self, client, config, user_vals, username, email, force=False):
+        """Devuelve (moodle_user_id, desde_cache). El perfil (nombres,
+        email, ciudad, país) solo se reenvía a Moodle cuando hace falta
+        buscar o crear el usuario: las actualizaciones reactivas de
+        nombre/email ya las cubre student.student.write() (ver
+        student_inherit.py), así que repetirlas aquí en cada inscripción
+        sería una petición redundante."""
+        self.ensure_one()
+        student = self.student_id
+        if not force:
+            cached = student.moodle_user_id or self.moodle_user_id
+            if cached:
+                return cached, True
+
+        user = client.get_user_by_field(
+            'username', username, config=config, related_record=self
+        )
+        if not user:
+            user = client.get_user_by_field(
+                'email', email, config=config, related_record=self
+            )
+
+        if user:
+            moodle_user_id = user.get('id')
+            client.update_user(
+                {**user_vals, 'id': moodle_user_id},
+                config=config, related_record=self,
+            )
+        else:
+            # La contraseña por defecto solo se envía al CREAR: al
+            # actualizar se pisaría la clave real del estudiante.
+            user_vals = dict(user_vals, username=username, auth='manual',
+                              password=config.default_password)
+            moodle_user_id = client.create_user(
+                user_vals, config=config, related_record=self
+            )
+
+        if not moodle_user_id:
+            raise UserError(_(
+                "No se pudo obtener ni generar el ID del usuario en Moodle."
+            ))
+        if not student.moodle_user_id:
+            student.write({'moodle_user_id': moodle_user_id, 'moodle_synced': True})
+        return moodle_user_id, False
+
+    # ------------------------------------------------------------------
     # Orquestación principal (equivalente al action_sync_moodle original,
     # pero delegando el HTTP a moodle.client y la config a moodle.config)
     # ------------------------------------------------------------------
@@ -200,7 +272,7 @@ class StudentInscripcionMoodle(models.Model):
             username = student_code
             email = record._get_moodle_email()
 
-            # ---------- 1. Curso en Moodle ----------
+            # ---------- 1. Curso en Moodle (usa el ID guardado en la Sección) ----------
             code_moodle = record.standard_id.subject_id.code_moodle
             if not code_moodle:
                 raise UserError(_(
@@ -208,28 +280,10 @@ class StudentInscripcionMoodle(models.Model):
                     "Configure el campo 'Código Moodle' en el curso."
                 ) % record.standard_id.subject_id.name)
 
-            course = client.search_course_by_shortname(
-                code_moodle, config=config, related_record=record
-            )
-            if not course:
-                raise UserError(_(
-                    "No se encontró un curso en Moodle con el código '%s'."
-                ) % code_moodle)
+            moodle_course_id, course_name, from_course_cache = \
+                record._moodle_resolve_course(client, config, code_moodle)
 
-            moodle_course_id = course.get('id')
-            course_name = course.get('fullname') or course.get('shortname') or code_moodle
-            record.moodle_course_id = moodle_course_id
-            record.standard_id.moodle_course_id = moodle_course_id
-
-            # ---------- 2. Usuario en Moodle (buscar por username o email) ----------
-            user = client.get_user_by_field(
-                'username', username, config=config, related_record=record
-            )
-            if not user:
-                user = client.get_user_by_field(
-                    'email', email, config=config, related_record=record
-                )
-
+            # ---------- 2. Usuario en Moodle (usa el ID ya vinculado) ----------
             user_vals = {
                 'email': email,
                 'firstname': firstname,
@@ -237,48 +291,50 @@ class StudentInscripcionMoodle(models.Model):
                 'city': config.default_city,
                 'country': config.default_country,
             }
-
-            if user:
-                moodle_user_id = user.get('id')
-                client.update_user(
-                    {**user_vals, 'id': moodle_user_id},
-                    config=config, related_record=record,
-                )
-            else:
-                # La contraseña por defecto solo se envía al CREAR: al
-                # actualizar se pisaría la clave real del estudiante.
-                user_vals.update({
-                    'username': username,
-                    'auth': 'manual',
-                    'password': config.default_password,
-                })
-                moodle_user_id = client.create_user(
-                    user_vals, config=config, related_record=record
-                )
-
-            if not moodle_user_id:
-                raise UserError(_(
-                    "No se pudo obtener ni generar el ID del usuario en Moodle."
-                ))
-
-            # ---------- 3. Matrícula ----------
-            timestart, timeend = record._get_moodle_enrol_dates()
-
-            client.enrol_user(
-                moodle_user_id, moodle_course_id, timestart, timeend,
-                role_id=config.enrol_role_id, config=config, related_record=record,
+            moodle_user_id, from_user_cache = record._moodle_resolve_user(
+                client, config, user_vals, username, email
             )
+
+            # ---------- 3. Matrícula (si algo en caché quedó obsoleto, se
+            #              releen una sola vez curso y/o usuario y se
+            #              reintenta) ----------
+            timestart, timeend = record._get_moodle_enrol_dates()
+            try:
+                client.enrol_user(
+                    moodle_user_id, moodle_course_id, timestart, timeend,
+                    role_id=config.enrol_role_id, config=config, related_record=record,
+                )
+            except UserError:
+                if not (from_course_cache or from_user_cache):
+                    raise
+                if from_course_cache:
+                    moodle_course_id, course_name, __ = record._moodle_resolve_course(
+                        client, config, code_moodle, force=True
+                    )
+                if from_user_cache:
+                    moodle_user_id, __ = record._moodle_resolve_user(
+                        client, config, user_vals, username, email, force=True
+                    )
+                client.enrol_user(
+                    moodle_user_id, moodle_course_id, timestart, timeend,
+                    role_id=config.enrol_role_id, config=config, related_record=record,
+                )
             # Solo se guarda si Moodle aceptó la matrícula (si falla,
             # enrol_user lanza excepción y no se llega aquí).
+            record.moodle_course_id = moodle_course_id
             record.moodle_timeend = datetime.utcfromtimestamp(timeend)
 
-            # ---------- 4. Grupo (sección dentro del curso) ----------
-            group_code = record.standard_id.code
+            # ---------- 4. Grupo (sección dentro del curso, con ID guardado) ----------
+            standard = record.standard_id
+            group_code = standard.code
             if group_code:
-                group_id = client.get_or_create_group(
-                    moodle_course_id, group_code,
-                    config=config, related_record=record,
-                )
+                group_id = standard.moodle_group_id
+                if not group_id:
+                    group_id = client.get_or_create_group(
+                        moodle_course_id, group_code,
+                        config=config, related_record=record,
+                    )
+                    standard.moodle_group_id = group_id
                 client.add_group_members(
                     group_id, moodle_user_id,
                     config=config, related_record=record,

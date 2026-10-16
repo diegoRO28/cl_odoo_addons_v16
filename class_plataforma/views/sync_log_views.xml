@@ -2,39 +2,43 @@
 <odoo>
 
     <!-- ================================================================
-         Vistas genéricas (tree/form), reutilizadas por los 4 logs.
-         Todas comparten el mismo modelo moodle.sync.log; lo que cambia
-         es el dominio de cada acción, según qué campo Many2one tenga
-         valor (inscripcion_id/retiro_id/cambio_id -> Administración,
-         student_id -> Estudiante, standard_id -> Secciones,
-         evaluacion_id -> Evaluaciones).
+         Vistas de los 4 logs de sincronización (todas sobre el mismo
+         modelo moodle.sync.log). Cada categoría tiene SU PROPIA vista de
+         lista, formulario y búsqueda: solo muestra el/los campo(s)
+         Many2one que le corresponden (inscripcion_id/retiro_id/cambio_id
+         para Administración, student_id para Estudiante, standard_id
+         para Secciones, evaluacion_id para Evaluaciones), para no mezclar
+         columnas vacías de otras categorías. El detalle (mensaje, datos
+         enviados y respuesta de la Plataforma) se muestra completo en
+         todas: estas vistas son para uso técnico/administrativo.
 
          Los MENÚS de estos logs viven en sync_log_menus.xml (bajo
          Plataforma > Configuración): aquí solo van vistas y acciones.
     ================================================================= -->
 
-    <record id="view_moodle_sync_log_tree" model="ir.ui.view">
-        <field name="name">moodle.sync.log.tree</field>
+    <!-- ================================================================
+         Log 1 de 4: Administración (Inscripciones, Retiros y Cambios)
+    ================================================================= -->
+    <record id="view_moodle_sync_log_tree_administracion" model="ir.ui.view">
+        <field name="name">moodle.sync.log.tree.administracion</field>
         <field name="model">moodle.sync.log</field>
         <field name="arch" type="xml">
             <tree decoration-danger="status == 'error'"
                   decoration-success="status == 'success'" create="false">
                 <field name="create_date"/>
                 <field name="name" string="Operación"/>
-                <field name="student_code"/>
+                <field name="student_code" string="Estudiante"/>
                 <field name="inscripcion_id"/>
                 <field name="retiro_id"/>
                 <field name="cambio_id"/>
-                <field name="student_id"/>
-                <field name="standard_id"/>
-                <field name="evaluacion_id"/>
                 <field name="status"/>
+                <field name="message" string="Detalle"/>
             </tree>
         </field>
     </record>
 
-    <record id="view_moodle_sync_log_form" model="ir.ui.view">
-        <field name="name">moodle.sync.log.form</field>
+    <record id="view_moodle_sync_log_form_administracion" model="ir.ui.view">
+        <field name="name">moodle.sync.log.form.administracion</field>
         <field name="model">moodle.sync.log</field>
         <field name="arch" type="xml">
             <form create="false" edit="false">
@@ -47,9 +51,6 @@
                         <field name="inscripcion_id"/>
                         <field name="retiro_id"/>
                         <field name="cambio_id"/>
-                        <field name="student_id"/>
-                        <field name="standard_id"/>
-                        <field name="evaluacion_id"/>
                     </group>
                     <group>
                         <field name="message"/>
@@ -61,87 +62,299 @@
         </field>
     </record>
 
-    <!-- ================================================================
-         Búsqueda y agrupación (compartida por los logs). Cada acción abre
-         con una agrupación por defecto distinta (ver su 'context'); el
-         usuario puede cambiarla o combinarla desde "Agrupar por".
-    ================================================================= -->
-    <record id="view_moodle_sync_log_search" model="ir.ui.view">
-        <field name="name">moodle.sync.log.search</field>
+    <record id="view_moodle_sync_log_search_administracion" model="ir.ui.view">
+        <field name="name">moodle.sync.log.search.administracion</field>
         <field name="model">moodle.sync.log</field>
         <field name="arch" type="xml">
             <search>
                 <field name="student_code" string="Estudiante (código)"/>
-                <field name="student_id" string="Estudiante (nombre)"/>
-                <field name="standard_id" string="Sección"/>
-                <field name="evaluacion_id" string="Evaluación"/>
+                <field name="inscripcion_id"/>
+                <field name="retiro_id"/>
+                <field name="cambio_id"/>
                 <field name="name" string="Operación"/>
                 <separator/>
-                <filter name="filter_error" string="Con error"
-                        domain="[('status', '=', 'error')]"/>
-                <filter name="filter_success" string="Exitosos"
-                        domain="[('status', '=', 'success')]"/>
+                <filter name="filter_error" string="Con error" domain="[('status', '=', 'error')]"/>
+                <filter name="filter_success" string="Exitosos" domain="[('status', '=', 'success')]"/>
                 <group expand="0" string="Agrupar por">
-                    <filter name="group_estudiante_codigo" string="Estudiante (código)"
-                            context="{'group_by': 'student_code'}"/>
-                    <filter name="group_estudiante_nombre" string="Estudiante (nombre)"
-                            context="{'group_by': 'student_id'}"/>
-                    <filter name="group_seccion" string="Sección"
-                            context="{'group_by': 'standard_id'}"/>
-                    <filter name="group_evaluacion" string="Evaluación"
-                            context="{'group_by': 'evaluacion_id'}"/>
-                    <filter name="group_operacion" string="Operación"
-                            context="{'group_by': 'name'}"/>
-                    <filter name="group_estado" string="Estado"
-                            context="{'group_by': 'status'}"/>
+                    <filter name="group_estudiante_codigo" string="Estudiante (código)" context="{'group_by': 'student_code'}"/>
+                    <filter name="group_operacion" string="Operación" context="{'group_by': 'name'}"/>
+                    <filter name="group_estado" string="Estado" context="{'group_by': 'status'}"/>
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- ================================================================
-         Log 1 de 4: Administración (Inscripciones, Cambios y Retiros)
-    ================================================================= -->
     <record id="action_moodle_sync_log_administracion" model="ir.actions.act_window">
         <field name="name">Log (Administración)</field>
         <field name="res_model">moodle.sync.log</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">['|', '|', ('inscripcion_id', '!=', False), ('retiro_id', '!=', False), ('cambio_id', '!=', False)]</field>
+        <field name="search_view_id" ref="view_moodle_sync_log_search_administracion"/>
         <field name="context">{'search_default_group_estudiante_codigo': 1}</field>
+    </record>
+    <record id="action_moodle_sync_log_administracion_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_moodle_sync_log_tree_administracion"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_administracion"/>
+    </record>
+    <record id="action_moodle_sync_log_administracion_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_moodle_sync_log_form_administracion"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_administracion"/>
     </record>
 
     <!-- ================================================================
          Log 2 de 4: Estudiante (sincronización de cuenta)
     ================================================================= -->
+    <record id="view_moodle_sync_log_tree_estudiante" model="ir.ui.view">
+        <field name="name">moodle.sync.log.tree.estudiante</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="status == 'error'"
+                  decoration-success="status == 'success'" create="false">
+                <field name="create_date"/>
+                <field name="name" string="Operación"/>
+                <field name="student_id" string="Estudiante"/>
+                <field name="student_code" string="Código"/>
+                <field name="status"/>
+                <field name="message" string="Detalle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_sync_log_form_estudiante" model="ir.ui.view">
+        <field name="name">moodle.sync.log.form.estudiante</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <group>
+                        <field name="name" string="Operación"/>
+                        <field name="status"/>
+                        <field name="create_date"/>
+                        <field name="student_id"/>
+                        <field name="student_code"/>
+                    </group>
+                    <group>
+                        <field name="message"/>
+                        <field name="request_data"/>
+                        <field name="response_data"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_moodle_sync_log_search_estudiante" model="ir.ui.view">
+        <field name="name">moodle.sync.log.search.estudiante</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="student_id" string="Estudiante (nombre)"/>
+                <field name="student_code" string="Estudiante (código)"/>
+                <field name="name" string="Operación"/>
+                <separator/>
+                <filter name="filter_error" string="Con error" domain="[('status', '=', 'error')]"/>
+                <filter name="filter_success" string="Exitosos" domain="[('status', '=', 'success')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_estudiante_nombre" string="Estudiante (nombre)" context="{'group_by': 'student_id'}"/>
+                    <filter name="group_operacion" string="Operación" context="{'group_by': 'name'}"/>
+                    <filter name="group_estado" string="Estado" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_moodle_sync_log_estudiante" model="ir.actions.act_window">
         <field name="name">Log (Estudiante)</field>
         <field name="res_model">moodle.sync.log</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('student_id', '!=', False)]</field>
+        <field name="search_view_id" ref="view_moodle_sync_log_search_estudiante"/>
         <field name="context">{'search_default_group_estudiante_nombre': 1}</field>
+    </record>
+    <record id="action_moodle_sync_log_estudiante_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_moodle_sync_log_tree_estudiante"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_estudiante"/>
+    </record>
+    <record id="action_moodle_sync_log_estudiante_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_moodle_sync_log_form_estudiante"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_estudiante"/>
     </record>
 
     <!-- ================================================================
          Log 3 de 4: Secciones (sincronización de grupo y miembros)
     ================================================================= -->
+    <record id="view_moodle_sync_log_tree_secciones" model="ir.ui.view">
+        <field name="name">moodle.sync.log.tree.secciones</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="status == 'error'"
+                  decoration-success="status == 'success'" create="false">
+                <field name="create_date"/>
+                <field name="name" string="Operación"/>
+                <field name="standard_id" string="Sección"/>
+                <field name="student_code" string="Estudiante"/>
+                <field name="status"/>
+                <field name="message" string="Detalle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_sync_log_form_secciones" model="ir.ui.view">
+        <field name="name">moodle.sync.log.form.secciones</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <group>
+                        <field name="name" string="Operación"/>
+                        <field name="status"/>
+                        <field name="create_date"/>
+                        <field name="standard_id"/>
+                        <field name="student_code"/>
+                    </group>
+                    <group>
+                        <field name="message"/>
+                        <field name="request_data"/>
+                        <field name="response_data"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_moodle_sync_log_search_secciones" model="ir.ui.view">
+        <field name="name">moodle.sync.log.search.secciones</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="standard_id" string="Sección"/>
+                <field name="student_code" string="Estudiante (código)"/>
+                <field name="name" string="Operación"/>
+                <separator/>
+                <filter name="filter_error" string="Con error" domain="[('status', '=', 'error')]"/>
+                <filter name="filter_success" string="Exitosos" domain="[('status', '=', 'success')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_seccion" string="Sección" context="{'group_by': 'standard_id'}"/>
+                    <filter name="group_estudiante_codigo" string="Estudiante (código)" context="{'group_by': 'student_code'}"/>
+                    <filter name="group_operacion" string="Operación" context="{'group_by': 'name'}"/>
+                    <filter name="group_estado" string="Estado" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_moodle_sync_log_secciones" model="ir.actions.act_window">
         <field name="name">Log (Secciones)</field>
         <field name="res_model">moodle.sync.log</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('standard_id', '!=', False)]</field>
+        <field name="search_view_id" ref="view_moodle_sync_log_search_secciones"/>
         <field name="context">{'search_default_group_seccion': 1}</field>
+    </record>
+    <record id="action_moodle_sync_log_secciones_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_moodle_sync_log_tree_secciones"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_secciones"/>
+    </record>
+    <record id="action_moodle_sync_log_secciones_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_moodle_sync_log_form_secciones"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_secciones"/>
     </record>
 
     <!-- ================================================================
          Log 4 de 4: Evaluaciones (sincronización de actividades /
          activity completion por unidad)
     ================================================================= -->
+    <record id="view_moodle_sync_log_tree_evaluaciones" model="ir.ui.view">
+        <field name="name">moodle.sync.log.tree.evaluaciones</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <tree decoration-danger="status == 'error'"
+                  decoration-success="status == 'success'" create="false">
+                <field name="create_date"/>
+                <field name="name" string="Operación"/>
+                <field name="evaluacion_id" string="Evaluación"/>
+                <field name="student_code" string="Estudiante"/>
+                <field name="status"/>
+                <field name="message" string="Detalle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_sync_log_form_evaluaciones" model="ir.ui.view">
+        <field name="name">moodle.sync.log.form.evaluaciones</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <sheet>
+                    <group>
+                        <field name="name" string="Operación"/>
+                        <field name="status"/>
+                        <field name="create_date"/>
+                        <field name="evaluacion_id"/>
+                        <field name="student_code"/>
+                    </group>
+                    <group>
+                        <field name="message"/>
+                        <field name="request_data"/>
+                        <field name="response_data"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_moodle_sync_log_search_evaluaciones" model="ir.ui.view">
+        <field name="name">moodle.sync.log.search.evaluaciones</field>
+        <field name="model">moodle.sync.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="evaluacion_id" string="Evaluación"/>
+                <field name="student_code" string="Estudiante (código)"/>
+                <field name="name" string="Operación"/>
+                <separator/>
+                <filter name="filter_error" string="Con error" domain="[('status', '=', 'error')]"/>
+                <filter name="filter_success" string="Exitosos" domain="[('status', '=', 'success')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_evaluacion" string="Evaluación" context="{'group_by': 'evaluacion_id'}"/>
+                    <filter name="group_estudiante_codigo" string="Estudiante (código)" context="{'group_by': 'student_code'}"/>
+                    <filter name="group_operacion" string="Operación" context="{'group_by': 'name'}"/>
+                    <filter name="group_estado" string="Estado" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_moodle_sync_log_evaluaciones" model="ir.actions.act_window">
         <field name="name">Log (Evaluaciones)</field>
         <field name="res_model">moodle.sync.log</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('evaluacion_id', '!=', False)]</field>
+        <field name="search_view_id" ref="view_moodle_sync_log_search_evaluaciones"/>
         <field name="context">{'search_default_group_evaluacion': 1}</field>
+    </record>
+    <record id="action_moodle_sync_log_evaluaciones_view_tree" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_moodle_sync_log_tree_evaluaciones"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_evaluaciones"/>
+    </record>
+    <record id="action_moodle_sync_log_evaluaciones_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_moodle_sync_log_form_evaluaciones"/>
+        <field name="act_window_id" ref="action_moodle_sync_log_evaluaciones"/>
     </record>
 
 </odoo>

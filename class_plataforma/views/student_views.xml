@@ -27,11 +27,11 @@
         <field name="arch" type="xml">
             <xpath expr="//header/field[@name='state']" position="before">
                 <button name="action_check_moodle_status"
-                        string="Verificar estado en Plataforma"
+                        string="Verificar estado en PLATAFORMA"
                         type="object"
                         attrs="{'invisible': [('state', '=', 'draft')]}"/>
                 <button name="action_retry_sync_moodle"
-                        string="Sincronizar con Plataforma"
+                        string="Sincronizar con PLATAFORMA"
                         type="object"
                         class="oe_highlight"
                         attrs="{'invisible': ['|', ('moodle_synced', '=', True), ('state', '=', 'draft')]}"/>
@@ -60,11 +60,11 @@
         <field name="arch" type="xml">
             <xpath expr="//header/field[@name='state']" position="before">
                 <button name="action_check_moodle_status"
-                        string="Verificar estado en Plataforma"
+                        string="Verificar estado en PLATAFORMA"
                         type="object"
                         attrs="{'invisible': [('state', '=', 'draft')]}"/>
                 <button name="action_retry_sync_moodle"
-                        string="Sincronizar con Plataforma"
+                        string="Sincronizar con PLATAFORMA"
                         type="object"
                         class="oe_highlight"
                         attrs="{'invisible': ['|', ('moodle_synced', '=', True), ('state', '=', 'draft')]}"/>

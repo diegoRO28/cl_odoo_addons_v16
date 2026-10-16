@@ -9,7 +9,7 @@
             <!-- Se inserta justo antes del statusbar, patrón estándar de Odoo -->
             <xpath expr="//header/field[@name='state']" position="before">
                 <button name="action_retry_sync_moodle"
-                        string="Inscribir en Plataforma"
+                        string="Inscribir en PLATAFORMA"
                         type="object"
                         class="oe_highlight"
                         attrs="{'invisible': ['|', ('moodle_enrolled', '=', True), ('state', '!=', 'done')]}"/>
@@ -33,7 +33,7 @@
                                decoration-success="plataforma_estado == 'activo'"
                                decoration-danger="plataforma_estado == 'suspendido'"/>
                         <field name="plataforma_url" widget="url"
-                               text="Ver perfil en la Plataforma"/>
+                               text="Ver perfil en la PLATAFORMA"/>
                     </group>
                 </group>
             </xpath>

@@ -1,8 +1,6 @@
 # See LICENSE file for full copyright and licensing details.
 
 import logging
-import time
-from datetime import timedelta
 
 from odoo import fields, models
 from odoo.exceptions import UserError
@@ -94,14 +92,9 @@ class StudentRetiroMoodle(models.Model):
                     "'%s' (falta 'Código Moodle' en el curso)."
                 ) % record.standard_id.display_name)
 
-            # ---------- Recalcular timestart/timeend (para no perderlos) ----------
-            timestart = int(time.mktime(record.ri_id.inscription_date.timetuple()))
-            invoice_due_date = (
-                record.ri_id.move_id.invoice_date_due
-                or (fields.Date.today() + timedelta(days=30))
-            )
-            moodle_expiry_date = invoice_due_date + timedelta(days=1)
-            timeend = int(time.mktime(moodle_expiry_date.timetuple()))
+            # ---------- Fechas de la matrícula (misma fórmula que usa la
+            #            inscripción; no se recalcula aparte) ----------
+            timestart, timeend = record.ri_id._get_moodle_enrol_dates()
 
             # ---------- Suspender la MATRÍCULA (no la cuenta) ----------
             client.set_enrolment_suspended(
@@ -113,6 +106,10 @@ class StudentRetiroMoodle(models.Model):
             record.moodle_suspended = True
             record.moodle_sync_error = False
             record.moodle_error_message = False
+            # La inscripción asociada también queda marcada como
+            # suspendida: su 'plataforma_estado' pasa a "Suspendido" al
+            # instante, sin esperar a que llegue su fecha de vencimiento.
+            record.ri_id.moodle_suspended = True
             _logger.info(
                 "Matrícula Moodle suspendida por retiro: %s (usuario %s, curso %s)",
                 record.name, student_code, course_id,

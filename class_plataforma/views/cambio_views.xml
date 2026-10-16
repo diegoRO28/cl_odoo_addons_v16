@@ -8,7 +8,7 @@
         <field name="arch" type="xml">
             <xpath expr="//header/field[@name='state']" position="before">
                 <button name="action_retry_sync_moodle"
-                        string="Sincronizar grupo en Plataforma"
+                        string="Sincronizar grupo en PLATAFORMA"
                         type="object"
                         class="oe_highlight"
                         attrs="{'invisible': ['|', ('moodle_group_synced', '=', True), ('state', '!=', 'terminate')]}"/>

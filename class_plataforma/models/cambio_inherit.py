@@ -62,69 +62,94 @@ class StudentCambioMoodle(models.Model):
         en la sección origen al grupo configurado en la sección destino.
         El código de grupo es el campo 'code' que ya existe en
         school.standard (ej. 'SEC-02/BEG') — se usa tal cual, no hace
-        falta un campo nuevo."""
+        falta un campo nuevo.
+
+        Reutiliza los IDs de curso/grupo ya guardados en school.standard
+        (los mismos que mantiene la sincronización de Sección) y el
+        moodle_user_id ya vinculado al estudiante: con todo cacheado,
+        esto cuesta ~2 peticiones (quitar + agregar del grupo) en vez de
+        buscar usuario, curso y grupo de origen y destino cada vez."""
         client = self.env['moodle.client']
         config = self.env['moodle.config'].get_active_config()
 
         for record in self:
-            student_code = record.student_code or record.student_id.student_code
+            student = record.student_id
+            student_code = record.student_code or student.student_code
             if not student_code:
                 raise UserError(_(
                     "El estudiante no tiene código, no se puede ubicar en Moodle."
                 ))
 
-            user = client.get_user_by_field(
-                'username', student_code, config=config, related_record=record
-            )
-            if not user:
-                raise UserError(_(
-                    "No se encontró en Moodle un usuario con username '%s'."
-                ) % student_code)
-            moodle_user_id = user.get('id')
-
-            # ---------- Grupo ORIGEN (por código, desde standard_id) ----------
-            origin_group_code = record.standard_id.code
-            origin_code_moodle = record.standard_id.subject_id.code_moodle
-            origin_group_id = False
-            if origin_group_code and origin_code_moodle:
-                origin_course = client.search_course_by_shortname(
-                    origin_code_moodle, config=config, related_record=record
+            moodle_user_id = student.moodle_user_id or False
+            if not moodle_user_id:
+                user = client.get_user_by_field(
+                    'username', student_code, config=config, related_record=record
                 )
-                if origin_course:
-                    origin_group_id = client.get_or_create_group(
-                        origin_course.get('id'), origin_group_code,
-                        config=config, related_record=record,
-                    )
+                if not user:
+                    raise UserError(_(
+                        "No se encontró en Moodle un usuario con username '%s'."
+                    ) % student_code)
+                moodle_user_id = user.get('id')
+                if not student.moodle_user_id:
+                    student.write({'moodle_user_id': moodle_user_id, 'moodle_synced': True})
 
-            # ---------- Grupo DESTINO (obligatorio, se crea si no existe) ----------
-            dest_group_code = record.standard_des_id.code
+            # ---------- Grupo ORIGEN (IDs ya guardados en la sección) ----------
+            origin_standard = record.standard_id
+            origin_group_code = origin_standard.code
+            origin_group_id = origin_standard.moodle_group_id or False
+            if not origin_group_id and origin_group_code:
+                origin_code_moodle = origin_standard.subject_id.code_moodle
+                if origin_code_moodle:
+                    origin_course_id = origin_standard.moodle_course_id or False
+                    if not origin_course_id:
+                        origin_course = client.search_course_by_shortname(
+                            origin_code_moodle, config=config, related_record=record
+                        )
+                        origin_course_id = origin_course.get('id') if origin_course else False
+                        if origin_course_id:
+                            origin_standard.moodle_course_id = origin_course_id
+                    if origin_course_id:
+                        origin_group_id = client.get_or_create_group(
+                            origin_course_id, origin_group_code,
+                            config=config, related_record=record,
+                        )
+                        origin_standard.moodle_group_id = origin_group_id
+
+            # ---------- Grupo DESTINO (obligatorio; IDs ya guardados) ----------
+            dest_standard = record.standard_des_id
+            dest_group_code = dest_standard.code
             if not dest_group_code:
                 raise UserError(_(
                     "La sección destino '%s' no tiene un 'code' asignado, "
                     "no se puede determinar el grupo en Moodle."
-                ) % record.standard_des_id.display_name)
+                ) % dest_standard.display_name)
 
-            dest_code_moodle = record.standard_des_id.subject_id.code_moodle
-            if not dest_code_moodle:
-                raise UserError(_(
-                    "El curso de la sección destino '%s' no tiene 'Código "
-                    "Moodle' configurado."
-                ) % record.standard_des_id.subject_id.name)
+            dest_course_id = dest_standard.moodle_course_id or False
+            if not dest_course_id:
+                dest_code_moodle = dest_standard.subject_id.code_moodle
+                if not dest_code_moodle:
+                    raise UserError(_(
+                        "El curso de la sección destino '%s' no tiene 'Código "
+                        "Moodle' configurado."
+                    ) % dest_standard.subject_id.name)
+                dest_course = client.search_course_by_shortname(
+                    dest_code_moodle, config=config, related_record=record
+                )
+                if not dest_course:
+                    raise UserError(_(
+                        "No se encontró en Moodle el curso destino (Código "
+                        "Moodle '%s')."
+                    ) % dest_code_moodle)
+                dest_course_id = dest_course.get('id')
+                dest_standard.moodle_course_id = dest_course_id
 
-            dest_course = client.search_course_by_shortname(
-                dest_code_moodle, config=config, related_record=record
-            )
-            if not dest_course:
-                raise UserError(_(
-                    "No se encontró en Moodle el curso destino (Código "
-                    "Moodle '%s')."
-                ) % dest_code_moodle)
-            dest_course_id = dest_course.get('id')
-
-            dest_group_id = client.get_or_create_group(
-                dest_course_id, dest_group_code,
-                config=config, related_record=record,
-            )
+            dest_group_id = dest_standard.moodle_group_id or False
+            if not dest_group_id:
+                dest_group_id = client.get_or_create_group(
+                    dest_course_id, dest_group_code,
+                    config=config, related_record=record,
+                )
+                dest_standard.moodle_group_id = dest_group_id
 
             # ---------- Ejecutar el movimiento ----------
             if origin_group_id:

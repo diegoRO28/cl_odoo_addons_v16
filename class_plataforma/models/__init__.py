@@ -9,3 +9,4 @@ from . import student_inherit
 from . import standard_inherit
 from . import moodle_actividad
 from . import evaluacion_inherit
+from . import bulk_actions
